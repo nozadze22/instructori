@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Noto_Sans_Georgian } from "next/font/google";
 import { Providers } from "@/components/providers";
+import Navbar from "@/components/shared/navbar/navaber";
+import Wrapper from "@/components/shared/wrapper/wrapper";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const notoSansGeorgian = Noto_Sans_Georgian({
+  variable: "--font-sans",
+  subsets: ["georgian", "latin"],
 });
 
 const geistMono = Geist_Mono({
@@ -14,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Instructori",
-  description: "Instructori frontend",
+  title: "SimDrive Pro | პროფესიული სიმულაციური ტრენინგი",
+  description:
+    "ყველაზე მოწინავე მართვის სიმულაციის პლატფორმა მაღალი სტანდარტის გამოცდებისთვის.",
 };
 
 export default function RootLayout({
@@ -26,11 +29,16 @@ export default function RootLayout({
   return (
     <html
       lang="ka"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${notoSansGeorgian.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">
-        <Providers>{children}</Providers>
+        <Providers>
+          <Navbar />
+          <main className="mt-16 flex-1">
+            <Wrapper>{children}</Wrapper>
+          </main>
+        </Providers>
       </body>
     </html>
   );

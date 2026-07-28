@@ -1,0 +1,23 @@
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+function Wrapper({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "mx-auto w-full max-w-352 px-5 sm:px-7 lg:px-8",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export default Wrapper;
