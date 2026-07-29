@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ContactModule } from './modules/conatct/contanct.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -10,6 +11,7 @@ import { PrismaModule } from './prisma/prisma.module';
       isGlobal: true,
     }),
     PrismaModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [AppService],

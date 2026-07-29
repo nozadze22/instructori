@@ -1,45 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowRight,
   Clock3,
   Mail,
   MapPin,
   Phone,
-  Send,
   ShieldCheck,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-
-const contactSchema = z.object({
-  fullName: z.string().min(2, "გთხოვთ მიუთითოთ სახელი და გვარი."),
-  email: z.email("გთხოვთ მიუთითოთ სწორი ელ-ფოსტა."),
-  subject: z.string().min(3, "თემა უნდა იყოს მინიმუმ 3 სიმბოლო."),
-  message: z.string().min(10, "შეტყობინება უნდა იყოს მინიმუმ 10 სიმბოლო."),
-});
-
-type ContactFormValues = z.infer<typeof contactSchema>;
-
-const defaultValues: ContactFormValues = {
-  fullName: "",
-  email: "",
-  subject: "",
-  message: "",
-};
+import { ContactForm } from "@/features/contact/components/contact-form";
 
 const faqs = [
   {
@@ -60,19 +30,6 @@ const faqs = [
 ];
 
 export function Contact() {
-  const [isSent, setIsSent] = useState(false);
-  const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactSchema),
-    defaultValues,
-    mode: "onSubmit",
-  });
-
-  const onSubmit = (values: ContactFormValues) => {
-    console.log("Contact form values", values);
-    setIsSent(true);
-    form.reset(defaultValues);
-  };
-
   return (
     <>
       <main className="px-6 pt-24 pb-16">
@@ -93,80 +50,7 @@ export function Contact() {
           <section className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             <div className="glass-card rounded-3xl border border-white/10 p-8 lg:col-span-7">
               <h2 className="mb-6 text-2xl font-bold text-primary">მოგვწერეთ</h2>
-
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-                noValidate
-              >
-                <FieldGroup className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <Field data-invalid={!!form.formState.errors.fullName}>
-                    <FieldLabel htmlFor="fullName">სახელი და გვარი</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="fullName"
-                        placeholder="გიორგი ბერიძე"
-                        className="h-11 rounded-xl bg-surface-lowest"
-                        {...form.register("fullName")}
-                      />
-                      <FieldError errors={[form.formState.errors.fullName]} />
-                    </FieldContent>
-                  </Field>
-
-                  <Field data-invalid={!!form.formState.errors.email}>
-                    <FieldLabel htmlFor="email">ელ-ფოსტა</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="giorgi@example.com"
-                        className="h-11 rounded-xl bg-surface-lowest"
-                        {...form.register("email")}
-                      />
-                      <FieldError errors={[form.formState.errors.email]} />
-                    </FieldContent>
-                  </Field>
-                </FieldGroup>
-
-                <Field data-invalid={!!form.formState.errors.subject}>
-                  <FieldLabel htmlFor="subject">თემა</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="subject"
-                      placeholder="სიმულატორის ტესტირება"
-                      className="h-11 rounded-xl bg-surface-lowest"
-                      {...form.register("subject")}
-                    />
-                    <FieldError errors={[form.formState.errors.subject]} />
-                  </FieldContent>
-                </Field>
-
-                <Field data-invalid={!!form.formState.errors.message}>
-                  <FieldLabel htmlFor="message">შეტყობინება</FieldLabel>
-                  <FieldContent>
-                    <Textarea
-                      id="message"
-                      rows={6}
-                      placeholder="როგორ შემიძლია დავჯავშნო პრაქტიკული მეცადინეობა?"
-                      className="rounded-xl bg-surface-lowest"
-                      {...form.register("message")}
-                    />
-                    <FieldDescription>
-                      პასუხს მიიღებთ სამუშაო საათებში მაქსიმუმ 24 საათში.
-                    </FieldDescription>
-                    <FieldError errors={[form.formState.errors.message]} />
-                  </FieldContent>
-                </Field>
-
-                <Button
-                  type="submit"
-                  className="h-12 w-full rounded-xl bg-primary font-bold text-on-primary-container hover:brightness-110"
-                  disabled={form.formState.isSubmitting}
-                >
-                  გაგზავნა
-                  <Send className="size-4" />
-                </Button>
-              </form>
+              <ContactForm />
             </div>
 
             <div className="space-y-6 lg:col-span-5">
@@ -279,23 +163,6 @@ export function Contact() {
         </div>
       </main>
 
-      {isSent ? (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm">
-          <div className="glass-card w-full max-w-md rounded-3xl border border-primary/20 p-8 text-center shadow-2xl shadow-primary/10">
-            <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-primary/20 text-primary">
-              <ShieldCheck className="size-8" />
-            </div>
-            <h3 className="text-2xl font-bold">მადლობა!</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              თქვენი შეტყობინება წარმატებით გაიგზავნა. ჩვენი გუნდი მალე
-              დაგიკავშირდებათ.
-            </p>
-            <Button className="mt-6 w-full" onClick={() => setIsSent(false)}>
-              დახურვა
-            </Button>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }
