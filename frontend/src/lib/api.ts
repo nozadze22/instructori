@@ -30,12 +30,15 @@ export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const { headers: initHeaders, ...rest } = init;
+
   const response = await fetch(getApiUrl(path), {
+    ...rest,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(init.headers ?? {}),
+      ...(initHeaders ?? {}),
     },
-    ...init,
   });
 
   if (!response.ok) {

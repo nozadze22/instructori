@@ -25,7 +25,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export declare const UserScalarFieldEnum: {
     readonly id: "id";
     readonly email: "email";
-    readonly name: "name";
+    readonly passwordHash: "passwordHash";
+    readonly fullName: "fullName";
+    readonly role: "role";
     readonly createdAt: "createdAt";
     readonly updatedAt: "updatedAt";
 };
@@ -49,8 +51,3 @@ export declare const QueryMode: {
     readonly insensitive: "insensitive";
 };
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode];
-export declare const NullsOrder: {
-    readonly first: "first";
-    readonly last: "last";
-};
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder];

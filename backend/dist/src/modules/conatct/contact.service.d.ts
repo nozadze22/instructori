@@ -10,7 +10,7 @@ type ContactSelect = {
     createdAt: true;
 };
 type ContactCreateArgs = {
-    data: Pick<CreateContactDto, 'fullName' | 'email' | 'subject' | 'message'>;
+    data: Pick<CreateContactDto, 'fullName' | 'email' | 'message'>;
     select: ContactSelect;
 };
 type ContactFindManyArgs = {

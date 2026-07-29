@@ -11,14 +11,20 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+  ADMIN
+  INSTRUCTOR
 }
 
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  fullName        String
+  role            Role             @default(INSTRUCTOR)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
 
 model Contact {
   id        String   @id @default(cuid())
