@@ -161,6 +161,7 @@ export type FieldRef<Model, FieldType> = runtime.FieldRef<Model, FieldType>;
 type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRef<Model, FieldType>;
 export declare const ModelName: {
     readonly User: "User";
+    readonly Contact: "Contact";
 };
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
 export interface TypeMapCb<GlobalOmitOptions = {}> extends runtime.Types.Utils.Fn<{
@@ -173,7 +174,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         omit: GlobalOmitOptions;
     };
     meta: {
-        modelProps: "user";
+        modelProps: "user" | "contact";
         txIsolationLevel: TransactionIsolationLevel;
     };
     model: {
@@ -251,6 +252,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
                 };
             };
         };
+        Contact: {
+            payload: Prisma.$ContactPayload<ExtArgs>;
+            fields: Prisma.ContactFieldRefs;
+            operations: {
+                findUnique: {
+                    args: Prisma.ContactFindUniqueArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload> | null;
+                };
+                findUniqueOrThrow: {
+                    args: Prisma.ContactFindUniqueOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>;
+                };
+                findFirst: {
+                    args: Prisma.ContactFindFirstArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload> | null;
+                };
+                findFirstOrThrow: {
+                    args: Prisma.ContactFindFirstOrThrowArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>;
+                };
+                findMany: {
+                    args: Prisma.ContactFindManyArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>[];
+                };
+                create: {
+                    args: Prisma.ContactCreateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>;
+                };
+                createMany: {
+                    args: Prisma.ContactCreateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                createManyAndReturn: {
+                    args: Prisma.ContactCreateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>[];
+                };
+                delete: {
+                    args: Prisma.ContactDeleteArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>;
+                };
+                update: {
+                    args: Prisma.ContactUpdateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>;
+                };
+                deleteMany: {
+                    args: Prisma.ContactDeleteManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateMany: {
+                    args: Prisma.ContactUpdateManyArgs<ExtArgs>;
+                    result: BatchPayload;
+                };
+                updateManyAndReturn: {
+                    args: Prisma.ContactUpdateManyAndReturnArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>[];
+                };
+                upsert: {
+                    args: Prisma.ContactUpsertArgs<ExtArgs>;
+                    result: runtime.Types.Utils.PayloadToResult<Prisma.$ContactPayload>;
+                };
+                aggregate: {
+                    args: Prisma.ContactAggregateArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.AggregateContact>;
+                };
+                groupBy: {
+                    args: Prisma.ContactGroupByArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.ContactGroupByOutputType>[];
+                };
+                count: {
+                    args: Prisma.ContactCountArgs<ExtArgs>;
+                    result: runtime.Types.Utils.Optional<Prisma.ContactCountAggregateOutputType> | number;
+                };
+            };
+        };
     };
 } & {
     other: {
@@ -290,6 +365,15 @@ export declare const UserScalarFieldEnum: {
     readonly updatedAt: "updatedAt";
 };
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum];
+export declare const ContactScalarFieldEnum: {
+    readonly id: "id";
+    readonly fullName: "fullName";
+    readonly email: "email";
+    readonly subject: "subject";
+    readonly message: "message";
+    readonly createdAt: "createdAt";
+};
+export type ContactScalarFieldEnum = (typeof ContactScalarFieldEnum)[keyof typeof ContactScalarFieldEnum];
 export declare const SortOrder: {
     readonly asc: "asc";
     readonly desc: "desc";
@@ -340,6 +424,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter;
 export type GlobalOmitConfig = {
     user?: Prisma.UserOmit;
+    contact?: Prisma.ContactOmit;
 };
 export type LogLevel = 'info' | 'query' | 'warn' | 'error';
 export type LogDefinition = {
