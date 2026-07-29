@@ -1,6 +1,29 @@
+# dependencies
 node_modules
-# Keep environment variables out of version control
-.env
 
+# build
+/dist
+/build
+*.tsbuildinfo
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs / coverage
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+coverage
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+
+# Prisma generated client
 /generated/prisma
 /src/generated/prisma
