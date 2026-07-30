@@ -4,10 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Brain,
-  ChartColumn,
   Eye,
   Factory,
-  Gauge,
   Link2,
   Satellite,
 } from "lucide-react";
