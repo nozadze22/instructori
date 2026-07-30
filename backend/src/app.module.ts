@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { ContactModule } from './modules/conatct/contanct.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ProfileModule } from './modules/profile/profile.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -14,6 +16,8 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     ContactModule,
     AuthModule,
+    DashboardModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

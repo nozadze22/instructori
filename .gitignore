@@ -2,9 +2,10 @@
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE / editor
 .idea
 .vscode
+.cursor
 *.swp
 
 # Env (any package)
@@ -17,6 +18,8 @@ node_modules
 dist
 build
 coverage
+.next
+out
 *.tsbuildinfo
 
 # Logs
@@ -25,3 +28,6 @@ npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local overrides
+*.local

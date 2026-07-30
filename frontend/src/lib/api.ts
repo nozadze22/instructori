@@ -1,8 +1,9 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 export function getApiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${API_URL}${normalizedPath}`;
+  const base = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+  return `${base}${normalizedPath}`;
 }
 
 async function parseErrorMessage(response: Response): Promise<string> {
@@ -15,6 +16,9 @@ async function parseErrorMessage(response: Response): Promise<string> {
     const parsed = JSON.parse(text) as { message?: unknown; error?: unknown };
     if (typeof parsed.message === "string" && parsed.message) {
       return parsed.message;
+    }
+    if (Array.isArray(parsed.message) && parsed.message.length > 0) {
+      return parsed.message.map(String).join(", ");
     }
     if (typeof parsed.error === "string" && parsed.error) {
       return parsed.error;

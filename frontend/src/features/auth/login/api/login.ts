@@ -3,11 +3,17 @@ import type { LoginSchema } from "../schema/login.schema";
 
 export type Role = "ADMIN" | "INSTRUCTOR";
 
+export type AccessStatus = "PENDING" | "ACTIVE" | "BLOCKED";
+
+export type AccessSource = "ADMIN" | "PAYMENT";
+
 export type AuthUser = {
   userId: string;
   email: string;
   fullName: string;
   role: Role;
+  accessStatus: AccessStatus;
+  accessSource: AccessSource | null;
 };
 
 export type LoginResponse = {

@@ -1,24 +1,18 @@
 import { apiRequest } from "@/lib/api";
-import { RegisterSchema } from "../schema/register.schema";
+import type { RegisterSchema } from "../schema/register.schema";
+import type { AuthUser } from "@/features/auth/login/api/login";
 
 export type RegisterResponse = {
-    user: {
-      userId: string;
-      email: string;
-      fullName: string;
-      role: "ADMIN" | "INSTRUCTOR";
-    };
-  };
+  user: AuthUser;
+};
 
 export async function register(data: RegisterSchema): Promise<RegisterResponse> {
-    try {
-        const responce = await apiRequest<RegisterResponse>("/auth/register", {
-            method: "POST",
-            body: JSON.stringify(data),
-        });
-        return responce;
-    } catch (error) {
-        console.log(error);
-        throw new Error("მოხდა შეცდომა");
-    }
+  return apiRequest<RegisterResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      fullName: data.fullName,
+      email: data.email,
+      password: data.password,
+    }),
+  });
 }

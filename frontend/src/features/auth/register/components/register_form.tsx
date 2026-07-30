@@ -5,11 +5,8 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowRight,
-  Baby,
-  Car,
   Eye,
   EyeOff,
-  Gauge,
   HardHat,
   Lock,
   Mail,
@@ -44,7 +41,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { cn } from "@/lib/utils";
+import { useRegister } from "../hooks/register";
 
 const INSTRUCTOR_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDI2vAHWB_6JA1CAE5lQnbW7wdui35EmjgBxEupcWnjvXNUknAGiAtYuPT3mxMG3EOumIoP_HzEz87dqSS84_jCdBYHL_82eP23M2YFWS8gv4asMDsZBxSPxmq4kGthQo5wSuO84dsY6SUSQ11OnwhbEMIIO-a5ezUXUXbhqqkaLNAG_aEs-18qJ-abigXi96PF73aiGD-0HFjYxE4VNy5KBj0z2emBFFgVIVaMD6r3wX1jV3Ft-A11G5dH8vIj-ua3VfF7YfcOqMay";
@@ -54,24 +51,6 @@ const SOCIAL_PROOF_IMAGES = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBEvElLkoI_lyjiXVMkqa0nZTZs5eUnK-lGpVaoh_CQxvUcVVqajYaXTrUy0ytZ_IpGjCqe-e-97JRNQpDsD-7FvFlHR8IHVfrKedm3E6o5zVq10hKzkcTiG1HI_gOYxb9TIxjars2sh8l2yR1BAhbRqMw9JBaYleKHf5VcBGOY_zbDjEDELvIVWko3R_qs8nNQ3H_QNkCK8Ki1-kDlV9BOaO-D2Wt3uy8umOEb6DkYxnjar58wGbsAfysjLawXFONHS7eozkhmTa_v",
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCsYCw7bquOjIy6-rIcNHuMRfL_mIg2aO3iLkjkBlhJKbrRlNL4d8Pz5ZvwG4An84MPK-DYEzUnW56r4dugkx_0CkzIO2HT4rVlvhSEmjlKwlY1uQmQ-txWCuEPIdORKEaXE9wbJ4t-IoMptEcwAjkouW96JP-9-K4GIIpbSZK7FR0u8-7qmGiPVcPOPatqNLejUSuJjRKcBkEel75pfzCDhYZ1cjir9NH1En2bnwv7FPt6fe2XV_dk8JOpIIE45CQbDN5oSTAGLTqc",
 ] as const;
-
-const experienceOptions = [
-  {
-    value: "beginner" as const,
-    label: "Beginner",
-    icon: Baby,
-  },
-  {
-    value: "intermediate" as const,
-    label: "Intermediate",
-    icon: Car,
-  },
-  {
-    value: "advanced" as const,
-    label: "Advanced",
-    icon: Gauge,
-  },
-];
 
 const defaultValues: RegisterSchema = {
   fullName: "",
@@ -86,6 +65,8 @@ const inputGroupClassName =
 
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const { mutate: register, isPending } = useRegister();
 
   const form = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
@@ -94,7 +75,8 @@ export function RegisterForm() {
   });
 
   const onSubmit = async () => {
-    // Auth API wiring comes later
+    register(form.getValues())
+    form.reset()
   };
 
   return (
@@ -245,50 +227,46 @@ export function RegisterForm() {
                   </FieldContent>
                 </Field>
 
-                <Controller
-                  control={form.control}
-                  name="repeatPassword"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={!!fieldState.error}>
-                      <FieldLabel className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        Driving experience level
-                      </FieldLabel>
-                      <FieldContent>
-                        <div className="grid grid-cols-3 gap-2">
-                          {experienceOptions.map(
-                            ({ value, label, icon: Icon }) => {
-                              const active = field.value === value;
-                              return (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  onClick={() => field.onChange(value)}
-                                  className={cn(
-                                    "group flex flex-col items-center justify-center rounded-xl border border-white/10 bg-surface-low p-4 transition-all hover:bg-surface-high",
-                                    active && "border-primary bg-primary/5",
-                                  )}
-                                >
-                                  <Icon
-                                    className={cn(
-                                      "mb-2 size-6 transition-colors",
-                                      active
-                                        ? "fill-primary text-primary"
-                                        : "text-muted-foreground group-hover:text-primary",
-                                    )}
-                                  />
-                                  <span className="text-xs font-semibold text-foreground">
-                                    {label}
-                                  </span>
-                                </button>
-                              );
-                            },
-                          )}
-                        </div>
-                        <FieldError errors={[fieldState.error]} />
-                      </FieldContent>
-                    </Field>
-                  )}
-                />
+                <Field data-invalid={!!form.formState.errors.repeatPassword}>
+                  <FieldLabel
+                    htmlFor="repeatPassword"
+                    className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                  >
+                    Repeat password
+                  </FieldLabel>
+                  <FieldContent>
+                    <InputGroup className={inputGroupClassName}>
+                      <InputGroupAddon>
+                        <Lock />
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        id="repeatPassword"
+                        type={showRepeatPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        {...form.register("repeatPassword")}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          size="icon-sm"
+                          aria-label={
+                            showRepeatPassword
+                              ? "Hide password"
+                              : "Show password"
+                          }
+                          onClick={() =>
+                            setShowRepeatPassword((prev) => !prev)
+                          }
+                        >
+                          {showRepeatPassword ? <EyeOff /> : <Eye />}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+                    <FieldError
+                      errors={[form.formState.errors.repeatPassword]}
+                    />
+                  </FieldContent>
+                </Field>
 
                 <Controller
                   control={form.control}
@@ -337,7 +315,7 @@ export function RegisterForm() {
                 <Button
                   type="submit"
                   className="h-14 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]"
-                  disabled={form.formState.isSubmitting}
+                  disabled={isPending}
                 >
                   Create Account
                   <ArrowRight className="size-5" />

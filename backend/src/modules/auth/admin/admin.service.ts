@@ -1,114 +1,190 @@
 import {
-    ConflictException,
-    Injectable,
-    UnauthorizedException,
-  } from '@nestjs/common';
-  import { JwtService } from '@nestjs/jwt';
-  import * as bcrypt from 'bcrypt';
-  import { PrismaService } from '../../../prisma/prisma.service';
-  import type { AuthUser, Role } from '../dto/auth-types';
-  import { AdminCreateDto, AdminLoginDto } from './admin.dto';
-  
-  type AuthTokenUser = {
-    id: string;
-    email: string;
-    fullName: string;
-    role: Role;
-  };
-  
-  type LoginUser = AuthTokenUser & { passwordHash: string };
-  
-  type UserDelegate = {
-    findUnique: (args: {
-      where: { email: string };
-      select?: {
-        id?: true;
-        email?: true;
-        fullName?: true;
-        role?: true;
-        passwordHash?: true;
-      };
-    }) => Promise<LoginUser | null>;
-    create: (args: {
-      data: {
-        email: string;
-        fullName: string;
-        passwordHash: string;
-        role: Role;
-      };
-      select: {
-        id: true;
-        email: true;
-        fullName: true;
-        role: true;
-      };
-    }) => Promise<AuthTokenUser>;
-  };
-  
-  @Injectable()
-  export class AdminService {
-    constructor(
-      private readonly prisma: PrismaService & { user: UserDelegate },
-      private readonly jwt: JwtService,
-    ) {}
-  
-    async adminCreate(dto: AdminCreateDto) {
-      const exists = await this.prisma.user.findUnique({
-        where: { email: dto.email },
-      });
-      if (exists) throw new ConflictException('Email already registered');
-  
-      const passwordHash = await bcrypt.hash(dto.password, 10);
-  
-      const user = await this.prisma.user.create({
-        data: {
-          email: dto.email,
-          fullName: 'Admin',
-          passwordHash,
-          role: 'ADMIN',
-        },
-        select: { id: true, email: true, fullName: true, role: true },
-      });
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type {
+  AccessSource,
+  AccessStatus,
+  AuthUser,
+  Role,
+} from '../dto/auth-types';
+import {
+  AdminCreateDto,
+  AdminLoginDto,
+  UpdateUserAccessDto,
+} from './admin.dto';
 
-      return this.signToken(user);
-    }
+type AuthTokenUser = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: Role;
+  accessStatus: AccessStatus;
+  accessSource: AccessSource | null;
+};
 
-    async adminLogin(dto: AdminLoginDto) {
-      const user = await this.prisma.user.findUnique({
-        where: { email: dto.email },
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          role: true,
-          passwordHash: true,
-        },
-      });
-  
-      if (!user || user.role !== 'ADMIN') {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-  
-      const ok = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!ok) throw new UnauthorizedException('Invalid credentials');
-  
-      return this.signToken(user);
-    }
-  
-    private signToken(user: AuthTokenUser) {
-      return {
-        accessToken: this.jwt.sign({
-          sub: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-        }),
-        user: {
-          userId: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-        } satisfies AuthUser,
-      };
-    }
+@Injectable()
+export class AdminService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+  ) {}
+
+  async getSetupStatus() {
+    const adminCount = await this.prisma.user.count({
+      where: { role: 'ADMIN' },
+    });
+    return { needsSetup: adminCount === 0 };
   }
+
+  async adminSetup(dto: AdminCreateDto) {
+    const { needsSetup } = await this.getSetupStatus();
+    if (!needsSetup) {
+      throw new ForbiddenException('Admin already exists');
+    }
+    return this.createAdminUser(dto);
+  }
+
+  async adminCreate(dto: AdminCreateDto) {
+    const result = await this.createAdminUser(dto);
+    return { user: result.user };
+  }
+
+  async adminLogin(dto: AdminLoginDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+        passwordHash: true,
+      },
+    });
+
+    if (!user || user.role !== 'ADMIN') {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.accessStatus === 'BLOCKED') {
+      throw new UnauthorizedException('Account is blocked');
+    }
+
+    const ok = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!ok) throw new UnauthorizedException('Invalid credentials');
+
+    return this.signToken(user);
+  }
+
+  async listUsers() {
+    const users = await this.prisma.user.findMany({
+      where: { role: 'INSTRUCTOR' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+        accessGrantedAt: true,
+        createdAt: true,
+      },
+    });
+
+    return { users };
+  }
+
+  async updateUserAccess(userId: string, dto: UpdateUserAccessDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('User not found');
+
+    const accessStatus = dto.accessStatus;
+    const isActive = accessStatus === 'ACTIVE';
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        accessStatus,
+        accessSource: isActive ? (dto.accessSource ?? 'ADMIN') : null,
+        accessGrantedAt: isActive ? new Date() : null,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+        accessGrantedAt: true,
+        createdAt: true,
+      },
+    });
+
+    return { user };
+  }
+
+  private async createAdminUser(dto: AdminCreateDto) {
+    const exists = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (exists) throw new ConflictException('Email already registered');
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const now = new Date();
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        fullName: dto.fullName?.trim() || 'Admin',
+        passwordHash,
+        role: 'ADMIN',
+        accessStatus: 'ACTIVE',
+        accessSource: 'ADMIN',
+        accessGrantedAt: now,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+      },
+    });
+
+    return this.signToken(user);
+  }
+
+  private signToken(user: AuthTokenUser) {
+    return {
+      accessToken: this.jwt.sign({
+        sub: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        accessStatus: user.accessStatus,
+        accessSource: user.accessSource,
+      }),
+      user: {
+        userId: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        accessStatus: user.accessStatus,
+        accessSource: user.accessSource,
+      } satisfies AuthUser,
+    };
+  }
+}

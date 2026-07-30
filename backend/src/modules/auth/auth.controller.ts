@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import {
   clearAccessTokenCookie,
@@ -9,7 +17,7 @@ import { CurrentUser } from './auth_guard/current_user_decorator';
 import { RolesGuard } from './auth_guard/guard';
 import { Roles } from './auth_guard/roles.decorator';
 import type { AuthUser } from './dto/auth-types';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { ChangePasswordDto, LoginDto, RegisterDto } from './dto/auth.dto';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -46,6 +54,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: AuthUser) {
     return this.auth.getMe(user.userId);
+  }
+
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.auth.changePassword(user.userId, dto);
   }
 
   @Get('admin-only')

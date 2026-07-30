@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Noto_Sans_Georgian } from "next/font/google";
 import { Providers } from "@/components/providers";
-import Navbar from "@/components/shared/navbar/navaber";
-import Wrapper from "@/components/shared/wrapper/wrapper";
+import { AppChrome } from "@/components/shared/app-chrome";
 import "./globals.css";
 
 const notoSansGeorgian = Noto_Sans_Georgian({
@@ -34,10 +33,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col font-sans">
         <Providers>
-          <Navbar />
-          <main className="mt-16 flex-1">
-            <Wrapper>{children}</Wrapper>
-          </main>
+          <AppChrome>{children}</AppChrome>
         </Providers>
       </body>
     </html>

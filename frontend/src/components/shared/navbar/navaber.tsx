@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
+import { useGetMe } from "@/features/auth/login/hooks/login";
 import { cn } from "@/lib/utils";
 import { BurgerMenu } from "./burger_menu";
+import { NavbarLoginPopover } from "./navbar-login-popover";
+import { NavbarUserMenu } from "./navbar-user-menu";
 import { navbarLinks } from "./navbar_links";
 
 type NavbarProps = {
@@ -13,6 +16,17 @@ type NavbarProps = {
 };
 
 export function Navbar({ className }: NavbarProps) {
+  const { data: me, isLoading } = useGetMe();
+
+  const appHref =
+    me?.role === "ADMIN"
+      ? "/admin"
+      : me?.accessStatus === "ACTIVE"
+        ? "/dashboard"
+        : me
+          ? "/pending"
+          : null;
+
   return (
     <header
       className={cn(
@@ -22,8 +36,11 @@ export function Navbar({ className }: NavbarProps) {
     >
       <nav className="mx-auto flex h-full w-full max-w-container items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
-          <BurgerMenu />
-          <Link href="/" className="text-xl font-semibold tracking-tight text-primary">
+          <BurgerMenu appHref={appHref} isAdmin={me?.role === "ADMIN"} />
+          <Link
+            href="/"
+            className="text-xl font-semibold tracking-tight text-primary"
+          >
             SimDrive Pro
           </Link>
         </div>
@@ -48,14 +65,14 @@ export function Navbar({ className }: NavbarProps) {
               placeholder="ძიება..."
             />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            aria-label="შეტყობინებები"
-          >
-            <Bell className="size-5" />
-          </Button>
+
+          {isLoading ? (
+            <div className="size-8 animate-pulse rounded-full bg-white/10" />
+          ) : me ? (
+            <NavbarUserMenu user={me} />
+          ) : (
+            <NavbarLoginPopover />
+          )}
         </div>
       </nav>
     </header>

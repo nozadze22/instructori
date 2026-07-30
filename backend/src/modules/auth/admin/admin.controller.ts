@@ -1,15 +1,43 @@
-import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { setAccessTokenCookie } from '../auth_guard/auth-cookie';
 import { JwtAuthGuard } from '../auth_guard/auth_guard';
 import { RolesGuard } from '../auth_guard/guard';
 import { Roles } from '../auth_guard/roles.decorator';
-import { AdminCreateDto, AdminLoginDto } from './admin.dto';
+import {
+  AdminCreateDto,
+  AdminLoginDto,
+  UpdateUserAccessDto,
+} from './admin.dto';
 import { AdminService } from './admin.service';
 
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  @Get('setup-status')
+  setupStatus() {
+    return this.adminService.getSetupStatus();
+  }
+
+  @Post('setup')
+  async setup(
+    @Body() dto: AdminCreateDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.adminService.adminSetup(dto);
+    setAccessTokenCookie(res, result.accessToken);
+    return { user: result.user };
+  }
 
   @Post('login')
   async login(
@@ -24,12 +52,24 @@ export class AdminController {
   @Post('create')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  async create(
-    @Body() dto: AdminCreateDto,
-    @Res({ passthrough: true }) res: Response,
+  create(@Body() dto: AdminCreateDto) {
+    return this.adminService.adminCreate(dto);
+  }
+
+  @Get('users')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  listUsers() {
+    return this.adminService.listUsers();
+  }
+
+  @Patch('users/:id/access')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  updateUserAccess(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserAccessDto,
   ) {
-    const result = await this.adminService.adminCreate(dto);
-    setAccessTokenCookie(res, result.accessToken);
-    return { user: result.user };
+    return this.adminService.updateUserAccess(id, dto);
   }
 }

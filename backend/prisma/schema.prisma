@@ -16,18 +16,46 @@ enum Role {
   INSTRUCTOR
 }
 
+enum AccessStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+enum AccessSource {
+  ADMIN
+  PAYMENT
+}
+
 model User {
-  id              String           @id @default(cuid())
+  id              String           @id @default(uuid())
   email           String           @unique
   passwordHash    String
   fullName        String
   role            Role             @default(INSTRUCTOR)
+  accessStatus    AccessStatus     @default(PENDING)
+  accessSource    AccessSource?
+  accessGrantedAt DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  profile         Profile?
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  phone       String?
+  avatarUrl   String?
+  city        String?
+  country     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Contact {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   fullName  String
   email     String
   subject   String

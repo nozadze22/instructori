@@ -145,4 +145,59 @@
       transparent 70%
     );
   }
+
+  .glass-panel {
+    background: rgb(29 32 39 / 80%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 5%);
+  }
+
+  .glow-border {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .glow-border:hover {
+    border-color: rgb(77 142 255 / 40%);
+    box-shadow: 0 0 15px rgb(77 142 255 / 10%);
+  }
+
+  .status-pulse {
+    position: relative;
+  }
+
+  .status-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.4;
+    animation: status-pulse 2s infinite;
+  }
+
+  @keyframes status-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.4;
+    }
+    100% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+  }
+
+  .admin-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .admin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .admin-scrollbar::-webkit-scrollbar-thumb {
+    background: #32353c;
+    border-radius: 10px;
+  }
 }
