@@ -8,16 +8,22 @@ import Wrapper from "@/components/shared/wrapper/wrapper";
 
 function isAdminPanelPath(pathname: string) {
   if (!pathname.startsWith("/admin")) return false;
-  // First-time admin bootstrap stays outside the panel chrome
   if (pathname.startsWith("/admin/setup")) return false;
   return true;
 }
 
+function isInstructorAppPath(pathname: string) {
+  return (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/routes") ||
+    pathname.startsWith("/profile")
+  );
+}
+
 export function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const adminPanel = isAdminPanelPath(pathname);
 
-  if (adminPanel) {
+  if (isAdminPanelPath(pathname) || isInstructorAppPath(pathname)) {
     return <>{children}</>;
   }
 

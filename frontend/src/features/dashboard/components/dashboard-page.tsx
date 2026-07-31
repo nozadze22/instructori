@@ -1,17 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Gauge, Clock3, CalendarDays, LogOut } from "lucide-react";
+import { Gauge, Clock3, CalendarDays, Map, Plus } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { AuthGate } from "@/features/auth/components/auth-gate";
-import { useGetMe, useLogout } from "@/features/auth/login/hooks/login";
+import { buttonVariants } from "@/components/ui/button";
+import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useDashboard } from "@/features/dashboard/hooks/dashboard";
+import { cn } from "@/lib/utils";
 
-function DashboardContent() {
+export function DashboardPage() {
+  const router = useRouter();
+  const { data: me, isLoading: meLoading } = useGetMe();
   const { data, isLoading, isError, error } = useDashboard();
-  const { mutate: logout, isPending } = useLogout();
+
+  useEffect(() => {
+    if (!meLoading && me?.role === "ADMIN") {
+      router.replace("/admin");
+    }
+  }, [meLoading, me, router]);
+
+  if (me?.role === "ADMIN" || meLoading) {
+    return (
+      <p className="py-16 text-center text-sm text-muted-foreground">
+        იტვირთება...
+      </p>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -34,19 +50,52 @@ function DashboardContent() {
   const { user, stats, message } = data;
 
   return (
-    <div className="space-y-8 py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">დაშბორდი</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-            გამარჯობა, {user.fullName}
-          </h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">{message}</p>
+    <div className="space-y-8">
+      <div>
+        <p className="text-sm text-muted-foreground">დაშბორდი</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+          გამარჯობა, {user.fullName}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm text-muted-foreground">{message}</p>
+      </div>
+
+      <div className="glass relative overflow-hidden rounded-[1.75rem] p-6 ring-1 ring-white/10">
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+              Routes
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+              მარშრუტები
+            </h2>
+            <p className="mt-1 max-w-lg text-sm text-muted-foreground">
+              შექმენი პირადი მარშრუტები ან შეინახე ადმინის კატალოგი ვარჯიშისთვის.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/routes"
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "h-10 rounded-xl",
+              )}
+            >
+              <Map className="size-4" />
+              მარშრუტები
+            </Link>
+            <Link
+              href="/routes/new"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-10 rounded-xl border-white/10",
+              )}
+            >
+              <Plus className="size-4" />
+              ახალი
+            </Link>
+          </div>
         </div>
-        <Button variant="outline" disabled={isPending} onClick={() => logout()}>
-          <LogOut className="size-4" />
-          გამოსვლა
-        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -87,35 +136,5 @@ function StatCard({
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
     </div>
-  );
-}
-
-export function DashboardPage() {
-  const router = useRouter();
-  const { data: me, isLoading } = useGetMe();
-
-  useEffect(() => {
-    if (!isLoading && me?.role === "ADMIN") {
-      router.replace("/admin");
-    }
-  }, [isLoading, me, router]);
-
-  if (me?.role === "ADMIN") {
-    return (
-      <p className="py-16 text-center text-sm text-muted-foreground">
-        იტვირთება...
-      </p>
-    );
-  }
-
-  return (
-    <AuthGate
-      roles={["INSTRUCTOR"]}
-      accessStatuses={["ACTIVE"]}
-      redirectTo="/pending"
-      loginRedirect="/login"
-    >
-      <DashboardContent />
-    </AuthGate>
   );
 }

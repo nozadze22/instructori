@@ -1,6 +1,19 @@
-import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  fullName?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -27,6 +40,13 @@ export class CreateProfileDto {
 }
 
 export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(100)
+  fullName?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(500)

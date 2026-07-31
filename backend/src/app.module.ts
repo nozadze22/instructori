@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ContactModule } from './modules/conatct/contanct.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { RoutesModule } from './modules/routes/routes.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     DashboardModule,
     ProfileModule,
+    RoutesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
