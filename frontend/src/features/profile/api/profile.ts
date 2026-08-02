@@ -13,6 +13,7 @@ export type Profile = {
 };
 
 export type ProfileInput = {
+  fullName?: string;
   bio?: string;
   phone?: string;
   avatarUrl?: string;

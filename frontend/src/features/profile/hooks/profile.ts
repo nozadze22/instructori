@@ -32,6 +32,7 @@ export function useCreateProfile() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["profile"], data);
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
       toast.success("პროფილი შეიქმნა");
     },
     onError: (error: Error) => {
@@ -56,6 +57,7 @@ export function useUpdateProfile() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["profile"], data);
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
       toast.success("პროფილი განახლდა");
     },
     onError: (error: Error) => {

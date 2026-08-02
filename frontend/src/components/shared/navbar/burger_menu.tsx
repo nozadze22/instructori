@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, LogIn, Menu, UserPlus, UserRound } from "lucide-react";
+import { LayoutDashboard, LogIn, Map, Menu, UserPlus, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +62,13 @@ export function BurgerMenu({ appHref, isAdmin }: BurgerMenuProps) {
               >
                 <LayoutDashboard className="size-4" />
                 <span>{isAdmin ? "ადმინი" : "დაშბორდი"}</span>
+              </Link>
+              <Link
+                href={isAdmin ? "/admin/routes" : "/routes"}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <Map className="size-4" />
+                <span>მარშრუტები</span>
               </Link>
               <Link
                 href="/profile"

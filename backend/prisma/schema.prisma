@@ -27,6 +27,21 @@ enum AccessSource {
   PAYMENT
 }
 
+enum RouteVisibility {
+  SYSTEM
+  PRIVATE
+}
+
+enum RouteAction {
+  TURN_LEFT
+  TURN_RIGHT
+  STOP
+  PARKING
+  REVERSE
+  U_TURN
+  CUSTOM
+}
+
 model User {
   id              String           @id @default(uuid())
   email           String           @unique
@@ -39,6 +54,8 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   profile         Profile?
+  routes          Route[]
+  savedRoutes     SavedRoute[]
 }
 
 model Profile {
@@ -61,4 +78,59 @@ model Contact {
   subject   String
   message   String
   createdAt DateTime @default(now())
+}
+
+model Route {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  city        String?
+  /// Stable key for synced official exam routes, e.g. sachkhere-1
+  sourceKey   String?         @unique
+  /// Official PDF / normative-act URL when scraped from SA
+  sourceUrl   String?
+  /// GeoJSON-style coordinates: [[lng, lat], ...]
+  path        Json            @default("[]")
+  visibility  RouteVisibility @default(PRIVATE)
+  isPublished Boolean         @default(true)
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  steps       RouteStep[]
+  savedBy     SavedRoute[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([createdById])
+  @@index([visibility, isPublished])
+  @@index([city])
+}
+
+model RouteStep {
+  id                   String      @id @default(uuid())
+  routeId              String
+  route                Route       @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  order                Int
+  lat                  Float
+  lng                  Float
+  action               RouteAction
+  distanceBeforeVoice  Int         @default(200)
+  voiceText            String?
+  audioUrl             String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([routeId, order])
+}
+
+model SavedRoute {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routeId   String
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, routeId])
+  @@index([userId])
+  @@index([routeId])
 }

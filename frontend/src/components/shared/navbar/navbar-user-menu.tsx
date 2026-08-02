@@ -5,6 +5,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   LogOut,
+  Map,
   Shield,
   UserRound,
   Hourglass,
@@ -152,6 +153,21 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
             <span className="flex-1 text-sm font-medium">{dashboardLabel}</span>
             <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
           </DropdownMenuItem>
+
+          {(isAdmin || isActive) && (
+            <DropdownMenuItem
+              className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+              onClick={() =>
+                router.push(isAdmin ? "/admin/routes" : "/routes")
+              }
+            >
+              <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                <Map className="size-4" />
+              </span>
+              <span className="flex-1 text-sm font-medium">მარშრუტები</span>
+              <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
             className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"

@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/admin", label: "დაშბორდი", icon: LayoutDashboard, exact: true },
   { href: "/admin/users", label: "ინსტრუქტორები", icon: Users },
+  { href: "/admin/routes", label: "მარშრუტები", icon: Map },
   { href: "/admin/create", label: "ადმინის შექმნა", icon: ShieldPlus },
   { href: "#", label: "სიმულაცია", icon: Car, disabled: true },
   { href: "#", label: "ანალიტიკა", icon: BarChart3, disabled: true },
-  { href: "#", label: "მარშრუტები", icon: Map, disabled: true },
 ] as const;
 
 export function AdminSidebar() {

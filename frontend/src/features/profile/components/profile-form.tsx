@@ -2,7 +2,14 @@
 
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Globe2, ImageIcon, MapPin, Phone, UserRound } from "lucide-react";
+import {
+  Globe2,
+  ImageIcon,
+  MapPin,
+  Phone,
+  User,
+  UserRound,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +27,7 @@ import {
   InputGroupInput,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
+import { useGetMe } from "@/features/auth/login/hooks/login";
 import {
   useCreateProfile,
   useGetProfile,
@@ -33,9 +41,18 @@ import {
 } from "@/features/profile/schema/profile.schema";
 
 const inputGroupClassName =
-  "h-12 rounded-xl border-white/10 bg-surface-lowest shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255_/_15%)]";
+  "h-12 rounded-xl border-white/10 bg-surface-lowest shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255/15%)]";
 
-export function ProfileForm() {
+type ProfileFormProps = {
+  submitLabel?: string;
+  className?: string;
+};
+
+export function ProfileForm({
+  submitLabel,
+  className,
+}: ProfileFormProps) {
+  const { data: me } = useGetMe();
   const { data: profile, isLoading } = useGetProfile();
   const { mutateAsync: createProfile, isPending: isCreating } =
     useCreateProfile();
@@ -49,15 +66,15 @@ export function ProfileForm() {
   });
 
   useEffect(() => {
-    if (!profile) return;
     form.reset({
-      bio: profile.bio ?? "",
-      phone: profile.phone ?? "",
-      avatarUrl: profile.avatarUrl ?? "",
-      city: profile.city ?? "",
-      country: profile.country ?? "",
+      fullName: me?.fullName ?? "",
+      bio: profile?.bio ?? "",
+      phone: profile?.phone ?? "",
+      avatarUrl: profile?.avatarUrl ?? "",
+      city: profile?.city ?? "",
+      country: profile?.country ?? "",
     });
-  }, [form, profile]);
+  }, [form, me?.fullName, profile]);
 
   const isNewProfile = !profile;
   const isPending = isCreating || isUpdating || form.formState.isSubmitting;
@@ -81,10 +98,35 @@ export function ProfileForm() {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6"
+        className={className ?? "space-y-6"}
         noValidate
       >
         <FieldGroup className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Field
+            className="md:col-span-2"
+            data-invalid={!!form.formState.errors.fullName}
+          >
+            <FieldLabel
+              htmlFor="fullName"
+              className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+              სახელი და გვარი
+            </FieldLabel>
+            <FieldContent>
+              <InputGroup className={inputGroupClassName}>
+                <InputGroupAddon>
+                  <User />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="fullName"
+                  placeholder="გიორგი ნოზაძე"
+                  {...form.register("fullName")}
+                />
+              </InputGroup>
+              <FieldError errors={[form.formState.errors.fullName]} />
+            </FieldContent>
+          </Field>
+
           <Field data-invalid={!!form.formState.errors.phone}>
             <FieldLabel
               htmlFor="phone"
@@ -183,7 +225,7 @@ export function ProfileForm() {
           </FieldLabel>
           <FieldContent>
             <InputGroup
-              className={`${inputGroupClassName} h-auto min-h-[8rem] items-start py-3`}
+              className={`${inputGroupClassName} h-auto min-h-32 items-start py-3`}
             >
               <InputGroupAddon className="pt-1">
                 <UserRound />
@@ -192,7 +234,7 @@ export function ProfileForm() {
                 id="bio"
                 rows={4}
                 placeholder="მოკლედ შენს შესახებ..."
-                className="min-h-[6.5rem] resize-none"
+                className="min-h-26 resize-none"
                 {...form.register("bio")}
               />
             </InputGroup>
@@ -205,7 +247,8 @@ export function ProfileForm() {
           className="h-12 w-full rounded-xl text-base font-semibold"
           disabled={isPending}
         >
-          {isNewProfile ? "პროფილის შექმნა" : "შენახვა"}
+          {submitLabel ??
+            (isNewProfile ? "პროფილის შექმნა" : "ცვლილებების შენახვა")}
         </Button>
       </form>
     </Form>
