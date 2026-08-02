@@ -297,13 +297,15 @@ function RouteDetailContent({
                 სიმულაცია
               </p>
               <span className="text-sm text-muted-foreground">
-                {Math.round(simulation.progress)}%
+                {simulation.totalCommands > 0
+                  ? `${simulation.passedCount}/${simulation.totalCommands} · ${Math.round(simulation.progress)}%`
+                  : "0%"}
               </span>
             </div>
 
             <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
                 style={{ width: `${simulation.progress}%` }}
               />
             </div>

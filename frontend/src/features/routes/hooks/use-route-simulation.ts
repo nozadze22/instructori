@@ -174,6 +174,7 @@ export function useRouteSimulation(options: {
     null,
   );
   const [currentVoice, setCurrentVoice] = useState<string | null>(null);
+  const [passedCount, setPassedCount] = useState(0);
 
   const spokenRef = useRef<Set<string>>(new Set());
   const rafRef = useRef<number | null>(null);
@@ -193,7 +194,9 @@ export function useRouteSimulation(options: {
   const cumulative = buildCumulative(path);
   const totalLength = cumulative[cumulative.length - 1] ?? 0;
   const position = pointAtDistance(path, cumulative, distance);
-  const progress = totalLength <= 0 ? 0 : (distance / totalLength) * 100;
+  const totalCommands = commands.length;
+  const progress =
+    totalCommands > 0 ? (passedCount / totalCommands) * 100 : 0;
 
   const stop = useCallback(() => {
     runningRef.current = false;
@@ -212,6 +215,7 @@ export function useRouteSimulation(options: {
     setDistance(0);
     setActiveCommandIndex(null);
     setCurrentVoice(null);
+    setPassedCount(0);
     spokenRef.current = new Set();
   }, [stop]);
 
@@ -224,6 +228,7 @@ export function useRouteSimulation(options: {
       distanceRef.current = 0;
       setDistance(0);
       spokenRef.current = new Set();
+      setPassedCount(0);
       setActiveCommandIndex(null);
       setCurrentVoice(null);
     }
@@ -274,6 +279,7 @@ export function useRouteSimulation(options: {
 
           if (dist <= triggerAt && !spokenRef.current.has(command.id)) {
             spokenRef.current.add(command.id);
+            setPassedCount(spokenRef.current.size);
             setActiveCommandIndex(index);
             setCurrentVoice(command.voiceText);
             void speakPrompt({
@@ -314,6 +320,8 @@ export function useRouteSimulation(options: {
     running,
     position,
     progress,
+    passedCount,
+    totalCommands,
     activeCommandIndex,
     currentVoice,
     start,
