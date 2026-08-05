@@ -19,6 +19,8 @@ type RouteMapViewProps = {
   activeIndex?: number | null;
   vehiclePosition?: PathPoint | null;
   followVehicle?: boolean;
+  showCommandMarkers?: boolean;
+  showVehicleMarker?: boolean;
   className?: string;
 };
 
@@ -66,6 +68,8 @@ function RouteMapViewInner({
   activeIndex,
   vehiclePosition,
   followVehicle,
+  showCommandMarkers,
+  showVehicleMarker,
 }: Omit<RouteMapViewProps, "className">) {
   return (
     <Map
@@ -92,28 +96,30 @@ function RouteMapViewInner({
         />
       ) : null}
 
-      {commands.map((command, index) => (
-        <Marker
-          key={`cmd-${command.lat}-${command.lng}-${index}`}
-          position={{ lat: command.lat, lng: command.lng }}
-          label={{
-            text: String(index + 1),
-            color: "white",
-            fontSize: "11px",
-            fontWeight: "700",
-          }}
-          title={command.label ?? actionLabel(command.action)}
-          opacity={
-            activeIndex === undefined ||
-            activeIndex === null ||
-            activeIndex === index
-              ? 1
-              : 0.45
-          }
-        />
-      ))}
+      {showCommandMarkers
+        ? commands.map((command, index) => (
+            <Marker
+              key={`cmd-${command.lat}-${command.lng}-${index}`}
+              position={{ lat: command.lat, lng: command.lng }}
+              label={{
+                text: String(index + 1),
+                color: "white",
+                fontSize: "11px",
+                fontWeight: "700",
+              }}
+              title={command.label ?? actionLabel(command.action)}
+              opacity={
+                activeIndex === undefined ||
+                activeIndex === null ||
+                activeIndex === index
+                  ? 1
+                  : 0.45
+              }
+            />
+          ))
+        : null}
 
-      {vehiclePosition ? (
+      {showVehicleMarker && vehiclePosition ? (
         <Marker
           position={vehiclePosition}
           title="სიმულაცია"
@@ -135,6 +141,8 @@ export function RouteMapView({
   activeIndex,
   vehiclePosition,
   followVehicle,
+  showCommandMarkers = true,
+  showVehicleMarker = true,
   className,
 }: RouteMapViewProps) {
   return (
@@ -151,6 +159,8 @@ export function RouteMapView({
           activeIndex={activeIndex}
           vehiclePosition={vehiclePosition}
           followVehicle={followVehicle}
+          showCommandMarkers={showCommandMarkers}
+          showVehicleMarker={showVehicleMarker}
         />
       </GoogleMapsProvider>
     </div>

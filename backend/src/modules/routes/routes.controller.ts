@@ -19,6 +19,7 @@ import type { AuthUser } from '../auth/dto/auth-types';
 import {
   CreateRouteDto,
   CreateStepDto,
+  NavigationTickDto,
   ReorderStepsDto,
   RouteTtsDto,
   UpdateRouteDto,
@@ -109,6 +110,15 @@ export class RoutesController {
     @Body() dto: CreateStepDto,
   ) {
     return this.routesService.addStep(user, id, dto);
+  }
+
+  @Post(':id/navigation/tick')
+  navigationTick(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: NavigationTickDto,
+  ) {
+    return this.routesService.evaluateNavigationTick(user, id, dto);
   }
 
   @Patch(':id/steps/reorder')

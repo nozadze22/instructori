@@ -110,6 +110,7 @@ function RouteDetailContent({
   );
 
   const simulation = useRouteSimulation({
+    routeId,
     path,
     commands: simCommands,
     speedMps: 28,
@@ -285,7 +286,9 @@ function RouteDetailContent({
         }))}
         activeIndex={activeStepIndex ?? undefined}
         vehiclePosition={simulation.position}
-        followVehicle={simulation.running}
+        followVehicle={simulation.followCamera}
+        showCommandMarkers={false}
+        showVehicleMarker={false}
       />
 
       <div className="grid gap-6 lg:grid-cols-12">
@@ -300,6 +303,28 @@ function RouteDetailContent({
                 {simulation.totalCommands > 0
                   ? `${simulation.passedCount}/${simulation.totalCommands} · ${Math.round(simulation.progress)}%`
                   : "0%"}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span
+                className={cn(
+                  "rounded-full border px-2.5 py-1",
+                  simulation.navigationStatus === "ACTIVE"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-200",
+                )}
+              >
+                {simulation.navigationStatus === "ACTIVE"
+                  ? "ნავიგაცია აქტიურია"
+                  : simulation.navigationReason === "NOT_MOVING"
+                    ? "არ მოძრაობს — დუმილი"
+                    : simulation.navigationReason === "OFF_ROUTE"
+                      ? "მარშრუტზე არ არის — დუმილი"
+                      : "მოლოდინის რეჟიმი"}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                პინები გამორთულია
               </span>
             </div>
 
@@ -327,7 +352,7 @@ function RouteDetailContent({
               <p className="text-muted-foreground">
                 {path.length < 2
                   ? "ჯერ დაამატე მარშრუტის ხაზი, რომ სიმულაცია იმუშაოს."
-                  : "დააჭირე დაწყებას — მარკერი გაყვება ხაზს და ხმას თვითონ იტყვის."}
+                  : "დააჭირე დაწყებას — მოძრაობისას და მარშრუტზე ყოფნისას გაიაქტიურდება."}
               </p>
             )}
 

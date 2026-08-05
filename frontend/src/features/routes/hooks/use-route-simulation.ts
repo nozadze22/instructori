@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { postNavigationTick } from "@/features/routes/api/routes";
 import { getApiUrl } from "@/lib/api";
 import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
 import { englishVoiceText } from "@/features/routes/lib/route-actions";
@@ -162,12 +163,13 @@ async function speakPrompt(options: {
 }
 
 export function useRouteSimulation(options: {
+  routeId: string;
   path: PathPoint[];
   commands: SimCommand[];
   /** meters per second along path */
   speedMps?: number;
 }) {
-  const { path, commands, speedMps = 28 } = options;
+  const { routeId, path, commands, speedMps = 28 } = options;
   const [running, setRunning] = useState(false);
   const [distance, setDistance] = useState(0);
   const [activeCommandIndex, setActiveCommandIndex] = useState<number | null>(
@@ -175,6 +177,13 @@ export function useRouteSimulation(options: {
   );
   const [currentVoice, setCurrentVoice] = useState<string | null>(null);
   const [passedCount, setPassedCount] = useState(0);
+  const [followCamera, setFollowCamera] = useState(false);
+  const [navigationStatus, setNavigationStatus] = useState<
+    "NO_ACTION" | "ACTIVE"
+  >("NO_ACTION");
+  const [navigationReason, setNavigationReason] = useState<
+    "NOT_MOVING" | "OFF_ROUTE" | null
+  >(null);
 
   const spokenRef = useRef<Set<string>>(new Set());
   const rafRef = useRef<number | null>(null);
@@ -184,12 +193,17 @@ export function useRouteSimulation(options: {
   const pathRef = useRef(path);
   const commandsRef = useRef(commands);
   const speedRef = useRef(speedMps);
+  const routeIdRef = useRef(routeId);
+  const navTickInFlightRef = useRef(false);
+  const lastNavTickTsRef = useRef<number>(0);
+  const unmountedRef = useRef(false);
 
   useEffect(() => {
     pathRef.current = path;
     commandsRef.current = commands;
     speedRef.current = speedMps;
-  }, [path, commands, speedMps]);
+    routeIdRef.current = routeId;
+  }, [path, commands, speedMps, routeId]);
 
   const cumulative = buildCumulative(path);
   const totalLength = cumulative[cumulative.length - 1] ?? 0;
@@ -216,13 +230,16 @@ export function useRouteSimulation(options: {
     setActiveCommandIndex(null);
     setCurrentVoice(null);
     setPassedCount(0);
+    setFollowCamera(false);
+    setNavigationStatus("NO_ACTION");
+    setNavigationReason(null);
+    navTickInFlightRef.current = false;
+    lastNavTickTsRef.current = 0;
     spokenRef.current = new Set();
   }, [stop]);
 
   const start = useCallback(() => {
     if (pathRef.current.length < 2 || totalLength <= 0) return;
-
-    void speakPrompt({ voiceText: "სიმულაცია დაიწყო." });
 
     if (distanceRef.current >= totalLength - 0.5) {
       distanceRef.current = 0;
@@ -231,6 +248,11 @@ export function useRouteSimulation(options: {
       setPassedCount(0);
       setActiveCommandIndex(null);
       setCurrentVoice(null);
+      setFollowCamera(false);
+      setNavigationStatus("NO_ACTION");
+      setNavigationReason(null);
+      navTickInFlightRef.current = false;
+      lastNavTickTsRef.current = 0;
     }
 
     runningRef.current = true;
@@ -270,26 +292,74 @@ export function useRouteSimulation(options: {
 
       const pos = pointAtDistance(currentPath, cum, next);
       if (pos) {
-        for (const [index, command] of commandsRef.current.entries()) {
-          const dist = haversineMeters(pos, {
-            lat: command.lat,
-            lng: command.lng,
-          });
-          const triggerAt = Math.max(40, command.distanceBeforeVoice * 0.65);
+        const route = routeIdRef.current;
+        if (
+          route &&
+          !navTickInFlightRef.current &&
+          ts - lastNavTickTsRef.current >= 750
+        ) {
+          navTickInFlightRef.current = true;
+          lastNavTickTsRef.current = ts;
 
-          if (dist <= triggerAt && !spokenRef.current.has(command.id)) {
-            spokenRef.current.add(command.id);
-            setPassedCount(spokenRef.current.size);
-            setActiveCommandIndex(index);
-            setCurrentVoice(command.voiceText);
-            void speakPrompt({
-              voiceText: command.voiceText,
-              action: command.action,
-              distanceBeforeVoice: command.distanceBeforeVoice,
+          void postNavigationTick(route, {
+            lat: pos.lat,
+            lng: pos.lng,
+            speedKmh: speedRef.current * 3.6,
+          })
+            .then((result) => {
+              if (unmountedRef.current) return;
+
+              setNavigationStatus(result.status);
+              setNavigationReason(result.reason);
+              setFollowCamera(result.followCamera);
+
+              if (result.status !== "ACTIVE") {
+                setCurrentVoice(null);
+                setActiveCommandIndex(null);
+                return;
+              }
+
+              const instruction = result.nextInstruction;
+              if (!instruction) return;
+
+              const commandIndex = commandsRef.current.findIndex(
+                (command) => command.id === instruction.stepId,
+              );
+
+              if (commandIndex >= 0) {
+                setActiveCommandIndex(commandIndex);
+              }
+
+              const matchedCommand =
+                commandIndex >= 0 ? commandsRef.current[commandIndex] : null;
+              const voiceText =
+                instruction.voiceText?.trim() || matchedCommand?.voiceText || "";
+
+              if (!voiceText) return;
+              setCurrentVoice(voiceText);
+
+              if (!result.speak || spokenRef.current.has(instruction.stepId)) {
+                return;
+              }
+
+              spokenRef.current.add(instruction.stepId);
+              setPassedCount(spokenRef.current.size);
+
+              void speakPrompt({
+                voiceText,
+                action: matchedCommand?.action,
+                distanceBeforeVoice: matchedCommand?.distanceBeforeVoice,
+              });
+            })
+            .catch(() => {
+              if (unmountedRef.current) return;
+              setFollowCamera(false);
+              setNavigationStatus("NO_ACTION");
+              setNavigationReason(null);
+            })
+            .finally(() => {
+              navTickInFlightRef.current = false;
             });
-          } else if (dist <= triggerAt) {
-            setActiveCommandIndex((prev) => (prev === index ? prev : index));
-          }
         }
       }
 
@@ -312,6 +382,7 @@ export function useRouteSimulation(options: {
   }, [running]);
 
   useEffect(() => () => {
+    unmountedRef.current = true;
     stop();
     stopAudio();
   }, [stop]);
@@ -324,6 +395,9 @@ export function useRouteSimulation(options: {
     totalCommands,
     activeCommandIndex,
     currentVoice,
+    followCamera,
+    navigationStatus,
+    navigationReason,
     start,
     stop,
     reset,
