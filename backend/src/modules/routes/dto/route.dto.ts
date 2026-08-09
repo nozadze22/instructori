@@ -257,3 +257,37 @@ export class ReorderStepsDto {
   @IsString({ each: true })
   stepIds!: string[];
 }
+
+export class NavigationTickDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  lat!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  lng!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(300)
+  speedKmh!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(30)
+  onRouteThresholdMeters?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.5)
+  @Max(20)
+  movingSpeedThresholdKmh?: number;
+}

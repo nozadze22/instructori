@@ -80,6 +80,31 @@ export type UpdateRouteInput = {
   steps?: RouteStepInput[];
 };
 
+export type NavigationTickInput = {
+  lat: number;
+  lng: number;
+  speedKmh: number;
+  onRouteThresholdMeters?: number;
+  movingSpeedThresholdKmh?: number;
+};
+
+export type NavigationTickResult = {
+  status: "NO_ACTION" | "ACTIVE";
+  reason: "NOT_MOVING" | "OFF_ROUTE" | null;
+  isMoving: boolean;
+  isOnRoute: boolean;
+  speedKmh: number;
+  distanceToRouteMeters: number;
+  followCamera: boolean;
+  speak: boolean;
+  addPin: boolean;
+  nextInstruction: {
+    stepId: string;
+    action: RouteAction;
+    voiceText: string | null;
+  } | null;
+};
+
 export async function getRoutes(): Promise<Route[]> {
   return apiRequest<Route[]>("/routes");
 }
@@ -140,5 +165,15 @@ export async function saveRoute(id: string): Promise<Route> {
 export async function unsaveRoute(id: string): Promise<{ ok: boolean }> {
   return apiRequest<{ ok: boolean }>(`/routes/${id}/save`, {
     method: "DELETE",
+  });
+}
+
+export async function postNavigationTick(
+  id: string,
+  data: NavigationTickInput,
+): Promise<NavigationTickResult> {
+  return apiRequest<NavigationTickResult>(`/routes/${id}/navigation/tick`, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }

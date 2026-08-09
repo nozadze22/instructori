@@ -11,6 +11,7 @@ import {
   CreateRouteDto,
   CreateRouteStepDto,
   CreateStepDto,
+  NavigationTickDto,
   ReorderStepsDto,
   RoutePathPointDto,
   RouteVisibilityDto,
@@ -52,6 +53,76 @@ function mapStepCreate(step: CreateRouteStepDto | CreateStepDto, index: number) 
     audioUrl: step.audioUrl,
     order: step.order ?? index,
   };
+}
+
+type PathPoint = { lat: number; lng: number };
+
+const EARTH_RADIUS_METERS = 6_371_000;
+const DEFAULT_ON_ROUTE_THRESHOLD_METERS = 20;
+const DEFAULT_MOVING_SPEED_THRESHOLD_KMH = 3;
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function distanceMeters(a: PathPoint, b: PathPoint) {
+  const dLat = toRadians(b.lat - a.lat);
+  const dLng = toRadians(b.lng - a.lng);
+  const lat1 = toRadians(a.lat);
+  const lat2 = toRadians(b.lat);
+
+  const hav =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+
+  return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav));
+}
+
+function projectToMeters(origin: PathPoint, target: PathPoint) {
+  const metersPerDegLat = 111_320;
+  const metersPerDegLng = 111_320 * Math.cos(toRadians(origin.lat));
+
+  return {
+    x: (target.lng - origin.lng) * metersPerDegLng,
+    y: (target.lat - origin.lat) * metersPerDegLat,
+  };
+}
+
+function distanceToSegmentMeters(
+  point: PathPoint,
+  segmentStart: PathPoint,
+  segmentEnd: PathPoint,
+) {
+  const start = { x: 0, y: 0 };
+  const end = projectToMeters(segmentStart, segmentEnd);
+  const p = projectToMeters(segmentStart, point);
+
+  const vx = end.x - start.x;
+  const vy = end.y - start.y;
+  const wx = p.x - start.x;
+  const wy = p.y - start.y;
+
+  const lengthSq = vx * vx + vy * vy;
+  if (lengthSq === 0) return Math.hypot(wx, wy);
+
+  const t = Math.max(0, Math.min(1, (wx * vx + wy * vy) / lengthSq));
+  const closestX = start.x + t * vx;
+  const closestY = start.y + t * vy;
+
+  return Math.hypot(p.x - closestX, p.y - closestY);
+}
+
+function distanceToPolylineMeters(point: PathPoint, path: PathPoint[]) {
+  if (!path.length) return Number.POSITIVE_INFINITY;
+  if (path.length === 1) return distanceMeters(point, path[0]);
+
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const dist = distanceToSegmentMeters(point, path[i], path[i + 1]);
+    if (dist < minDistance) minDistance = dist;
+  }
+
+  return minDistance;
 }
 
 @Injectable()
@@ -376,12 +447,116 @@ export class RoutesService {
     return this.findOne(user, routeId);
   }
 
+  async evaluateNavigationTick(
+    user: AuthUser,
+    routeId: string,
+    dto: NavigationTickDto,
+  ) {
+    const route = await this.prisma.route.findUnique({
+      where: { id: routeId },
+      include: {
+        steps: { orderBy: { order: 'asc' } },
+      },
+    });
+    if (!route) throw new NotFoundException('Route not found');
+
+    this.assertCanView(user, route);
+
+    const path = this.extractPathPoints(route.path);
+    if (!path.length) {
+      throw new BadRequestException('Route has no geometry path');
+    }
+
+    const currentPoint = { lat: dto.lat, lng: dto.lng };
+    const distanceToRouteMeters = distanceToPolylineMeters(currentPoint, path);
+    const onRouteThresholdMeters =
+      dto.onRouteThresholdMeters ?? DEFAULT_ON_ROUTE_THRESHOLD_METERS;
+    const movingSpeedThresholdKmh =
+      dto.movingSpeedThresholdKmh ?? DEFAULT_MOVING_SPEED_THRESHOLD_KMH;
+
+    const isMoving = dto.speedKmh >= movingSpeedThresholdKmh;
+    const isOnRoute = distanceToRouteMeters <= onRouteThresholdMeters;
+
+    if (!isMoving) {
+      return {
+        status: 'NO_ACTION',
+        reason: 'NOT_MOVING',
+        isMoving,
+        isOnRoute,
+        speedKmh: dto.speedKmh,
+        distanceToRouteMeters: Number(distanceToRouteMeters.toFixed(2)),
+        followCamera: false,
+        speak: false,
+        addPin: false,
+        nextInstruction: null,
+      };
+    }
+
+    if (!isOnRoute) {
+      return {
+        status: 'NO_ACTION',
+        reason: 'OFF_ROUTE',
+        isMoving,
+        isOnRoute,
+        speedKmh: dto.speedKmh,
+        distanceToRouteMeters: Number(distanceToRouteMeters.toFixed(2)),
+        followCamera: false,
+        speak: false,
+        addPin: false,
+        nextInstruction: null,
+      };
+    }
+
+    const nextStep = route.steps.find((step) => {
+      const stepDistance = distanceMeters(currentPoint, {
+        lat: step.lat,
+        lng: step.lng,
+      });
+      return stepDistance <= step.distanceBeforeVoice;
+    });
+
+    return {
+      status: 'ACTIVE',
+      reason: null,
+      isMoving,
+      isOnRoute,
+      speedKmh: dto.speedKmh,
+      distanceToRouteMeters: Number(distanceToRouteMeters.toFixed(2)),
+      followCamera: true,
+      speak: Boolean(nextStep?.voiceText),
+      addPin: false,
+      nextInstruction: nextStep
+        ? {
+            stepId: nextStep.id,
+            action: nextStep.action,
+            voiceText: nextStep.voiceText ?? null,
+          }
+        : null,
+    };
+  }
+
   private async requireRoute(routeId: string) {
     const route = await this.prisma.route.findUnique({
       where: { id: routeId },
     });
     if (!route) throw new NotFoundException('Route not found');
     return route;
+  }
+
+  private extractPathPoints(path: Prisma.JsonValue): PathPoint[] {
+    if (!Array.isArray(path)) return [];
+
+    const points: PathPoint[] = [];
+    for (const item of path) {
+      if (!Array.isArray(item) || item.length < 2) continue;
+      const lng = Number(item[0]);
+      const lat = Number(item[1]);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) continue;
+
+      points.push({ lat, lng });
+    }
+
+    return points;
   }
 
   private async withSavedFlags<T extends { id: string }>(
