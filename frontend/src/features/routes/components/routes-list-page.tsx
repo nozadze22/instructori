@@ -29,7 +29,6 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { RouteCard } from "@/features/routes/components/route-card";
@@ -252,8 +251,8 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
 
         <section className="glass relative overflow-hidden rounded-[2rem] shadow-[0_30px_80px_rgb(0_0_0/40%)] ring-1 ring-white/10">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/12 via-transparent to-transparent" />
-          <div className="relative space-y-5 p-4 md:p-6">
-            <InputGroup className="h-12 rounded-2xl border-white/10 bg-surface-lowest/90 shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_18px_rgb(173_198_255/12%)]">
+          <div className="relative space-y-4 p-4 md:p-5">
+            <InputGroup className="h-11 w-full rounded-2xl border-white/10 bg-surface-lowest/90 shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_18px_rgb(173_198_255/12%)]">
               <InputGroupAddon>
                 <Search />
               </InputGroupAddon>
@@ -261,34 +260,42 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="ძიება სათაურით, ქალაქით ან აღწერით..."
+                className="h-full"
               />
             </InputGroup>
 
-            <Tabs value={tab} onValueChange={setTab} className="gap-5">
-              <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1.5 rounded-2xl border border-white/8 bg-surface-lowest/70 p-1.5">
+            <div className="space-y-4">
+              <div className="grid h-11 grid-cols-2 gap-1 rounded-xl border border-white/8 bg-surface-lowest/70 p-1 sm:grid-cols-4">
                 {TAB_ITEMS.map((item) => {
                   const Icon = item.icon;
                   const count = counts[item.value];
+                  const active = tab === item.value;
                   return (
-                    <TabsTrigger
+                    <button
                       key={item.value}
-                      value={item.value}
-                      className="h-10 flex-none gap-2 rounded-xl px-3.5 data-active:bg-primary/15 data-active:text-primary data-active:shadow-none"
+                      type="button"
+                      onClick={() => setTab(item.value)}
+                      className={cn(
+                        "inline-flex h-full min-w-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary/15 text-primary"
+                          : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                      )}
                     >
-                      <Icon className="size-3.5" />
-                      {item.label}
+                      <Icon className="size-3.5 shrink-0" />
+                      <span className="truncate">{item.label}</span>
                       <Badge
                         variant="outline"
-                        className="h-5 min-w-5 rounded-full border-white/10 bg-black/20 px-1.5 text-[10px] font-semibold text-muted-foreground"
+                        className="h-5 min-w-5 shrink-0 rounded-full border-white/10 bg-black/20 px-1.5 text-[10px] font-semibold text-muted-foreground"
                       >
                         {isLoading ? "…" : count}
                       </Badge>
-                    </TabsTrigger>
+                    </button>
                   );
                 })}
-              </TabsList>
+              </div>
 
-              <TabsContent value={tab} className="mt-0 outline-none">
+              <div>
                 {isLoading ? (
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {Array.from({ length: 6 }).map((_, index) => (
@@ -374,8 +381,8 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
                     })}
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </div>
         </section>
       </div>

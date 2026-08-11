@@ -56,6 +56,7 @@ model User {
   profile         Profile?
   routes          Route[]
   savedRoutes     SavedRoute[]
+  mistakeNotes    MistakeNote[]
 }
 
 model Profile {
@@ -95,10 +96,11 @@ model Route {
   isPublished Boolean         @default(true)
   createdById String
   createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  steps       RouteStep[]
-  savedBy     SavedRoute[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  steps        RouteStep[]
+  savedBy      SavedRoute[]
+  mistakeNotes MistakeNote[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([createdById])
   @@index([visibility, isPublished])
@@ -133,4 +135,27 @@ model SavedRoute {
   @@unique([userId, routeId])
   @@index([userId])
   @@index([routeId])
+}
+
+/// Instructor-owned practice note: student name + city + route + mistakes[]
+model MistakeNote {
+  id           String   @id @default(uuid())
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  /// Free-text student name (no Student role / entity)
+  studentName  String
+  routeId      String
+  route        Route    @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  /// Exam city name (same as Route.city / EXAM_CITY_NAMES)
+  city         String
+  /// Mistake strings: ["...", "..."]
+  mistakes     Json     @default("[]")
+  practicedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId])
+  @@index([instructorId, studentName])
+  @@index([routeId])
+  @@index([city])
 }

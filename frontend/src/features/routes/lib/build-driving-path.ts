@@ -22,6 +22,26 @@ function getGoogleMaps(): any {
   return g.maps;
 }
 
+function directionsErrorMessage(status: string | undefined): string {
+  switch (status) {
+    case "ZERO_RESULTS":
+      return "ამ წერტილებს შორის საგზაო მარშრუტი ვერ მოიძებნა";
+    case "NOT_FOUND":
+      return "ერთ-ერთი წერტილი ვერ მოიძებნა რუკაზე";
+    case "OVER_QUERY_LIMIT":
+      return "Google Maps ლიმიტი ამოიწურა. სცადე მოგვიანებით";
+    case "REQUEST_DENIED":
+      return "Directions/Routes API უარყოფილია. შეამოწმე API key და ჩართული სერვისები";
+    case "INVALID_REQUEST":
+      return "არასწორი მარშრუტის მოთხოვნა";
+    default:
+      return "მარშრუტის აგება ვერ მოხერხდა. ჩართე Directions ან Routes API";
+  }
+}
+
+/**
+ * Google Maps Routes library (preferred): road geometry for DRIVE/DRIVING.
+ */
 async function buildWithRoutesApi(
   waypoints: PathPoint[],
 ): Promise<PathPoint[] | null> {
@@ -53,33 +73,45 @@ async function buildWithRoutesApi(
   }
 }
 
+/**
+ * Legacy DirectionsService fallback — still road-following (not straight lines).
+ */
 async function buildWithDirectionsService(
   waypoints: PathPoint[],
 ): Promise<PathPoint[]> {
   const maps = getGoogleMaps();
   const service = new maps.DirectionsService();
 
-  const result = await service.route({
-    origin: waypoints[0],
-    destination: waypoints[waypoints.length - 1],
-    waypoints: waypoints.slice(1, -1).map((point) => ({
-      location: point,
-      stopover: true,
-    })),
-    travelMode: maps.TravelMode.DRIVING,
-    region: "GE",
-    provideRouteAlternatives: false,
-  });
+  let result;
+  try {
+    result = await service.route({
+      origin: waypoints[0],
+      destination: waypoints[waypoints.length - 1],
+      waypoints: waypoints.slice(1, -1).map((point) => ({
+        location: point,
+        stopover: true,
+      })),
+      travelMode: maps.TravelMode.DRIVING,
+      region: "GE",
+      provideRouteAlternatives: false,
+    });
+  } catch (err) {
+    const status =
+      err && typeof err === "object" && "code" in err
+        ? String((err as { code?: string }).code)
+        : undefined;
+    throw new Error(directionsErrorMessage(status));
+  }
 
-  const route = result.routes[0];
+  const route = result.routes?.[0];
   if (!route) {
     throw new Error("მარშრუტი ვერ მოიძებნა");
   }
 
   const path: PathPoint[] = [];
-  for (const leg of route.legs) {
-    for (const step of leg.steps) {
-      for (const point of step.path) {
+  for (const leg of route.legs ?? []) {
+    for (const step of leg.steps ?? []) {
+      for (const point of step.path ?? []) {
         path.push(toLiteral(point));
       }
     }
@@ -92,16 +124,16 @@ async function buildWithDirectionsService(
   return path;
 }
 
-/** Builds a road-following path from a few clicked waypoints. */
+/** Builds a road-following path from clicked waypoints (never straight lines). */
 export async function buildDrivingPath(
   waypoints: PathPoint[],
 ): Promise<PathPoint[]> {
   if (waypoints.length < 2) {
-    throw new Error("დაამატე მინიმუმ 2 წერტილი (დასაწყისი და დასასრული)");
+    throw new Error("დაამატე მინიმუმ 2 წერტილი (START და FINISH)");
   }
 
   const fromRoutes = await buildWithRoutesApi(waypoints);
-  if (fromRoutes?.length) return fromRoutes;
+  if (fromRoutes && fromRoutes.length >= 2) return fromRoutes;
 
   return buildWithDirectionsService(waypoints);
 }
