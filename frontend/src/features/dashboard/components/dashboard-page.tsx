@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Gauge, Clock3, CalendarDays, Map, Plus } from "lucide-react";
+import { ClipboardList, Gauge, Clock3, CalendarDays, Map, Plus } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { useGetMe } from "@/features/auth/login/hooks/login";
@@ -86,6 +86,45 @@ export function DashboardPage() {
             </Link>
             <Link
               href="/routes/new"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-10 rounded-xl border-white/10",
+              )}
+            >
+              <Plus className="size-4" />
+              ახალი
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass relative overflow-hidden rounded-[1.75rem] p-6 ring-1 ring-white/10">
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+              Mistakes
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+              შეცდომები
+            </h2>
+            <p className="mt-1 max-w-lg text-sm text-muted-foreground">
+              ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/mistake-notes"
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "h-10 rounded-xl",
+              )}
+            >
+              <ClipboardList className="size-4" />
+              შეცდომები
+            </Link>
+            <Link
+              href="/mistake-notes/new"
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "h-10 rounded-xl border-white/10",

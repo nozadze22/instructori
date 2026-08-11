@@ -26,6 +26,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (pathname.startsWith("/mistake-notes") && !isAuthenticated) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   if (pathname.startsWith("/admin") && !isAuthenticated) {
     if (pathname.startsWith("/admin/setup")) {
       return NextResponse.next();
@@ -43,6 +49,7 @@ export const config = {
     "/dashboard/:path*",
     "/routes/:path*",
     "/profile/:path*",
+    "/mistake-notes/:path*",
     "/admin",
     "/admin/:path*",
   ],
