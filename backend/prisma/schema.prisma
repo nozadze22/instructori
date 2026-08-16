@@ -57,6 +57,18 @@ model User {
   routes          Route[]
   savedRoutes     SavedRoute[]
   mistakeNotes    MistakeNote[]
+  refreshTokens   RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Profile {

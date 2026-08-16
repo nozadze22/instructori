@@ -5,35 +5,20 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type {
-  AccessSource,
-  AccessStatus,
-  AuthUser,
-  Role,
-} from '../dto/auth-types';
+import { AuthService } from '../auth.service';
 import {
   AdminCreateDto,
   AdminLoginDto,
   UpdateUserAccessDto,
 } from './admin.dto';
 
-type AuthTokenUser = {
-  id: string;
-  email: string;
-  fullName: string;
-  role: Role;
-  accessStatus: AccessStatus;
-  accessSource: AccessSource | null;
-};
-
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwt: JwtService,
+    private readonly auth: AuthService,
   ) {}
 
   async getSetupStatus() {
@@ -48,12 +33,22 @@ export class AdminService {
     if (!needsSetup) {
       throw new ForbiddenException('Admin already exists');
     }
-    return this.createAdminUser(dto);
+    const user = await this.createAdminUser(dto);
+    return this.auth.issueSession(user);
   }
 
   async adminCreate(dto: AdminCreateDto) {
-    const result = await this.createAdminUser(dto);
-    return { user: result.user };
+    const user = await this.createAdminUser(dto);
+    return {
+      user: {
+        userId: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        accessStatus: user.accessStatus,
+        accessSource: user.accessSource,
+      },
+    };
   }
 
   async adminLogin(dto: AdminLoginDto) {
@@ -81,7 +76,14 @@ export class AdminService {
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
-    return this.signToken(user);
+    return this.auth.issueSession({
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      accessStatus: user.accessStatus,
+      accessSource: user.accessSource,
+    });
   }
 
   async listUsers() {
@@ -164,27 +166,6 @@ export class AdminService {
       },
     });
 
-    return this.signToken(user);
-  }
-
-  private signToken(user: AuthTokenUser) {
-    return {
-      accessToken: this.jwt.sign({
-        sub: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        accessStatus: user.accessStatus,
-        accessSource: user.accessSource,
-      }),
-      user: {
-        userId: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        accessStatus: user.accessStatus,
-        accessSource: user.accessSource,
-      } satisfies AuthUser,
-    };
+    return user;
   }
 }

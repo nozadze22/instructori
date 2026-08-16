@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { setAccessTokenCookie } from '../auth_guard/auth-cookie';
+import { setAuthCookies } from '../auth_guard/auth-cookie';
 import { JwtAuthGuard } from '../auth_guard/auth_guard';
 import { RolesGuard } from '../auth_guard/guard';
 import { Roles } from '../auth_guard/roles.decorator';
@@ -35,7 +35,7 @@ export class AdminController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.adminService.adminSetup(dto);
-    setAccessTokenCookie(res, result.accessToken);
+    setAuthCookies(res, result);
     return { user: result.user };
   }
 
@@ -45,7 +45,7 @@ export class AdminController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.adminService.adminLogin(dto);
-    setAccessTokenCookie(res, result.accessToken);
+    setAuthCookies(res, result);
     return { user: result.user };
   }
 

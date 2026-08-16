@@ -4,13 +4,15 @@ import {
   Get,
   Patch,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import {
-  clearAccessTokenCookie,
-  setAccessTokenCookie,
+  clearAuthCookies,
+  readRefreshToken,
+  setAuthCookies,
 } from './auth_guard/auth-cookie';
 import { JwtAuthGuard } from './auth_guard/auth_guard';
 import { CurrentUser } from './auth_guard/current_user_decorator';
@@ -30,7 +32,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.auth.register(dto);
-    setAccessTokenCookie(res, result.accessToken);
+    setAuthCookies(res, result);
     return { user: result.user };
   }
 
@@ -40,13 +42,27 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.auth.login(dto);
-    setAccessTokenCookie(res, result.accessToken);
+    setAuthCookies(res, result);
+    return { user: result.user };
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.refreshSession(readRefreshToken(req));
+    setAuthCookies(res, result);
     return { user: result.user };
   }
 
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
-    clearAccessTokenCookie(res);
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.auth.logout(readRefreshToken(req));
+    clearAuthCookies(res);
     return { ok: true };
   }
 
