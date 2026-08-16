@@ -1,45 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowRight,
   Clock3,
+  Headphones,
   Mail,
   MapPin,
   Phone,
-  Send,
   ShieldCheck,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { ContactForm } from "@/features/contact/components/contact-form";
+import { cn } from "@/lib/utils";
 
-const contactSchema = z.object({
-  fullName: z.string().min(2, "გთხოვთ მიუთითოთ სახელი და გვარი."),
-  email: z.email("გთხოვთ მიუთითოთ სწორი ელ-ფოსტა."),
-  subject: z.string().min(3, "თემა უნდა იყოს მინიმუმ 3 სიმბოლო."),
-  message: z.string().min(10, "შეტყობინება უნდა იყოს მინიმუმ 10 სიმბოლო."),
-});
+const HERO_IMAGE =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCOoFI-_HToor0LPw_IvLc8NvbmrI8POGTrARkwRC_fp174Ae8Qv9ChKP0GWBol9ErxmEydGOsbAHDBUWsWrajkkw0yyvSPadHMX003JZW61t1U0Lo88ssaS3dgq9ry-oApA2QvkrlHpVAyK9WI2SPg-NiWo0KQkmD-FdB0TyKyUDTg74ZpqdOJpZ9EKMU5v2onNR7pz0aFW1T_uR2hzbC74ZkJHP_iKMmhxi6OE3qxFCyvJpXeGxNDKHVJlfMTXNgefDZhf4tSFdsB";
 
-type ContactFormValues = z.infer<typeof contactSchema>;
+const contactChannels = [
+  {
+    icon: Mail,
+    label: "ელ-ფოსტა",
+    value: "support@simdrive.pro",
+    href: "mailto:support@simdrive.pro",
+  },
+  {
+    icon: Phone,
+    label: "ტელეფონი",
+    value: "+995 322 00 00 00",
+    href: "tel:+995322000000",
+  },
+  {
+    icon: MapPin,
+    label: "მისამართი",
+    value: "ილია ჭავჭავაძის გამზირი 37, თბილისი",
+    href: "https://maps.google.com/?q=Ilia+Chavchavadze+Avenue+37+Tbilisi",
+  },
+] as const;
 
-const defaultValues: ContactFormValues = {
-  fullName: "",
-  email: "",
-  subject: "",
-  message: "",
-};
+const supportHighlights = [
+  {
+    icon: Clock3,
+    title: "სწრაფი მხარდაჭერა",
+    description: "საშუალო პასუხის დრო: 30–60 წუთი სამუშაო საათებში.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "მონაცემთა უსაფრთხოება",
+    description:
+      "თქვენი ინფორმაცია დაცულია და გამოიყენება მხოლოდ კომუნიკაციისთვის.",
+  },
+  {
+    icon: Headphones,
+    title: "პირადი კონსულტაცია",
+    description: "ინსტრუქტორები და ტექნიკური გუნდი მზად არიან დაგეხმარონ.",
+  },
+] as const;
 
 const faqs = [
   {
@@ -60,216 +76,179 @@ const faqs = [
 ];
 
 export function Contact() {
-  const [isSent, setIsSent] = useState(false);
-  const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactSchema),
-    defaultValues,
-    mode: "onSubmit",
-  });
-
-  const onSubmit = (values: ContactFormValues) => {
-    console.log("Contact form values", values);
-    setIsSent(true);
-    form.reset(defaultValues);
-  };
-
   return (
-    <>
-      <main className="px-6 pt-24 pb-16">
-        <div className="mx-auto max-w-container space-y-12">
-          <section className="relative overflow-hidden rounded-3xl border border-white/5 bg-surface-container-low px-8 py-14 text-center">
-            <div className="absolute inset-0 bg-linear-to-b from-background/10 via-background/30 to-background/80" />
-            <div className="relative z-10">
-              <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
-                დაგვიკავშირდით
-              </h1>
-              <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground md:text-lg">
-                მზად ვართ გიპასუხოთ ნებისმიერ კითხვაზე SimDrive Pro-ს
-                პლატფორმისა და სერვისების შესახებ.
-              </p>
+    <div className="overflow-x-hidden bg-background text-foreground">
+      <section className="relative flex min-h-[70vh] items-end overflow-hidden px-6 pb-16 pt-28 md:min-h-[75vh] md:pb-20">
+        <Image
+          src={HERO_IMAGE}
+          alt="SimDrive Pro სიმულატორის გარემო"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-linear-to-b from-surface-lowest/40 via-surface-lowest/70 to-surface-lowest" />
+        <div className="absolute inset-0 bg-linear-to-r from-surface-lowest/80 via-surface-lowest/40 to-transparent" />
+        <div className="hero-gradient absolute inset-0 opacity-80" />
+
+        <div className="relative z-10 mx-auto w-full max-w-container">
+          <p className="mb-4 text-xs font-bold tracking-[0.25em] text-primary uppercase animate-in fade-in slide-in-from-bottom-2 duration-700">
+            SimDrive Pro
+          </p>
+          <h1 className="text-glow max-w-3xl text-4xl leading-tight font-extrabold tracking-tighter text-white md:text-5xl lg:text-6xl animate-in fade-in slide-in-from-bottom-3 duration-700">
+            დაგვიკავშირდით
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            მზად ვართ გიპასუხოთ ნებისმიერ კითხვაზე SimDrive Pro-ს პლატფორმისა და
+            სერვისების შესახებ.
+          </p>
+        </div>
+      </section>
+
+      <main className="relative px-6 pb-24">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-linear-to-b from-primary/5 to-transparent" />
+
+        <div className="relative z-10 mx-auto max-w-container space-y-16 md:space-y-24">
+          <section className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+            <div className="glass group relative overflow-hidden rounded-[2rem] border-0 p-6 shadow-[0_30px_80px_rgb(0_0_0_/_45%)] ring-1 ring-white/10 md:p-10 lg:col-span-7">
+              <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-primary/10 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="relative">
+                <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+                  შეტყობინება
+                </p>
+                <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-foreground">
+                  მოგვწერეთ
+                </h2>
+                <p className="mb-8 max-w-md text-sm text-muted-foreground">
+                  შეავსეთ ფორმა და ჩვენი გუნდი დაგიკავშირდებათ სამუშაო საათებში.
+                </p>
+                <ContactForm />
+              </div>
             </div>
-          </section>
 
-          <section className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            <div className="glass-card rounded-3xl border border-white/10 p-8 lg:col-span-7">
-              <h2 className="mb-6 text-2xl font-bold text-primary">მოგვწერეთ</h2>
+            <aside className="flex flex-col gap-5 lg:col-span-5">
+              <div className="glass relative overflow-hidden rounded-[2rem] p-7 shadow-[0_24px_70px_rgb(0_0_0_/_40%)] ring-1 ring-white/10 md:p-8">
+                <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
+                <div className="relative">
+                  <h3 className="mb-6 text-xl font-bold tracking-tight">
+                    საკონტაქტო ინფორმაცია
+                  </h3>
+                  <div className="space-y-5">
+                    {contactChannels.map(({ icon: Icon, label, value, href }) => (
+                      <a
+                        key={label}
+                        href={href}
+                        target={href.startsWith("http") ? "_blank" : undefined}
+                        rel={
+                          href.startsWith("http")
+                            ? "noopener noreferrer"
+                            : undefined
+                        }
+                        className="group/item flex items-start gap-4 rounded-2xl border border-transparent p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5"
+                      >
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-linear-to-br from-primary/20 to-primary/5 text-primary shadow-[0_0_24px_rgb(173_198_255_/_12%)] transition-transform duration-300 group-hover/item:scale-105">
+                          <Icon className="size-5" />
+                        </div>
+                        <div className="min-w-0 pt-1">
+                          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            {label}
+                          </p>
+                          <p className="mt-1 font-semibold text-foreground break-words">
+                            {value}
+                          </p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
 
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-                noValidate
-              >
-                <FieldGroup className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <Field data-invalid={!!form.formState.errors.fullName}>
-                    <FieldLabel htmlFor="fullName">სახელი და გვარი</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="fullName"
-                        placeholder="გიორგი ბერიძე"
-                        className="h-11 rounded-xl bg-surface-lowest"
-                        {...form.register("fullName")}
-                      />
-                      <FieldError errors={[form.formState.errors.fullName]} />
-                    </FieldContent>
-                  </Field>
+                  <div className="mt-8 border-t border-white/10 pt-6">
+                    <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                      სამუშაო საათები
+                    </p>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-lowest/60 px-4 py-3">
+                        <span className="text-muted-foreground">
+                          ორშაბათი – პარასკევი
+                        </span>
+                        <span className="font-semibold text-primary">
+                          09:00 – 20:00
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-lowest/60 px-4 py-3">
+                        <span className="text-muted-foreground">
+                          შაბათი – კვირა
+                        </span>
+                        <span className="font-semibold text-primary">
+                          10:00 – 18:00
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                  <Field data-invalid={!!form.formState.errors.email}>
-                    <FieldLabel htmlFor="email">ელ-ფოსტა</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="giorgi@example.com"
-                        className="h-11 rounded-xl bg-surface-lowest"
-                        {...form.register("email")}
-                      />
-                      <FieldError errors={[form.formState.errors.email]} />
-                    </FieldContent>
-                  </Field>
-                </FieldGroup>
-
-                <Field data-invalid={!!form.formState.errors.subject}>
-                  <FieldLabel htmlFor="subject">თემა</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="subject"
-                      placeholder="სიმულატორის ტესტირება"
-                      className="h-11 rounded-xl bg-surface-lowest"
-                      {...form.register("subject")}
-                    />
-                    <FieldError errors={[form.formState.errors.subject]} />
-                  </FieldContent>
-                </Field>
-
-                <Field data-invalid={!!form.formState.errors.message}>
-                  <FieldLabel htmlFor="message">შეტყობინება</FieldLabel>
-                  <FieldContent>
-                    <Textarea
-                      id="message"
-                      rows={6}
-                      placeholder="როგორ შემიძლია დავჯავშნო პრაქტიკული მეცადინეობა?"
-                      className="rounded-xl bg-surface-lowest"
-                      {...form.register("message")}
-                    />
-                    <FieldDescription>
-                      პასუხს მიიღებთ სამუშაო საათებში მაქსიმუმ 24 საათში.
-                    </FieldDescription>
-                    <FieldError errors={[form.formState.errors.message]} />
-                  </FieldContent>
-                </Field>
-
-                <Button
-                  type="submit"
-                  className="h-12 w-full rounded-xl bg-primary font-bold text-on-primary-container hover:brightness-110"
-                  disabled={form.formState.isSubmitting}
+              {supportHighlights.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className={cn(
+                    "glass group relative overflow-hidden rounded-3xl p-6 ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/30",
+                    title === "მონაცემთა უსაფრთხოება" &&
+                      "bg-linear-to-br from-primary/10 via-transparent to-transparent",
+                  )}
                 >
-                  გაგზავნა
-                  <Send className="size-4" />
-                </Button>
-              </form>
-            </div>
-
-            <div className="space-y-6 lg:col-span-5">
-              <div className="glass-card rounded-3xl border border-white/10 p-8">
-                <h3 className="mb-6 text-xl font-bold">საკონტაქტო ინფორმაცია</h3>
-                <div className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Mail className="size-5" />
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/20">
+                      <Icon className="size-5" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">ელ-ფოსტა</p>
-                      <p className="font-semibold">support@simdrive.pro</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Phone className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">ტელეფონი</p>
-                      <p className="font-semibold">+995 322 00 00 00</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <MapPin className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">მისამართი</p>
-                      <p className="font-semibold">
-                        ილია ჭავჭავაძის გამზირი 37, თბილისი
+                      <p className="font-semibold tracking-tight">{title}</p>
+                      <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+                        {description}
                       </p>
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-8 border-t border-white/10 pt-6">
-                  <p className="mb-4 text-xs tracking-widest text-muted-foreground uppercase">
-                    სამუშაო საათები
-                  </p>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        ორშაბათი - პარასკევი
-                      </span>
-                      <span className="font-semibold">09:00 - 20:00</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        შაბათი - კვირა
-                      </span>
-                      <span className="font-semibold">10:00 - 18:00</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card rounded-3xl border border-white/10 p-6">
-                <div className="flex items-center gap-3">
-                  <Clock3 className="size-5 text-primary" />
-                  <p className="font-medium">სწრაფი მხარდაჭერა</p>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  საშუალო პასუხის დრო: 30-60 წუთი სამუშაო საათებში.
-                </p>
-              </div>
-
-              <div className="glass-card rounded-3xl border border-primary/20 bg-primary/5 p-6">
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="size-5 text-primary" />
-                  <p className="font-medium">მონაცემთა უსაფრთხოება</p>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  თქვენი ინფორმაცია დაცულია და გამოიყენება მხოლოდ კომუნიკაციისთვის.
-                </p>
-              </div>
-            </div>
+              ))}
+            </aside>
           </section>
 
-          <section className="space-y-6">
-            <div className="flex items-end justify-between gap-4">
+          <section className="space-y-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-2xl font-bold">ხშირად დასმული კითხვები</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+                  FAQ
+                </p>
+                <h3 className="text-3xl font-extrabold tracking-tight md:text-4xl">
+                  ხშირად დასმული კითხვები
+                </h3>
+                <p className="mt-2 max-w-lg text-sm text-muted-foreground md:text-base">
                   იპოვეთ სწრაფი პასუხები პოპულარულ შეკითხვებზე.
                 </p>
               </div>
-              <Button variant="ghost" className="text-primary">
+              <Link
+                href="/about"
+                className="inline-flex w-fit items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+              >
                 ყველა კითხვის ნახვა
                 <ArrowRight className="size-4" />
-              </Button>
+              </Link>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {faqs.map((faq) => (
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {faqs.map((faq, index) => (
                 <article
                   key={faq.title}
-                  className="glass-card rounded-2xl border border-white/10 p-5 transition-colors hover:bg-surface-container-high"
+                  className="glass group relative overflow-hidden rounded-[1.5rem] p-6 shadow-[0_20px_60px_rgb(0_0_0_/_35%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/40"
+                  style={{ animationDelay: `${index * 80}ms` }}
                 >
-                  <h4 className="text-lg font-bold text-primary">{faq.title}</h4>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  <div className="pointer-events-none absolute -bottom-10 -right-10 size-32 rounded-full bg-primary/5 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
+                  <span className="mb-4 inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h4 className="text-lg font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                    {faq.title}
+                  </h4>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
                     {faq.description}
                   </p>
                 </article>
@@ -278,24 +257,6 @@ export function Contact() {
           </section>
         </div>
       </main>
-
-      {isSent ? (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm">
-          <div className="glass-card w-full max-w-md rounded-3xl border border-primary/20 p-8 text-center shadow-2xl shadow-primary/10">
-            <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-primary/20 text-primary">
-              <ShieldCheck className="size-8" />
-            </div>
-            <h3 className="text-2xl font-bold">მადლობა!</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              თქვენი შეტყობინება წარმატებით გაიგზავნა. ჩვენი გუნდი მალე
-              დაგიკავშირდებათ.
-            </p>
-            <Button className="mt-6 w-full" onClick={() => setIsSent(false)}>
-              დახურვა
-            </Button>
-          </div>
-        </div>
-      ) : null}
-    </>
+    </div>
   );
 }

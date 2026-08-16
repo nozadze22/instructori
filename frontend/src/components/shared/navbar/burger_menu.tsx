@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { LayoutDashboard, LogIn, Map, Menu, UserPlus, UserRound } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -13,7 +14,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { navbarLinks } from "./navbar_links";
 
-export function BurgerMenu() {
+type BurgerMenuProps = {
+  appHref?: string | null;
+  isAdmin?: boolean;
+};
+
+export function BurgerMenu({ appHref, isAdmin }: BurgerMenuProps) {
   return (
     <Sheet>
       <SheetTrigger
@@ -47,6 +53,49 @@ export function BurgerMenu() {
               </Link>
             );
           })}
+
+          {appHref ? (
+            <>
+              <Link
+                href={appHref}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <LayoutDashboard className="size-4" />
+                <span>{isAdmin ? "ადმინი" : "დაშბორდი"}</span>
+              </Link>
+              <Link
+                href={isAdmin ? "/admin/routes" : "/routes"}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <Map className="size-4" />
+                <span>მარშრუტები</span>
+              </Link>
+              <Link
+                href="/profile"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <UserRound className="size-4" />
+                <span>პროფილი</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <LogIn className="size-4" />
+                <span>შესვლა</span>
+              </Link>
+              <Link
+                href="/register"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+              >
+                <UserPlus className="size-4" />
+                <span>რეგისტრაცია</span>
+              </Link>
+            </>
+          )}
         </nav>
       </SheetContent>
     </Sheet>

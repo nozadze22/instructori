@@ -11,10 +11,163 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  INSTRUCTOR
+}
+
+enum AccessStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+enum AccessSource {
+  ADMIN
+  PAYMENT
+}
+
+enum RouteVisibility {
+  SYSTEM
+  PRIVATE
+}
+
+enum RouteAction {
+  TURN_LEFT
+  TURN_RIGHT
+  STOP
+  PARKING
+  REVERSE
+  U_TURN
+  CUSTOM
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String
+  fullName        String
+  role            Role             @default(INSTRUCTOR)
+  accessStatus    AccessStatus     @default(PENDING)
+  accessSource    AccessSource?
+  accessGrantedAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  profile         Profile?
+  routes          Route[]
+  savedRoutes     SavedRoute[]
+  mistakeNotes    MistakeNote[]
+  refreshTokens   RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  phone       String?
+  avatarUrl   String?
+  city        String?
+  country     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  fullName  String
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Route {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  city        String?
+  /// Stable key for synced official exam routes, e.g. sachkhere-1
+  sourceKey   String?         @unique
+  /// Official PDF / normative-act URL when scraped from SA
+  sourceUrl   String?
+  /// GeoJSON-style coordinates: [[lng, lat], ...]
+  path        Json            @default("[]")
+  visibility  RouteVisibility @default(PRIVATE)
+  isPublished Boolean         @default(true)
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  steps        RouteStep[]
+  savedBy      SavedRoute[]
+  mistakeNotes MistakeNote[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([createdById])
+  @@index([visibility, isPublished])
+  @@index([city])
+}
+
+model RouteStep {
+  id                   String      @id @default(uuid())
+  routeId              String
+  route                Route       @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  order                Int
+  lat                  Float
+  lng                  Float
+  action               RouteAction
+  distanceBeforeVoice  Int         @default(200)
+  voiceText            String?
+  audioUrl             String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([routeId, order])
+}
+
+model SavedRoute {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routeId   String
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, routeId])
+  @@index([userId])
+  @@index([routeId])
+}
+
+/// Instructor-owned practice note: student name + city + route + mistakes[]
+model MistakeNote {
+  id           String   @id @default(uuid())
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  /// Free-text student name (no Student role / entity)
+  studentName  String
+  routeId      String
+  route        Route    @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  /// Exam city name (same as Route.city / EXAM_CITY_NAMES)
+  city         String
+  /// Mistake strings: ["...", "..."]
+  mistakes     Json     @default("[]")
+  practicedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId])
+  @@index([instructorId, studentName])
+  @@index([routeId])
+  @@index([city])
 }

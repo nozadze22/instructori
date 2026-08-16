@@ -1,0 +1,33 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea
+.vscode
+.cursor
+*.swp
+
+# Env (any package)
+.env
+.env.*
+!.env.example
+
+# Dependencies / build artifacts
+node_modules
+dist
+build
+coverage
+.next
+out
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local overrides
+*.local

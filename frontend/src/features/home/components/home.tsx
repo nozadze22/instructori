@@ -278,12 +278,12 @@ export function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-3">
             {plans.map((plan) => (
               <Card
                 key={plan.name}
                 className={cn(
-                  "glass group relative gap-6 overflow-hidden border-0 bg-gradient-to-b from-white/[0.07] to-transparent py-8 shadow-[0_24px_70px_rgb(0_0_0_/_40%)] ring-1 transition-all duration-300 hover:-translate-y-1",
+                  "glass group relative h-full gap-0 overflow-hidden border-0 bg-gradient-to-b from-white/[0.07] to-transparent py-0 shadow-[0_24px_70px_rgb(0_0_0_/_40%)] ring-1 transition-all duration-300 hover:-translate-y-1",
                   plan.featured
                     ? "ring-primary/40 shadow-primary/10"
                     : "ring-white/10 hover:ring-primary/30",
@@ -300,7 +300,7 @@ export function Home() {
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgb(255_255_255_/_6%),transparent_50%)]" />
                 )}
 
-                <CardHeader className="relative space-y-1 px-8">
+                <CardHeader className="relative space-y-1 px-8 pt-8">
                   <span
                     className={cn(
                       "text-sm font-medium tracking-wide",
@@ -314,7 +314,7 @@ export function Home() {
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent className="relative flex flex-1 flex-col gap-6 px-8">
+                <CardContent className="relative flex flex-1 flex-col gap-6 px-8 pt-6">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold">{plan.price}</span>
                     <span className="text-sm font-medium text-muted-foreground">
@@ -322,7 +322,7 @@ export function Home() {
                     </span>
                   </div>
 
-                  <ul className="flex-grow space-y-3">
+                  <ul className="flex-1 space-y-3">
                     {plan.features.map((feature) => (
                       <li
                         key={feature}
@@ -335,10 +335,10 @@ export function Home() {
                   </ul>
                 </CardContent>
 
-                <CardFooter className="relative px-8 pb-0">
+                <CardFooter className="relative mt-auto border-t border-white/10 bg-transparent px-8 py-6">
                   <Button
                     className={cn(
-                      "h-11 w-full rounded-xl text-sm transition-all",
+                      "h-11 w-full shrink-0 rounded-xl text-sm transition-all",
                       plan.featured
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary-container hover:shadow-primary/40"
                         : "border border-white/10 bg-white/5 text-foreground hover:bg-white/10",
