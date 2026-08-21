@@ -2,6 +2,7 @@
 
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
+import { PageFrame } from "@/features/instructor/components/page-frame";
 import { InstructorProfileView } from "@/features/profile/components/instructor-profile-view";
 import { useGetProfile } from "@/features/profile/hooks/profile";
 
@@ -20,10 +21,9 @@ function ProfileContent() {
   if (!me) return null;
 
   return (
-    <InstructorProfileView
-      user={me}
-      profile={profile ?? null}
-    />
+    <PageFrame>
+      <InstructorProfileView user={me} profile={profile ?? null} />
+    </PageFrame>
   );
 }
 
