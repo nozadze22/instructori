@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,7 @@ import {
   SkipForward,
   Trash2,
   Volume2,
+  X,
 } from "lucide-react";
 
 import {
@@ -41,6 +43,8 @@ import {
   useUnsaveRoute,
 } from "@/features/routes/hooks/routes";
 import { useRouteSimulation } from "@/features/routes/hooks/use-route-simulation";
+import type { RouteStep } from "@/features/routes/api/routes";
+import type { PathPoint } from "@/features/routes/lib/route-actions";
 import {
   actionLabel,
   defaultVoiceText,
@@ -56,7 +60,7 @@ const RouteMapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[360px] items-center justify-center rounded-2xl border border-white/10 bg-surface-lowest text-sm text-muted-foreground md:h-[420px]">
+      <div className="flex h-90 items-center justify-center rounded-2xl border border-white/10 bg-surface-lowest text-sm text-muted-foreground md:h-105">
         რუკა იტვირთება...
       </div>
     ),
@@ -77,6 +81,150 @@ function stepVoice(step: {
   return (
     step.voiceText?.trim() ||
     defaultVoiceText(step.action, step.distanceBeforeVoice)
+  );
+}
+
+function metersBetween(a: PathPoint, b: PathPoint) {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function LiveNavScreen({
+  path,
+  steps,
+  activeStepIndex,
+  current,
+  simulation,
+  onStop,
+}: {
+  path: PathPoint[];
+  steps: RouteStep[];
+  activeStepIndex: number | null;
+  current?: RouteStep;
+  simulation: ReturnType<typeof useRouteSimulation>;
+  onStop: () => void;
+}) {
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  const cue =
+    simulation.currentVoice || (current ? stepVoice(current) : "გააგრძელე მონიშნულ გზაზე");
+  const nextMeters =
+    simulation.position && current
+      ? Math.round(
+          metersBetween(simulation.position, {
+            lat: current.lat,
+            lng: current.lng,
+          }),
+        )
+      : null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex flex-col bg-black">
+      <RouteMapView
+        path={path}
+        commands={steps.map((step) => ({
+          lat: step.lat,
+          lng: step.lng,
+          action: step.action,
+          label: actionLabel(step.action),
+        }))}
+        activeIndex={activeStepIndex ?? undefined}
+        vehiclePosition={simulation.position}
+        followVehicle={simulation.followCamera}
+        showCommandMarkers={false}
+        showVehicleMarker
+        navigationMode
+        headingDeg={simulation.headingDeg}
+        traveledPath={simulation.traveledPath}
+        aheadPath={simulation.aheadPath}
+        className="h-full rounded-none border-none"
+      />
+
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-3xl bg-[#1a73e8] text-white shadow-2xl">
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <div className="mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-black">
+              {nextMeters != null ? `${nextMeters}` : "•"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold tracking-wide text-white/80 uppercase">
+                {current ? actionLabel(current.action) : "ნავიგაცია"}
+                {nextMeters != null ? ` · ${nextMeters} მ` : ""}
+              </p>
+              <p className="mt-1 text-lg leading-6 font-semibold tracking-tight">
+                {cue}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-black/20"
+              onClick={onStop}
+              aria-label="ნავიგაციის დახურვა"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+          {simulation.geoError ? (
+            <p className="bg-black/20 px-4 py-2 text-sm text-amber-100">
+              {simulation.geoError === "denied"
+                ? "დართე Location ამ საიტისთვის."
+                : "GPS ვერ იკითხება."}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="pointer-events-auto mx-auto flex max-w-lg items-center gap-2">
+          <div className="rounded-2xl bg-black/70 px-4 py-3 text-white shadow-lg backdrop-blur-md">
+            <p className="text-2xl font-black tabular-nums leading-none">
+              {Math.round(simulation.speedKmh)}
+            </p>
+            <p className="mt-1 text-[10px] tracking-wide text-white/70 uppercase">
+              კმ/სთ
+            </p>
+          </div>
+          <div className="min-w-0 flex-1 rounded-2xl bg-black/70 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-md">
+            <p className="truncate">
+              {simulation.navigationStatus === "ACTIVE"
+                ? "მიჰყევი ლურჯ ხაზს"
+                : simulation.navigationReason === "NOT_MOVING"
+                  ? "გაჩერებული ხარ — რუკა ადგილზეა"
+                  : simulation.navigationReason === "OFF_ROUTE"
+                    ? "დაბრუნდი ლურჯ გზაზე"
+                    : "GPS ელოდება"}
+            </p>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-[#1a73e8]"
+                style={{ width: `${simulation.progress}%` }}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black shadow-lg"
+            onClick={onStop}
+          >
+            დასრულება
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -113,7 +261,6 @@ function RouteDetailContent({
     routeId,
     path,
     commands: simCommands,
-    speedMps: 28,
   });
 
   const activeStepIndex =
@@ -181,7 +328,7 @@ function RouteDetailContent({
                 variant="outline"
                 className="rounded-full border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
               >
-                სიმულაცია მზადაა
+                საგამოცდო ნავიგაცია
               </Badge>
             ) : null}
           </div>
@@ -286,10 +433,25 @@ function RouteDetailContent({
         }))}
         activeIndex={activeStepIndex ?? undefined}
         vehiclePosition={simulation.position}
-        followVehicle={simulation.followCamera}
-        showCommandMarkers={false}
-        showVehicleMarker={false}
+        followVehicle={false}
+        showCommandMarkers
+        showVehicleMarker
+        className="h-90 md:h-105"
       />
+
+      {simulation.running
+        ? createPortal(
+            <LiveNavScreen
+              path={path}
+              steps={steps}
+              activeStepIndex={activeStepIndex}
+              current={current}
+              simulation={simulation}
+              onStop={() => simulation.stop()}
+            />,
+            document.body,
+          )
+        : null}
 
       <div className="grid gap-6 lg:grid-cols-12">
         <section className="glass relative overflow-hidden rounded-[1.75rem] p-5 ring-1 ring-white/10 md:p-7 lg:col-span-7">
@@ -297,7 +459,7 @@ function RouteDetailContent({
           <div className="relative space-y-6">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                სიმულაცია
+                ცოცხალი ნავიგაცია
               </p>
               <span className="text-sm text-muted-foreground">
                 {simulation.totalCommands > 0
@@ -316,17 +478,36 @@ function RouteDetailContent({
                 )}
               >
                 {simulation.navigationStatus === "ACTIVE"
-                  ? "ნავიგაცია აქტიურია"
+                  ? "მარშრუტზე ხარ — ბრძანებები ჩაირთო"
                   : simulation.navigationReason === "NOT_MOVING"
-                    ? "არ მოძრაობს — დუმილი"
+                    ? "არ მოძრაობს — რუკა ადგილზე რჩება"
                     : simulation.navigationReason === "OFF_ROUTE"
-                      ? "მარშრუტზე არ არის — დუმილი"
-                      : "მოლოდინის რეჟიმი"}
+                      ? "მონიშნულ გზას გადაუხვიე — დუმილი"
+                      : simulation.running
+                        ? "GPS ელოდება"
+                        : "გაჩერებულია"}
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                პინები გამორთულია
+                {Math.round(simulation.speedKmh)} კმ/სთ
               </span>
+              {simulation.accuracyM != null ? (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  GPS ±{Math.round(simulation.accuracyM)}მ
+                </span>
+              ) : null}
             </div>
+
+            {simulation.geoError ? (
+              <p className="text-sm text-destructive">
+                {simulation.geoError === "denied"
+                  ? "გეოლოკაცია აკრძალულია. ტელეფონში დართე Location ამ საიტისთვის."
+                  : simulation.geoError === "unsupported"
+                    ? "ამ ბრაუზერს GPS არ აქვს."
+                    : simulation.geoError === "timeout"
+                      ? "GPS ვერ იპოვა. გახსენი ფანჯარა, გააჩერე ცის ქვეშ."
+                      : "GPS ახლა მიუწვდომელია. შეამოწმე Location."}
+              </p>
+            ) : null}
 
             <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
               <div
@@ -351,8 +532,8 @@ function RouteDetailContent({
             ) : (
               <p className="text-muted-foreground">
                 {path.length < 2
-                  ? "ჯერ დაამატე მარშრუტის ხაზი, რომ სიმულაცია იმუშაოს."
-                  : "დააჭირე დაწყებას — მოძრაობისას და მარშრუტზე ყოფნისას გაიაქტიურდება."}
+                  ? "ჯერ დაამატე მარშრუტის ხაზი."
+                  : "დააჭირე დაწყებას მანქანაში. რუკა მხოლოდ შენს GPS-ს მიჰყვება — თუ არ იძრები, არსად არ წავა. ხმა მხოლოდ მონიშნულ გზაზე და მოძრაობისას."}
               </p>
             )}
 
@@ -370,7 +551,7 @@ function RouteDetailContent({
                 ) : (
                   <Play className="size-4" />
                 )}
-                {simulation.running ? "პაუზა" : "სიმულაციის დაწყება"}
+                {simulation.running ? "გაჩერება" : "ნავიგაციის დაწყება"}
               </Button>
               <Button
                 type="button"

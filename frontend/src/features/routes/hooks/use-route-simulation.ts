@@ -16,6 +16,8 @@ type SimCommand = {
   distanceBeforeVoice: number;
 };
 
+type GeoErrorKind = "unsupported" | "denied" | "unavailable" | "timeout" | null;
+
 function haversineMeters(a: PathPoint, b: PathPoint) {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const R = 6371000;
@@ -29,13 +31,6 @@ function haversineMeters(a: PathPoint, b: PathPoint) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function lerpPoint(a: PathPoint, b: PathPoint, t: number): PathPoint {
-  return {
-    lat: a.lat + (b.lat - a.lat) * t,
-    lng: a.lng + (b.lng - a.lng) * t,
-  };
-}
-
 function buildCumulative(path: PathPoint[]) {
   const distances = [0];
   for (let i = 1; i < path.length; i += 1) {
@@ -44,27 +39,100 @@ function buildCumulative(path: PathPoint[]) {
   return distances;
 }
 
-function pointAtDistance(
-  path: PathPoint[],
-  cumulative: number[],
-  distance: number,
-): PathPoint | null {
-  if (path.length === 0) return null;
-  if (path.length === 1) return path[0];
+function closestOnPath(path: PathPoint[], point: PathPoint) {
+  if (path.length === 0) {
+    return { closest: point, alongMeters: 0, distMeters: Infinity };
+  }
+  if (path.length === 1) {
+    return {
+      closest: path[0],
+      alongMeters: 0,
+      distMeters: haversineMeters(point, path[0]),
+    };
+  }
 
-  const total = cumulative[cumulative.length - 1];
-  const clamped = Math.max(0, Math.min(distance, total));
+  let bestDist = Infinity;
+  let bestAlong = 0;
+  let bestPoint = path[0];
+  let walked = 0;
+
+  for (let i = 1; i < path.length; i += 1) {
+    const a = path[i - 1];
+    const b = path[i];
+    const ab = haversineMeters(a, b);
+    const steps = Math.max(8, Math.ceil(ab / 8));
+    for (let s = 0; s <= steps; s += 1) {
+      const t = s / steps;
+      const candidate = {
+        lat: a.lat + (b.lat - a.lat) * t,
+        lng: a.lng + (b.lng - a.lng) * t,
+      };
+      const dist = haversineMeters(point, candidate);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestAlong = walked + ab * t;
+        bestPoint = candidate;
+      }
+    }
+    walked += ab;
+  }
+
+  return { closest: bestPoint, alongMeters: bestAlong, distMeters: bestDist };
+}
+
+function bearingDeg(from: PathPoint, to: PathPoint) {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const toDeg = (rad: number) => (rad * 180) / Math.PI;
+  const lat1 = toRad(from.lat);
+  const lat2 = toRad(to.lat);
+  const dLng = toRad(to.lng - from.lng);
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function slicePath(path: PathPoint[], alongMeters: number) {
+  if (path.length < 2) {
+    return { traveled: path, ahead: path };
+  }
+
+  const cum = buildCumulative(path);
+  const total = cum[cum.length - 1] ?? 0;
+  const clamped = Math.max(0, Math.min(alongMeters, total));
 
   let i = 1;
-  while (i < cumulative.length && cumulative[i] < clamped) i += 1;
+  while (i < cum.length && cum[i] < clamped) i += 1;
 
   const prev = path[i - 1];
   const next = path[i] ?? path[path.length - 1];
-  const start = cumulative[i - 1] ?? 0;
-  const end = cumulative[i] ?? start;
+  const start = cum[i - 1] ?? 0;
+  const end = cum[i] ?? start;
   const span = Math.max(end - start, 0.0001);
   const t = (clamped - start) / span;
-  return lerpPoint(prev, next, Math.min(1, Math.max(0, t)));
+  const split = {
+    lat: prev.lat + (next.lat - prev.lat) * t,
+    lng: prev.lng + (next.lng - prev.lng) * t,
+  };
+
+  return {
+    traveled: [...path.slice(0, i), split],
+    ahead: [split, ...path.slice(i)],
+  };
+}
+
+function headingAlongAhead(ahead: PathPoint[]) {
+  if (ahead.length < 2) return 0;
+  const from = ahead[0];
+  let to = ahead[1];
+  for (let i = 1; i < ahead.length; i += 1) {
+    if (haversineMeters(from, ahead[i]) > 12) {
+      to = ahead[i];
+      break;
+    }
+  }
+  return bearingDeg(from, to);
 }
 
 let activeAudio: HTMLAudioElement | null = null;
@@ -162,16 +230,23 @@ async function speakPrompt(options: {
   speakBrowser(fallback);
 }
 
+function mapGeoError(code: number): Exclude<GeoErrorKind, null> {
+  if (code === 1) return "denied";
+  if (code === 2) return "unavailable";
+  if (code === 3) return "timeout";
+  return "unavailable";
+}
+
 export function useRouteSimulation(options: {
   routeId: string;
   path: PathPoint[];
   commands: SimCommand[];
-  /** meters per second along path */
-  speedMps?: number;
 }) {
-  const { routeId, path, commands, speedMps = 28 } = options;
+  const { routeId, path, commands } = options;
   const [running, setRunning] = useState(false);
-  const [distance, setDistance] = useState(0);
+  const [position, setPosition] = useState<PathPoint | null>(null);
+  const [speedKmh, setSpeedKmh] = useState(0);
+  const [distanceAlong, setDistanceAlong] = useState(0);
   const [activeCommandIndex, setActiveCommandIndex] = useState<number | null>(
     null,
   );
@@ -184,208 +259,210 @@ export function useRouteSimulation(options: {
   const [navigationReason, setNavigationReason] = useState<
     "NOT_MOVING" | "OFF_ROUTE" | null
   >(null);
+  const [geoError, setGeoError] = useState<GeoErrorKind>(null);
+  const [accuracyM, setAccuracyM] = useState<number | null>(null);
+  const [headingDeg, setHeadingDeg] = useState(0);
+  const [aheadPath, setAheadPath] = useState<PathPoint[]>([]);
+  const [traveledPath, setTraveledPath] = useState<PathPoint[]>([]);
 
   const spokenRef = useRef<Set<string>>(new Set());
-  const rafRef = useRef<number | null>(null);
-  const lastTsRef = useRef<number | null>(null);
-  const distanceRef = useRef(0);
+  const watchIdRef = useRef<number | null>(null);
   const runningRef = useRef(false);
   const pathRef = useRef(path);
   const commandsRef = useRef(commands);
-  const speedRef = useRef(speedMps);
   const routeIdRef = useRef(routeId);
   const navTickInFlightRef = useRef(false);
-  const lastNavTickTsRef = useRef<number>(0);
+  const lastNavTickTsRef = useRef(0);
+  const lastFixRef = useRef<{ point: PathPoint; ts: number } | null>(null);
   const unmountedRef = useRef(false);
 
   useEffect(() => {
     pathRef.current = path;
     commandsRef.current = commands;
-    speedRef.current = speedMps;
     routeIdRef.current = routeId;
-  }, [path, commands, speedMps, routeId]);
+  }, [path, commands, routeId]);
 
   const cumulative = buildCumulative(path);
   const totalLength = cumulative[cumulative.length - 1] ?? 0;
-  const position = pointAtDistance(path, cumulative, distance);
   const totalCommands = commands.length;
   const progress =
-    totalCommands > 0 ? (passedCount / totalCommands) * 100 : 0;
+    totalLength > 0
+      ? Math.min(100, (distanceAlong / totalLength) * 100)
+      : totalCommands > 0
+        ? (passedCount / totalCommands) * 100
+        : 0;
+
+  const stopWatch = useCallback(() => {
+    if (watchIdRef.current != null && typeof navigator !== "undefined") {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  }, []);
 
   const stop = useCallback(() => {
     runningRef.current = false;
     setRunning(false);
-    lastTsRef.current = null;
-    if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-  }, []);
+    setFollowCamera(false);
+    stopWatch();
+  }, [stopWatch]);
 
   const reset = useCallback(() => {
     stop();
     stopAudio();
-    distanceRef.current = 0;
-    setDistance(0);
+    setDistanceAlong(0);
     setActiveCommandIndex(null);
     setCurrentVoice(null);
     setPassedCount(0);
-    setFollowCamera(false);
     setNavigationStatus("NO_ACTION");
     setNavigationReason(null);
+    setGeoError(null);
     navTickInFlightRef.current = false;
     lastNavTickTsRef.current = 0;
+    lastFixRef.current = null;
     spokenRef.current = new Set();
   }, [stop]);
 
-  const start = useCallback(() => {
-    if (pathRef.current.length < 2 || totalLength <= 0) return;
+  const applyFix = useCallback((coords: GeolocationCoordinates, ts: number) => {
+    const point = { lat: coords.latitude, lng: coords.longitude };
+    setPosition(point);
+    setAccuracyM(coords.accuracy);
+    setGeoError(null);
 
-    if (distanceRef.current >= totalLength - 0.5) {
-      distanceRef.current = 0;
-      setDistance(0);
-      spokenRef.current = new Set();
-      setPassedCount(0);
-      setActiveCommandIndex(null);
-      setCurrentVoice(null);
-      setFollowCamera(false);
-      setNavigationStatus("NO_ACTION");
-      setNavigationReason(null);
-      navTickInFlightRef.current = false;
-      lastNavTickTsRef.current = 0;
+    const previous = lastFixRef.current;
+    let speed =
+      coords.speed != null && Number.isFinite(coords.speed)
+        ? Math.max(0, coords.speed) * 3.6
+        : 0;
+
+    if ((!coords.speed || coords.speed < 0) && previous) {
+      const dt = Math.max((ts - previous.ts) / 1000, 0.2);
+      speed = (haversineMeters(previous.point, point) / dt) * 3.6;
+    }
+
+    lastFixRef.current = { point, ts };
+    setSpeedKmh(speed);
+
+    const along = closestOnPath(pathRef.current, point);
+    setDistanceAlong(along.alongMeters);
+    const sliced = slicePath(pathRef.current, along.alongMeters);
+    setAheadPath(sliced.ahead);
+    setTraveledPath(sliced.traveled);
+
+    let nextHeading = headingAlongAhead(sliced.ahead);
+    if (coords.heading != null && Number.isFinite(coords.heading) && coords.heading >= 0) {
+      nextHeading = coords.heading;
+    } else if (previous && speed > 4) {
+      nextHeading = bearingDeg(previous.point, point);
+    }
+    setHeadingDeg(nextHeading);
+
+    const route = routeIdRef.current;
+    if (!route || navTickInFlightRef.current || ts - lastNavTickTsRef.current < 700) {
+      return;
+    }
+
+    navTickInFlightRef.current = true;
+    lastNavTickTsRef.current = ts;
+
+    void postNavigationTick(route, {
+      lat: point.lat,
+      lng: point.lng,
+      speedKmh: speed,
+      onRouteThresholdMeters: 35,
+      movingSpeedThresholdKmh: 3,
+    })
+      .then((result) => {
+        if (unmountedRef.current || !runningRef.current) return;
+
+        setNavigationStatus(result.status);
+        setNavigationReason(result.reason);
+        setFollowCamera(true);
+
+        if (result.status !== "ACTIVE") {
+          setCurrentVoice(null);
+          setActiveCommandIndex(null);
+          return;
+        }
+
+        const instruction = result.nextInstruction;
+        if (!instruction) return;
+
+        const commandIndex = commandsRef.current.findIndex(
+          (command) => command.id === instruction.stepId,
+        );
+
+        if (commandIndex >= 0) {
+          setActiveCommandIndex(commandIndex);
+        }
+
+        const matchedCommand =
+          commandIndex >= 0 ? commandsRef.current[commandIndex] : null;
+        const voiceText =
+          instruction.voiceText?.trim() || matchedCommand?.voiceText || "";
+
+        if (!voiceText) return;
+        setCurrentVoice(voiceText);
+
+        if (!result.speak || spokenRef.current.has(instruction.stepId)) {
+          return;
+        }
+
+        spokenRef.current.add(instruction.stepId);
+        setPassedCount(spokenRef.current.size);
+
+        void speakPrompt({
+          voiceText,
+          action: matchedCommand?.action,
+          distanceBeforeVoice: matchedCommand?.distanceBeforeVoice,
+        });
+      })
+      .catch(() => {
+        if (unmountedRef.current) return;
+        setNavigationStatus("NO_ACTION");
+        setNavigationReason(null);
+      })
+      .finally(() => {
+        navTickInFlightRef.current = false;
+      });
+  }, []);
+
+  const start = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoError("unsupported");
+      return;
     }
 
     runningRef.current = true;
     setRunning(true);
-  }, [totalLength]);
+    setFollowCamera(true);
+    setGeoError(null);
 
-  useEffect(() => {
-    if (!running) return;
+    stopWatch();
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (fix) => {
+        if (!runningRef.current) return;
+        applyFix(fix.coords, fix.timestamp);
+      },
+      (error) => {
+        if (!runningRef.current) return;
+        setGeoError(mapGeoError(error.code));
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 15000,
+      },
+    );
+  }, [applyFix, stopWatch]);
 
-    const tick = (ts: number) => {
-      if (!runningRef.current) return;
-
-      const currentPath = pathRef.current;
-      const cum = buildCumulative(currentPath);
-      const total = cum[cum.length - 1] ?? 0;
-      if (currentPath.length < 2 || total <= 0) {
-        runningRef.current = false;
-        setRunning(false);
-        return;
-      }
-
-      if (lastTsRef.current == null) {
-        lastTsRef.current = ts;
-        rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      const dt = Math.min((ts - lastTsRef.current) / 1000, 0.05);
-      lastTsRef.current = ts;
-
-      const next = Math.min(
-        distanceRef.current + speedRef.current * dt,
-        total,
-      );
-      distanceRef.current = next;
-      setDistance(next);
-
-      const pos = pointAtDistance(currentPath, cum, next);
-      if (pos) {
-        const route = routeIdRef.current;
-        if (
-          route &&
-          !navTickInFlightRef.current &&
-          ts - lastNavTickTsRef.current >= 750
-        ) {
-          navTickInFlightRef.current = true;
-          lastNavTickTsRef.current = ts;
-
-          void postNavigationTick(route, {
-            lat: pos.lat,
-            lng: pos.lng,
-            speedKmh: speedRef.current * 3.6,
-          })
-            .then((result) => {
-              if (unmountedRef.current) return;
-
-              setNavigationStatus(result.status);
-              setNavigationReason(result.reason);
-              setFollowCamera(result.followCamera);
-
-              if (result.status !== "ACTIVE") {
-                setCurrentVoice(null);
-                setActiveCommandIndex(null);
-                return;
-              }
-
-              const instruction = result.nextInstruction;
-              if (!instruction) return;
-
-              const commandIndex = commandsRef.current.findIndex(
-                (command) => command.id === instruction.stepId,
-              );
-
-              if (commandIndex >= 0) {
-                setActiveCommandIndex(commandIndex);
-              }
-
-              const matchedCommand =
-                commandIndex >= 0 ? commandsRef.current[commandIndex] : null;
-              const voiceText =
-                instruction.voiceText?.trim() || matchedCommand?.voiceText || "";
-
-              if (!voiceText) return;
-              setCurrentVoice(voiceText);
-
-              if (!result.speak || spokenRef.current.has(instruction.stepId)) {
-                return;
-              }
-
-              spokenRef.current.add(instruction.stepId);
-              setPassedCount(spokenRef.current.size);
-
-              void speakPrompt({
-                voiceText,
-                action: matchedCommand?.action,
-                distanceBeforeVoice: matchedCommand?.distanceBeforeVoice,
-              });
-            })
-            .catch(() => {
-              if (unmountedRef.current) return;
-              setFollowCamera(false);
-              setNavigationStatus("NO_ACTION");
-              setNavigationReason(null);
-            })
-            .finally(() => {
-              navTickInFlightRef.current = false;
-            });
-        }
-      }
-
-      if (next >= total) {
-        runningRef.current = false;
-        setRunning(false);
-        lastTsRef.current = null;
-        return;
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      lastTsRef.current = null;
-    };
-  }, [running]);
-
-  useEffect(() => () => {
-    unmountedRef.current = true;
-    stop();
-    stopAudio();
-  }, [stop]);
+  useEffect(
+    () => () => {
+      unmountedRef.current = true;
+      stop();
+      stopAudio();
+    },
+    [stop],
+  );
 
   return {
     running,
@@ -398,6 +475,12 @@ export function useRouteSimulation(options: {
     followCamera,
     navigationStatus,
     navigationReason,
+    geoError,
+    speedKmh,
+    accuracyM,
+    headingDeg,
+    aheadPath,
+    traveledPath,
     start,
     stop,
     reset,
