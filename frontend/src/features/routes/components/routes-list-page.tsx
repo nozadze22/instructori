@@ -159,7 +159,7 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-xl border-white/10 px-5"
+                className="h-11 w-full rounded-xl border-white/10 px-4 sm:w-auto sm:px-5"
                 disabled={syncExamCatalog.isPending}
                 onClick={() => syncExamCatalog.mutate()}
               >
@@ -169,16 +169,18 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
                     syncExamCatalog.isPending && "animate-spin",
                   )}
                 />
-                {syncExamCatalog.isPending
-                  ? "სინქი..."
-                  : "ოფიციალური მარშრუტების სინქი"}
+                <span className="truncate">
+                  {syncExamCatalog.isPending
+                    ? "სინქი..."
+                    : "ოფიციალური მარშრუტების სინქი"}
+                </span>
               </Button>
             ) : null}
             <Link
               href={`${basePath}/new`}
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "h-11 rounded-xl px-5 text-sm font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]",
+                "h-11 w-full rounded-xl px-4 text-sm font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98] sm:w-auto sm:px-5",
               )}
             >
               <Plus className="size-4" />

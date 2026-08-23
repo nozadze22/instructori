@@ -58,7 +58,9 @@ export function AdminUsersTable() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">ინსტრუქტორები</h1>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            ინსტრუქტორები
+          </h1>
           <p className="mt-1 text-muted-foreground">
             გახსენი წვდომა უფასოდ ან დაბლოკე ანგარიში.
           </p>
@@ -76,7 +78,7 @@ export function AdminUsersTable() {
         </div>
       </div>
 
-      <div className="glass-panel glow-border overflow-hidden rounded-2xl">
+      <div className="glass-panel glow-border overflow-x-auto rounded-2xl">
         <Table>
           <TableHeader>
             <TableRow className="border-white/5 hover:bg-transparent">
