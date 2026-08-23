@@ -12,7 +12,7 @@ function baseCookieOptions(): CookieOptions {
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
+    sameSite: 'lax',
     path: '/',
   };
 }

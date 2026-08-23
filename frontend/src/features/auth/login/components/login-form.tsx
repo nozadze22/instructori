@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock, Mail, Globe, Gauge } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -19,9 +21,13 @@ import {
   loginSchema,
   type LoginSchema,
 } from "@/features/auth/login/schema/login.schema";
-import { useLogin } from "../hooks/login";
+import { defaultPathForUser, safeNextPath } from "@/lib/post-auth-path";
+import { useGetMe, useLogin } from "../hooks/login";
 
 export function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: me, isLoading: isMeLoading, isSuccess } = useGetMe();
   const { mutate: login, isPending } = useLogin();
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -29,9 +35,17 @@ export function LoginForm() {
     mode: "onSubmit",
   });
 
+  useEffect(() => {
+    if (isMeLoading || !isSuccess || !me) return;
+    const next =
+      safeNextPath(searchParams.get("next")) ??
+      safeNextPath(searchParams.get("redirect")) ??
+      defaultPathForUser(me);
+    router.replace(next);
+  }, [isMeLoading, isSuccess, me, router, searchParams]);
+
   const onSubmit = async (values: LoginSchema) => {
     login(values);
-    form.reset();
   };
 
   return (
