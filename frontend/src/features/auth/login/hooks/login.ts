@@ -2,26 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { defaultPathForUser, safeNextPath } from "@/lib/post-auth-path";
 import { getMe, login, logout } from "../api/login";
 import type { LoginSchema } from "../schema/login.schema";
-
-function redirectAfterAuth(
-  router: ReturnType<typeof useRouter>,
-  user: {
-    role: string;
-    accessStatus: string;
-  },
-) {
-  if (user.role === "ADMIN") {
-    router.push("/admin");
-    return;
-  }
-  if (user.accessStatus === "ACTIVE") {
-    router.push("/dashboard");
-    return;
-  }
-  router.push("/pending");
-}
 
 export function useLogin() {
   const queryClient = useQueryClient();
@@ -29,11 +12,20 @@ export function useLogin() {
 
   return useMutation({
     mutationKey: ["login"],
-    mutationFn: (data: LoginSchema) => login(data),
+    mutationFn: async (data: LoginSchema) => {
+      await login(data);
+      const user = await getMe();
+      return { user };
+    },
     onSuccess: (data) => {
       toast.success("წარმატებით შესრულდა");
       queryClient.setQueryData(["me"], data.user);
-      redirectAfterAuth(router, data.user);
+      const params = new URLSearchParams(window.location.search);
+      const next =
+        safeNextPath(params.get("next")) ??
+        safeNextPath(params.get("redirect")) ??
+        defaultPathForUser(data.user);
+      router.replace(next);
     },
     onError: (error: Error) => {
       toast.error(error.message || "მოხდა შეცდომა");
