@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,6 +15,23 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import type { AuthUser } from "@/features/auth/login/api/login";
 import type { Profile } from "@/features/profile/api/profile";
 import { ProfileForm } from "@/features/profile/components/profile-form";
@@ -56,10 +74,9 @@ export function InstructorProfileView({
 
   return (
     <div className="space-y-8">
-      <section className="glass relative overflow-hidden rounded-2xl p-6 ring-1 ring-white/10 md:p-8">
+      <Card className="glass relative overflow-hidden rounded-2xl border-none bg-transparent py-0 ring-1 ring-white/10">
         <div className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-primary/10 blur-[100px]" />
-
-        <div className="relative flex flex-col items-center gap-8 md:flex-row md:items-start">
+        <CardContent className="relative flex flex-col items-center gap-8 px-6 py-6 md:flex-row md:items-start md:px-8 md:py-8">
           <div className="relative shrink-0">
             <div className="size-32 overflow-hidden rounded-2xl border-2 border-white/10 shadow-2xl">
               <Image
@@ -78,15 +95,15 @@ export function InstructorProfileView({
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                <CardTitle className="text-3xl font-bold tracking-tight">
                   {user.fullName}
-                </h1>
+                </CardTitle>
                 <Badge className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
                   {user.role === "ADMIN" ? "ადმინისტრატორი" : "ინსტრუქტორი"}
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground md:justify-start">
+              <CardDescription className="flex flex-wrap items-center justify-center gap-4 md:justify-start">
                 {location ? (
                   <span className="inline-flex items-center gap-1">
                     <MapPin className="size-4" />
@@ -99,7 +116,7 @@ export function InstructorProfileView({
                     {profile.phone}
                   </span>
                 ) : null}
-              </div>
+              </CardDescription>
             </div>
 
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground md:mx-0">
@@ -126,98 +143,121 @@ export function InstructorProfileView({
               </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="space-y-8 lg:col-span-8">
-          <section className="glass rounded-2xl p-6 ring-1 ring-white/10">
-            <SectionTitle>ბიოგრაფია</SectionTitle>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground">
+          <Card className="glass rounded-2xl border-none bg-transparent ring-1 ring-white/10">
+            <CardHeader>
+              <SectionTitle>ბიოგრაფია</SectionTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
               <p>{bio}</p>
               {!profile?.bio ? (
                 <p className="text-primary/80">
                   პროფილი ჯერ არასრულია — გვერდის ქვემოთ შეგიძლია შეავსო.
                 </p>
               ) : null}
-            </div>
-          </section>
+            </CardContent>
+          </Card>
 
-          <section
+          <Card
             id="edit-profile"
-            className="glass scroll-mt-24 rounded-2xl p-6 ring-1 ring-white/10"
+            className="glass scroll-mt-24 rounded-2xl border-none bg-transparent ring-1 ring-white/10"
           >
-            <SectionTitle>პროფილის რედაქტირება</SectionTitle>
-            <p className="mb-6 text-sm text-muted-foreground">
-              შეცვალე სახელი, ტელეფონი, ქალაქი, ავატარი და ბიო.
-            </p>
-            <ProfileForm />
-          </section>
+            <CardHeader>
+              <SectionTitle>პროფილის რედაქტირება</SectionTitle>
+              <CardDescription>
+                შეცვალე სახელი, ტელეფონი, ქალაქი, ავატარი და ბიო.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProfileForm />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-8 lg:col-span-4">
-          <section className="glass rounded-2xl p-6 ring-1 ring-white/10">
-            <SectionTitle>განრიგი</SectionTitle>
-            <div className="space-y-1">
-              {schedule.map((row) => (
-                <div
-                  key={row.day}
-                  className="flex items-center justify-between border-b border-white/5 py-2 last:border-0"
-                >
-                  <span className="text-sm text-muted-foreground">{row.day}</span>
-                  {row.busy ? (
-                    <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                      {row.value}
+          <Card className="glass rounded-2xl border-none bg-transparent ring-1 ring-white/10">
+            <CardHeader>
+              <SectionTitle>განრიგი</SectionTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {schedule.map((row, index) => (
+                <div key={row.day}>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-muted-foreground">
+                      {row.day}
                     </span>
-                  ) : (
-                    <span className="text-sm font-semibold">{row.value}</span>
-                  )}
+                    {row.busy ? (
+                      <Badge className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        {row.value}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm font-semibold">{row.value}</span>
+                    )}
+                  </div>
+                  {index < schedule.length - 1 ? (
+                    <Separator className="bg-white/5" />
+                  ) : null}
                 </div>
               ))}
-            </div>
-            <Button
-              variant="outline"
-              className="mt-6 h-10 w-full rounded-lg border-white/10 bg-white/5 text-xs font-bold"
-            >
-              დაგეგმვის კალენდარი
-            </Button>
-          </section>
+            </CardContent>
+            <CardFooter className="border-0 bg-transparent">
+              <Button
+                variant="outline"
+                className="h-10 w-full rounded-lg border-white/10 bg-white/5 text-xs font-bold"
+              >
+                დაგეგმვის კალენდარი
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <section className="glass rounded-2xl p-6 ring-1 ring-white/10">
-            <SectionTitle>შენი ანგარიში</SectionTitle>
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="size-10">
-                  <AvatarImage src={avatar} alt={user.fullName} />
-                  <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{user.fullName}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
+          <Card className="glass rounded-2xl border-none bg-transparent ring-1 ring-white/10">
+            <CardHeader>
+              <SectionTitle>შენი ანგარიში</SectionTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Item
+                variant="outline"
+                className="border-primary/20 bg-primary/5"
+              >
+                <ItemMedia variant="image">
+                  <Avatar className="size-full rounded-sm">
+                    <AvatarImage src={avatar} alt={user.fullName} />
+                    <AvatarFallback className="rounded-sm bg-primary text-xs font-bold text-primary-foreground">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>{user.fullName}</ItemTitle>
+                  <ItemDescription>{user.email}</ItemDescription>
+                </ItemContent>
+              </Item>
+              <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+                <span>სისტემის სტატუსი</span>
+                <span className="inline-flex items-center gap-1.5 text-emerald-500">
+                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  {user.accessStatus === "ACTIVE"
+                    ? "აქტიური"
+                    : user.accessStatus}
+                </span>
               </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between px-1 text-[11px] text-muted-foreground">
-              <span>სისტემის სტატუსი</span>
-              <span className="inline-flex items-center gap-1.5 text-emerald-500">
-                <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                {user.accessStatus === "ACTIVE" ? "აქტიური" : user.accessStatus}
-              </span>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
 
-          <section className="glass rounded-2xl bg-linear-to-br from-primary/10 to-transparent p-6 ring-1 ring-white/10">
-            <SectionTitle className="mb-4 text-sm tracking-wider uppercase">
-              მიმდინარე ტრენინგი
-            </SectionTitle>
-            <div className="space-y-4">
-              <div className="relative h-2 w-full overflow-hidden rounded-full bg-surface-lowest">
-                <div className="absolute inset-y-0 left-0 w-[65%] rounded-full bg-primary" />
-              </div>
+          <Card className="glass rounded-2xl border-none bg-linear-to-br from-primary/10 to-transparent ring-1 ring-white/10">
+            <CardHeader>
+              <SectionTitle className="mb-0 text-sm tracking-wider uppercase">
+                მიმდინარე ტრენინგი
+              </SectionTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Progress value={65} className="gap-0">
+                <span className="sr-only">65%</span>
+              </Progress>
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <h4 className="text-xs font-bold text-foreground">
@@ -227,16 +267,17 @@ export function InstructorProfileView({
                     Session 4 of 6 • 45 min left
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
-                  className="flex size-8 items-center justify-center rounded-full bg-white text-black shadow-lg"
+                  size="icon"
+                  className="size-8 rounded-full bg-white text-black shadow-lg hover:bg-white/90"
                   aria-label="გაგრძელება"
                 >
                   <Play className="size-3.5 fill-current" />
-                </button>
+                </Button>
               </div>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -247,13 +288,15 @@ function SectionTitle({
   children,
   className,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("mb-6 flex items-center gap-3", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       <div className="h-6 w-1 rounded-full bg-primary" />
-      <h3 className="text-lg font-bold text-foreground">{children}</h3>
+      <CardTitle className="text-lg font-bold text-foreground">
+        {children}
+      </CardTitle>
     </div>
   );
 }

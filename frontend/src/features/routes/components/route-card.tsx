@@ -12,6 +12,15 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import type { Route } from "@/features/routes/api/routes";
 import { cn } from "@/lib/utils";
 
@@ -40,73 +49,78 @@ export function RouteCard({
     Boolean(onToggleSave);
 
   return (
-    <article
+    <Card
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-surface-lowest/55 p-5 shadow-[0_18px_50px_rgb(0_0_0/30%)] transition-all duration-300 hover:-translate-y-1 hover:border-primary/35 hover:bg-surface-lowest/80 hover:shadow-[0_24px_60px_rgb(0_0_0/40%)]",
+        "group relative h-full overflow-hidden rounded-[1.5rem] border-none bg-surface-lowest/55 py-0 shadow-[0_18px_50px_rgb(0_0_0/30%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:bg-surface-lowest/80 hover:shadow-[0_24px_60px_rgb(0_0_0/40%)] hover:ring-primary/35",
         className,
       )}
     >
-      <div className="pointer-events-none absolute -right-12 -top-12 size-36 rounded-full bg-primary/10 blur-3xl opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute -top-12 -right-12 size-36 rounded-full bg-primary/10 opacity-70 blur-3xl transition-opacity duration-300 group-hover:opacity-100" />
 
-      <div className="relative flex items-start justify-between gap-3">
-        <div className="flex size-12 items-center justify-center rounded-2xl border border-primary/20 bg-linear-to-br from-primary/25 to-primary/5 text-primary shadow-[0_0_24px_rgb(173_198_255/12%)]">
-          <RouteIcon className="size-5" />
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <Badge
-            variant="outline"
-            className={cn(
-              "rounded-full border-white/10 text-[11px]",
-              route.visibility === "SYSTEM"
-                ? "bg-primary/15 text-primary"
-                : "bg-white/5 text-muted-foreground",
-            )}
-          >
-            {route.visibility === "SYSTEM" ? "სისტემური" : "პირადი"}
-          </Badge>
-          {!route.isPublished ? (
+      <CardHeader className="relative gap-4 px-5 pt-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex size-12 items-center justify-center rounded-2xl border border-primary/20 bg-linear-to-br from-primary/25 to-primary/5 text-primary shadow-[0_0_24px_rgb(173_198_255/12%)]">
+            <RouteIcon className="size-5" />
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             <Badge
               variant="outline"
-              className="rounded-full border-amber-500/20 bg-amber-500/10 text-[11px] text-amber-200"
+              className={cn(
+                "rounded-full border-white/10 text-[11px]",
+                route.visibility === "SYSTEM"
+                  ? "bg-primary/15 text-primary"
+                  : "bg-white/5 text-muted-foreground",
+              )}
             >
-              დრაფტი
+              {route.visibility === "SYSTEM" ? "სისტემური" : "პირადი"}
             </Badge>
-          ) : null}
-          {route.isSaved ? (
-            <Badge
-              variant="outline"
-              className="rounded-full border-primary/20 bg-primary/10 text-[11px] text-primary"
-            >
-              შენახული
-            </Badge>
-          ) : null}
+            {!route.isPublished ? (
+              <Badge
+                variant="outline"
+                className="rounded-full border-amber-500/20 bg-amber-500/10 text-[11px] text-amber-200"
+              >
+                დრაფტი
+              </Badge>
+            ) : null}
+            {route.isSaved ? (
+              <Badge
+                variant="outline"
+                className="rounded-full border-primary/20 bg-primary/10 text-[11px] text-primary"
+              >
+                შენახული
+              </Badge>
+            ) : null}
+          </div>
         </div>
-      </div>
 
-      <Link href={href} className="relative mt-4 block flex-1">
-        <h3 className="text-lg font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
-          {route.title}
-        </h3>
-        <p className="mt-2 line-clamp-2 min-h-12 text-sm leading-6 text-muted-foreground">
-          {route.description?.trim() || "აღწერა არ არის მითითებული"}
-        </p>
-      </Link>
+        <Link href={href} className="block space-y-2">
+          <CardTitle className="text-lg font-bold tracking-tight transition-colors group-hover:text-primary">
+            {route.title}
+          </CardTitle>
+          <CardDescription className="line-clamp-2 min-h-12 leading-6">
+            {route.description?.trim() || "აღწერა არ არის მითითებული"}
+          </CardDescription>
+        </Link>
+      </CardHeader>
 
-      <div className="relative mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/8 pt-4 text-xs text-muted-foreground">
-        {route.city ? (
+      <CardContent className="relative space-y-4 px-5 pb-0">
+        <Separator className="bg-white/8" />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+          {route.city ? (
+            <span className="inline-flex items-center gap-1">
+              <MapPinned className="size-3.5 text-primary" />
+              {route.city}
+            </span>
+          ) : null}
           <span className="inline-flex items-center gap-1">
-            <MapPinned className="size-3.5 text-primary" />
-            {route.city}
+            <ListOrdered className="size-3.5 text-primary" />
+            {route.steps.length} ბრძანება
           </span>
-        ) : null}
-        <span className="inline-flex items-center gap-1">
-          <ListOrdered className="size-3.5 text-primary" />
-          {route.steps.length} ბრძანება
-        </span>
-        <span className="truncate">{route.createdBy.fullName}</span>
-      </div>
+          <span className="truncate">{route.createdBy.fullName}</span>
+        </div>
+      </CardContent>
 
-      <div className="relative mt-4 flex items-center gap-2">
+      <CardFooter className="relative gap-2 border-0 bg-transparent px-5 py-5">
         <Link
           href={href}
           className={cn(
@@ -145,7 +159,7 @@ export function RouteCard({
             <Pencil className="size-4" />
           </Link>
         ) : null}
-      </div>
-    </article>
+      </CardFooter>
+    </Card>
   );
 }

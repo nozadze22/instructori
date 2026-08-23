@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const ACCESS_TOKEN_COOKIE = "access_token";
+const REFRESH_TOKEN_COOKIE = "refresh_token";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
-  const isAuthenticated = Boolean(token);
+  const hasAccess = Boolean(request.cookies.get(ACCESS_TOKEN_COOKIE)?.value);
+  const hasRefresh = Boolean(request.cookies.get(REFRESH_TOKEN_COOKIE)?.value);
+  const isAuthenticated = hasAccess || hasRefresh;
 
   if (pathname.startsWith("/dashboard") && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);

@@ -1,13 +1,37 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ClipboardList, Gauge, Clock3, CalendarDays, Map, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  ClipboardList,
+  Clock3,
+  Gauge,
+  Map,
+  Plus,
+} from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useDashboard } from "@/features/dashboard/hooks/dashboard";
+import {
+  PageEyebrow,
+  PageFrame,
+  PageHeader,
+  StatTile,
+} from "@/features/instructor/components/page-frame";
 import { cn } from "@/lib/utils";
 
 export function DashboardPage() {
@@ -21,19 +45,12 @@ export function DashboardPage() {
     }
   }, [meLoading, me, router]);
 
-  if (me?.role === "ADMIN" || meLoading) {
+  if (me?.role === "ADMIN" || meLoading || isLoading) {
     return (
-      <p className="py-16 text-center text-sm text-muted-foreground">
-        იტვირთება...
-      </p>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <p className="py-16 text-center text-sm text-muted-foreground">
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+        <Spinner className="size-4" />
         დაშბორდი იტვირთება...
-      </p>
+      </div>
     );
   }
 
@@ -50,130 +67,121 @@ export function DashboardPage() {
   const { user, stats, message } = data;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-sm text-muted-foreground">დაშბორდი</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-          გამარჯობა, {user.fullName}
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">{message}</p>
-      </div>
+    <PageFrame>
+      <PageHeader
+        eyebrow={<PageEyebrow>Dashboard</PageEyebrow>}
+        title={`გამარჯობა, ${user.fullName}`}
+        description={message}
+      />
 
-      <div className="glass relative overflow-hidden rounded-[1.75rem] p-6 ring-1 ring-white/10">
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-              Routes
-            </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              მარშრუტები
-            </h2>
-            <p className="mt-1 max-w-lg text-sm text-muted-foreground">
-              შექმენი პირადი მარშრუტები ან შეინახე ადმინის კატალოგი ვარჯიშისთვის.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/routes"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "h-10 rounded-xl",
-              )}
-            >
-              <Map className="size-4" />
-              მარშრუტები
-            </Link>
-            <Link
-              href="/routes/new"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-10 rounded-xl border-white/10",
-              )}
-            >
-              <Plus className="size-4" />
-              ახალი
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="glass relative overflow-hidden rounded-[1.75rem] p-6 ring-1 ring-white/10">
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-              Mistakes
-            </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight">
-              შეცდომები
-            </h2>
-            <p className="mt-1 max-w-lg text-sm text-muted-foreground">
-              ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/mistake-notes"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "h-10 rounded-xl",
-              )}
-            >
-              <ClipboardList className="size-4" />
-              შეცდომები
-            </Link>
-            <Link
-              href="/mistake-notes/new"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-10 rounded-xl border-white/10",
-              )}
-            >
-              <Plus className="size-4" />
-              ახალი
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={Gauge}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <StatTile
           label="შესრულებული სესიები"
           value={String(stats.sessionsCompleted)}
+          icon={<Gauge className="size-4" />}
         />
-        <StatCard
-          icon={Clock3}
+        <StatTile
           label="საათი ტრენინგი"
           value={String(stats.hoursTrained)}
+          icon={<Clock3 className="size-4" />}
         />
-        <StatCard
-          icon={CalendarDays}
+        <StatTile
           label="მომავალი გაკვეთილები"
           value={String(stats.upcomingLessons)}
+          icon={<CalendarDays className="size-4" />}
         />
-      </div>
-    </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <QuickLinkCard
+          eyebrow="Routes"
+          title="მარშრუტები"
+          description="შექმენი პირადი მარშრუტები ან შეინახე ადმინის კატალოგი ვარჯიშისთვის."
+          icon={<Map className="size-5" />}
+          primaryHref="/routes"
+          primaryLabel="მარშრუტები"
+          secondaryHref="/routes/new"
+          secondaryLabel="ახალი"
+        />
+        <QuickLinkCard
+          eyebrow="Mistakes"
+          title="შეცდომები"
+          description="ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით."
+          icon={<ClipboardList className="size-5" />}
+          primaryHref="/mistake-notes"
+          primaryLabel="შეცდომები"
+          secondaryHref="/mistake-notes/new"
+          secondaryLabel="ახალი"
+        />
+      </section>
+    </PageFrame>
   );
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
+function QuickLinkCard({
+  eyebrow,
+  title,
+  description,
+  icon,
+  primaryHref,
+  primaryLabel,
+  secondaryHref,
+  secondaryLabel,
 }: {
-  icon: typeof Gauge;
-  label: string;
-  value: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: ReactNode;
+  primaryHref: string;
+  primaryLabel: string;
+  secondaryHref: string;
+  secondaryLabel: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-surface/40 p-5">
-      <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-        <Icon className="size-5" />
-      </div>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
-    </div>
+    <Card className="glass group relative h-full overflow-hidden rounded-[1.75rem] border-none bg-transparent py-0 ring-1 ring-white/10 transition-all hover:ring-primary/25">
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/12 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute -top-10 -right-10 size-36 rounded-full bg-primary/10 blur-3xl transition-opacity group-hover:opacity-100" />
+
+      <CardHeader className="relative gap-3 px-6 pt-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+              {eyebrow}
+            </p>
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              {title}
+            </CardTitle>
+            <CardDescription className="max-w-md leading-6">
+              {description}
+            </CardDescription>
+          </div>
+          <CardAction className="static">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+              {icon}
+            </div>
+          </CardAction>
+        </div>
+      </CardHeader>
+
+      <CardFooter className="relative mt-auto flex flex-wrap gap-2 border-0 bg-transparent px-6 py-6">
+        <Link
+          href={primaryHref}
+          className={cn(buttonVariants({ variant: "default" }), "h-10 rounded-xl")}
+        >
+          {primaryLabel}
+          <ArrowRight className="size-4" />
+        </Link>
+        <Link
+          href={secondaryHref}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "h-10 rounded-xl border-white/10",
+          )}
+        >
+          <Plus className="size-4" />
+          {secondaryLabel}
+        </Link>
+      </CardFooter>
+    </Card>
   );
 }

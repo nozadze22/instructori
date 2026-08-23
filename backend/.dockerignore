@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.git
+.env
+.env.*
+*.md
+test
+**/*spec.ts
+src/generated
+.claude
+.windsurf
+.agents
+.cursor

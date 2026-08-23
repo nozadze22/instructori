@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Home, Search } from "lucide-react";
+import { Bell, Home } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { NavbarUserMenu } from "@/components/shared/navbar/navbar-user-menu";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { cn } from "@/lib/utils";
@@ -14,16 +13,17 @@ export function InstructorTopbar() {
   const { data: me } = useGetMe();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/5 bg-surface/50 px-6 backdrop-blur-md">
-      <div className="relative hidden sm:block">
-        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="h-9 w-64 rounded-full border-none bg-surface-low pl-10 text-sm focus-visible:ring-primary/20"
-          placeholder="ძებნა..."
-        />
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 bg-surface/40 px-5 backdrop-blur-md md:h-16 md:px-8">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-foreground/90">
+          {me?.fullName ? `გამარჯობა, ${me.fullName.split(" ")[0]}` : "ინსტრუქტორი"}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          SimDrive Pro · Instructor
+        </p>
       </div>
 
-      <div className="flex items-center gap-2 sm:ml-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <Link
           href="/"
           aria-label="მთავარი გვერდი"

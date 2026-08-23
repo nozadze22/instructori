@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Map, Marker, Polyline, useMap } from "@vis.gl/react-google-maps";
 
 import { GoogleMapsProvider } from "@/features/routes/components/google-maps-provider";
@@ -21,16 +21,26 @@ type RouteMapViewProps = {
   followVehicle?: boolean;
   showCommandMarkers?: boolean;
   showVehicleMarker?: boolean;
+  navigationMode?: boolean;
+  headingDeg?: number;
+  traveledPath?: PathPoint[];
+  aheadPath?: PathPoint[];
   className?: string;
 };
 
 const TBILISI = { lat: 41.7151, lng: 44.7833 };
 
-function FitBounds({ path }: { path: PathPoint[] }) {
+function FitBounds({
+  path,
+  enabled,
+}: {
+  path: PathPoint[];
+  enabled: boolean;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || path.length < 2) return;
+    if (!map || !enabled || path.length < 2) return;
 
     const lats = path.map((point) => point.lat);
     const lngs = path.map((point) => point.lng);
@@ -40,24 +50,91 @@ function FitBounds({ path }: { path: PathPoint[] }) {
       east: Math.max(...lngs),
       west: Math.min(...lngs),
     });
-  }, [map, path]);
+  }, [map, path, enabled]);
 
   return null;
 }
 
-function FollowVehicle({
+function NavCamera({
   position,
+  headingDeg,
   enabled,
 }: {
   position?: PathPoint | null;
-  enabled?: boolean;
+  headingDeg: number;
+  enabled: boolean;
 }) {
   const map = useMap();
 
   useEffect(() => {
     if (!map || !enabled || !position) return;
-    map.panTo(position);
-  }, [map, enabled, position]);
+
+    const camera = {
+      center: position,
+      zoom: 18,
+      tilt: 47,
+      heading: headingDeg,
+    };
+
+    const googleMap = map as google.maps.Map & {
+      moveCamera?: (cam: typeof camera) => void;
+    };
+
+    if (typeof googleMap.moveCamera === "function") {
+      googleMap.moveCamera(camera);
+      return;
+    }
+
+    map.setCenter(position);
+    map.setZoom(18);
+    if (typeof map.setTilt === "function") map.setTilt(47);
+    if (typeof map.setHeading === "function") map.setHeading(headingDeg);
+  }, [map, enabled, position, headingDeg]);
+
+  return null;
+}
+
+function VehicleArrow({
+  position,
+  headingDeg,
+}: {
+  position: PathPoint;
+  headingDeg: number;
+}) {
+  const map = useMap();
+  const markerRef = useRef<google.maps.Marker | null>(null);
+
+  useEffect(() => {
+    if (!map || typeof google === "undefined") return;
+
+    const marker = new google.maps.Marker({
+      map,
+      clickable: false,
+      zIndex: 999,
+    });
+    markerRef.current = marker;
+
+    return () => {
+      marker.setMap(null);
+      markerRef.current = null;
+    };
+  }, [map]);
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker || typeof google === "undefined") return;
+    marker.setPosition(position);
+    marker.setIcon({
+      path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 7,
+      fillColor: "#1a73e8",
+      fillOpacity: 1,
+      strokeColor: "#ffffff",
+      strokeWeight: 2.5,
+      rotation: headingDeg,
+      anchor: new google.maps.Point(0, 2.6),
+    });
+  }, [position, headingDeg]);
 
   return null;
 }
@@ -70,33 +147,68 @@ function RouteMapViewInner({
   followVehicle,
   showCommandMarkers,
   showVehicleMarker,
+  navigationMode,
+  headingDeg,
+  traveledPath,
+  aheadPath,
 }: Omit<RouteMapViewProps, "className">) {
+  const traveled = traveledPath && traveledPath.length >= 2 ? traveledPath : [];
+  const ahead = aheadPath && aheadPath.length >= 2 ? aheadPath : path;
+  const nextCommand =
+    activeIndex != null && activeIndex >= 0 ? commands[activeIndex] : null;
+
   return (
     <Map
       defaultCenter={path[0] ?? TBILISI}
       defaultZoom={path.length ? 14 : 13}
       gestureHandling="greedy"
-      disableDefaultUI={false}
-      mapTypeControl
+      disableDefaultUI={navigationMode}
+      mapTypeControl={!navigationMode}
       streetViewControl={false}
       fullscreenControl={false}
+      zoomControl={!navigationMode}
       style={{ width: "100%", height: "100%" }}
       clickableIcons={false}
+      colorScheme="DARK"
     >
-      <FitBounds path={path} />
-      <FollowVehicle position={vehiclePosition} enabled={followVehicle} />
+      <FitBounds path={path} enabled={!navigationMode} />
+      <NavCamera
+        position={vehiclePosition}
+        headingDeg={headingDeg ?? 0}
+        enabled={Boolean(navigationMode && followVehicle)}
+      />
 
-      {path.length >= 2 ? (
+      {traveled.length >= 2 ? (
         <Polyline
-          path={path}
-          strokeColor="#2563eb"
-          strokeOpacity={0.95}
-          strokeWeight={5}
+          path={traveled}
+          strokeColor="#94a3b8"
+          strokeOpacity={0.7}
+          strokeWeight={navigationMode ? 10 : 5}
           geodesic
         />
       ) : null}
 
-      {showCommandMarkers
+      {ahead.length >= 2 ? (
+        <Polyline
+          path={ahead}
+          strokeColor="#ffffff"
+          strokeOpacity={0.95}
+          strokeWeight={navigationMode ? 14 : 8}
+          geodesic
+        />
+      ) : null}
+
+      {ahead.length >= 2 ? (
+        <Polyline
+          path={ahead}
+          strokeColor="#1a73e8"
+          strokeOpacity={1}
+          strokeWeight={navigationMode ? 9 : 5}
+          geodesic
+        />
+      ) : null}
+
+      {showCommandMarkers && !navigationMode
         ? commands.map((command, index) => (
             <Marker
               key={`cmd-${command.lat}-${command.lng}-${index}`}
@@ -119,10 +231,21 @@ function RouteMapViewInner({
           ))
         : null}
 
-      {showVehicleMarker && vehiclePosition ? (
+      {navigationMode && nextCommand ? (
+        <Marker
+          position={{ lat: nextCommand.lat, lng: nextCommand.lng }}
+          title={nextCommand.label ?? actionLabel(nextCommand.action)}
+        />
+      ) : null}
+
+      {showVehicleMarker && vehiclePosition && navigationMode ? (
+        <VehicleArrow position={vehiclePosition} headingDeg={headingDeg ?? 0} />
+      ) : null}
+
+      {showVehicleMarker && vehiclePosition && !navigationMode ? (
         <Marker
           position={vehiclePosition}
-          title="სიმულაცია"
+          title="შენი მანქანა"
           label={{
             text: "▶",
             color: "white",
@@ -143,12 +266,16 @@ export function RouteMapView({
   followVehicle,
   showCommandMarkers = true,
   showVehicleMarker = true,
+  navigationMode = false,
+  headingDeg = 0,
+  traveledPath,
+  aheadPath,
   className,
 }: RouteMapViewProps) {
   return (
     <div
       className={cn(
-        "h-[360px] overflow-hidden rounded-2xl border border-white/10 md:h-[420px]",
+        "h-90 overflow-hidden rounded-2xl border border-white/10 md:h-105",
         className,
       )}
     >
@@ -161,6 +288,10 @@ export function RouteMapView({
           followVehicle={followVehicle}
           showCommandMarkers={showCommandMarkers}
           showVehicleMarker={showVehicleMarker}
+          navigationMode={navigationMode}
+          headingDeg={headingDeg}
+          traveledPath={traveledPath}
+          aheadPath={aheadPath}
         />
       </GoogleMapsProvider>
     </div>

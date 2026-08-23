@@ -27,6 +27,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -40,14 +47,29 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import {
+  Item,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AuthGate } from "@/features/auth/components/auth-gate";
+import {
+  ContentPanel,
+  PageEyebrow,
+  PageFrame,
+  PageHeader,
+  StatTile,
+} from "@/features/instructor/components/page-frame";
 import {
   useDeleteMistakeNote,
   useMistakeNotes,
@@ -97,182 +119,166 @@ function MistakeNotesListContent() {
       .size;
   }, [notes]);
 
-  return (
-    <div className="space-y-8">
-      <section className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-            <ClipboardList className="size-3.5" />
-            Mistakes
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
-            შეცდომები
-          </h1>
-          <p className="mt-3 max-w-xl text-base leading-7 text-muted-foreground">
-            ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით.
-          </p>
-        </div>
+  const totalMistakes = useMemo(
+    () => notes.reduce((sum, note) => sum + note.mistakes.length, 0),
+    [notes],
+  );
 
-        <Link
-          href="/mistake-notes/new"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "h-12 shrink-0 rounded-xl px-6 text-sm font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]",
-          )}
-        >
-          <Plus className="size-4" />
-          ახალი ჩანაწერი
-        </Link>
-      </section>
+  return (
+    <PageFrame>
+      <PageHeader
+        eyebrow={
+          <PageEyebrow icon={<ClipboardList className="size-3.5" />}>
+            Mistakes
+          </PageEyebrow>
+        }
+        title="შეცდომები"
+        description="ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით."
+        actions={
+          <Link
+            href="/mistake-notes/new"
+            className={cn(
+              buttonVariants({ variant: "default" }),
+              "h-11 rounded-xl px-5 text-sm font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]",
+            )}
+          >
+            <Plus className="size-4" />
+            ახალი ჩანაწერი
+          </Link>
+        }
+      />
 
       <section className="grid gap-3 sm:grid-cols-3">
-        {[
-          { label: "ჩანაწერები", value: notes.length, icon: ClipboardList },
-          { label: "მოსწავლეები", value: uniqueStudents, icon: UserRound },
-          {
-            label: "შეცდომები",
-            value: notes.reduce((sum, note) => sum + note.mistakes.length, 0),
-            icon: RouteIcon,
-          },
-        ].map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="glass relative overflow-hidden rounded-2xl p-4 ring-1 ring-white/10"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    {stat.label}
-                  </p>
-                  <p className="mt-1 text-2xl font-extrabold tracking-tight">
-                    {isLoading ? "—" : stat.value}
-                  </p>
-                </div>
-                <div className="flex size-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                  <Icon className="size-4" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <StatTile
+          label="ჩანაწერები"
+          value={isLoading ? "—" : notes.length}
+          icon={<ClipboardList className="size-4" />}
+        />
+        <StatTile
+          label="მოსწავლეები"
+          value={isLoading ? "—" : uniqueStudents}
+          icon={<UserRound className="size-4" />}
+        />
+        <StatTile
+          label="შეცდომები"
+          value={isLoading ? "—" : totalMistakes}
+          icon={<RouteIcon className="size-4" />}
+        />
       </section>
 
-      <section className="glass relative overflow-hidden rounded-[2rem] shadow-[0_30px_80px_rgb(0_0_0/40%)] ring-1 ring-white/10">
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/12 via-transparent to-transparent" />
-        <div className="relative space-y-4 p-4 md:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <InputGroup className="h-11 min-w-0 flex-1 rounded-2xl border-white/10 bg-surface-lowest/90 shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_18px_rgb(173_198_255/12%)]">
-              <InputGroupAddon>
-                <Search />
-              </InputGroupAddon>
-              <InputGroupInput
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="ძებნა სახელით, ქალაქით ან შეცდომით..."
-                className="h-full"
-              />
-            </InputGroup>
+      <ContentPanel>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <InputGroup className="h-11 min-w-0 flex-1 rounded-xl border-white/10 bg-surface-lowest/90 shadow-none transition-shadow focus-within:border-primary/50 focus-within:shadow-[0_0_18px_rgb(173_198_255/10%)]">
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ძებნა სახელით, ქალაქით ან შეცდომით..."
+              className="h-full"
+            />
+          </InputGroup>
 
-            <Select
-              value={city}
-              onValueChange={(value) => setCity(value ?? "all")}
-            >
-              <SelectTrigger className="h-11 w-full shrink-0 cursor-pointer rounded-2xl border-white/10 bg-surface-lowest/90 sm:w-52">
-                <SelectValue placeholder="ქალაქი" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ყველა ქალაქი</SelectItem>
-                {cities.map((item) => (
-                  <SelectItem key={item.id} value={item.name}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <Skeleton key={index} className="h-36 rounded-2xl" />
+          <Select
+            value={city}
+            onValueChange={(value) => setCity(value ?? "all")}
+          >
+            <SelectTrigger className="h-11 w-full shrink-0 cursor-pointer rounded-xl border-white/10 bg-surface-lowest/90 sm:w-52">
+              <SelectValue placeholder="ქალაქი" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ყველა ქალაქი</SelectItem>
+              {cities.map((item) => (
+                <SelectItem key={item.id} value={item.name}>
+                  {item.name}
+                </SelectItem>
               ))}
-            </div>
-          ) : isError ? (
-            <p className="py-10 text-center text-sm text-destructive">
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Separator className="bg-white/8" />
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-36 rounded-2xl" />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-14 text-center">
+            <p className="text-sm font-medium text-destructive">
               {error instanceof Error
                 ? error.message
                 : "ჩანაწერების ჩატვირთვა ვერ მოხერხდა"}
             </p>
-          ) : filtered.length === 0 ? (
-            <Empty className="border-none py-12">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <ClipboardList />
-                </EmptyMedia>
-                <EmptyTitle>ჩანაწერები არ არის</EmptyTitle>
-                <EmptyDescription>
-                  {query || city !== "all"
-                    ? "შეცვალე ძიება ან ფილტრი."
-                    : "დაამატე პირველი შეცდომების ჩანაწერი მოსწავლისთვის."}
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Link
-                  href="/mistake-notes/new"
-                  className={cn(buttonVariants(), "h-10 rounded-xl")}
-                >
-                  <Plus className="size-4" />
-                  ახალი ჩანაწერი
-                </Link>
-              </EmptyContent>
-            </Empty>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((note) => (
-                <article
-                  key={note.id}
-                  className="rounded-2xl border border-white/10 bg-surface-lowest/70 p-4 transition-colors hover:border-primary/20 md:p-5"
-                >
+          </div>
+        ) : filtered.length === 0 ? (
+          <Empty className="rounded-[1.5rem] border border-dashed border-white/12 bg-surface-lowest/40 py-14">
+            <EmptyHeader>
+              <EmptyMedia
+                variant="icon"
+                className="size-14 rounded-2xl border border-primary/20 bg-primary/10 text-primary"
+              >
+                <ClipboardList className="size-6" />
+              </EmptyMedia>
+              <EmptyTitle className="text-lg font-bold tracking-tight">
+                ჩანაწერები არ არის
+              </EmptyTitle>
+              <EmptyDescription className="max-w-sm">
+                {query || city !== "all"
+                  ? "შეცვალე ძიება ან ფილტრი."
+                  : "დაამატე პირველი შეცდომების ჩანაწერი მოსწავლისთვის."}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link
+                href="/mistake-notes/new"
+                className={cn(buttonVariants(), "h-10 rounded-xl")}
+              >
+                <Plus className="size-4" />
+                ახალი ჩანაწერი
+              </Link>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <ItemGroup className="gap-3">
+            {filtered.map((note) => (
+              <Card
+                key={note.id}
+                className="rounded-2xl border-none bg-surface-lowest/70 py-0 ring-1 ring-white/10 transition-all hover:ring-primary/25"
+              >
+                <CardHeader className="gap-3 px-4 pt-4 md:px-5 md:pt-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 flex-1 space-y-3">
+                    <div className="min-w-0 space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-bold tracking-tight">
+                        <CardTitle className="text-lg font-bold tracking-tight">
                           {note.studentName}
-                        </h2>
+                        </CardTitle>
                         <Badge
                           variant="secondary"
                           className="rounded-lg border border-white/10 bg-white/5"
                         >
                           {formatDate(note.practicedAt)}
                         </Badge>
+                        <Badge
+                          variant="outline"
+                          className="rounded-lg border-primary/20 bg-primary/10 text-primary"
+                        >
+                          {note.mistakes.length} შეცდომა
+                        </Badge>
                       </div>
-
-                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                      <CardDescription className="flex flex-wrap gap-x-4 gap-y-2">
                         <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="size-3.5" />
+                          <MapPin className="size-3.5 text-primary/80" />
                           {note.city}
                         </span>
                         <span className="inline-flex items-center gap-1.5">
-                          <RouteIcon className="size-3.5" />
+                          <RouteIcon className="size-3.5 text-primary/80" />
                           {note.route.title}
                         </span>
-                      </div>
-
-                      <ul className="space-y-1.5">
-                        {note.mistakes.map((mistake, index) => (
-                          <li
-                            key={`${note.id}-${index}`}
-                            className="rounded-xl border border-white/5 bg-white/3 px-3 py-2 text-sm text-foreground/90"
-                          >
-                            <span className="mr-2 text-xs font-semibold text-primary">
-                              {index + 1}.
-                            </span>
-                            {mistake}
-                          </li>
-                        ))}
-                      </ul>
+                      </CardDescription>
                     </div>
 
                     <div className="flex shrink-0 gap-2">
@@ -323,13 +329,37 @@ function MistakeNotesListContent() {
                       </AlertDialog>
                     </div>
                   </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+                </CardHeader>
+
+                <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                  <ItemGroup className="grid gap-2 sm:grid-cols-2">
+                    {note.mistakes.map((mistake, index) => (
+                      <Item
+                        key={`${note.id}-${index}`}
+                        variant="outline"
+                        size="sm"
+                        className="border-white/5 bg-white/3"
+                      >
+                        <ItemMedia variant="icon">
+                          <span className="text-xs font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                        </ItemMedia>
+                        <ItemContent>
+                          <ItemTitle className="line-clamp-none whitespace-normal">
+                            {mistake}
+                          </ItemTitle>
+                        </ItemContent>
+                      </Item>
+                    ))}
+                  </ItemGroup>
+                </CardContent>
+              </Card>
+            ))}
+          </ItemGroup>
+        )}
+      </ContentPanel>
+    </PageFrame>
   );
 }
 

@@ -14,14 +14,14 @@ import {
 
 export function useMistakeNotes(filters: MistakeNoteFilters = {}) {
   return useQuery({
-    queryKey: ["mistake-notes", filters],
+    queryKey: ["mistake-notes", "list", filters],
     queryFn: () => getMistakeNotes(filters),
   });
 }
 
 export function useMistakeNote(id: string) {
   return useQuery({
-    queryKey: ["mistake-notes", id],
+    queryKey: ["mistake-notes", "detail", id],
     queryFn: () => getMistakeNote(id),
     enabled: Boolean(id),
   });
@@ -50,7 +50,7 @@ export function useUpdateMistakeNote(id: string) {
     mutationKey: ["mistake-notes", "update", id],
     mutationFn: (data: UpdateMistakeNoteInput) => updateMistakeNote(id, data),
     onSuccess: (data) => {
-      queryClient.setQueryData(["mistake-notes", id], data);
+      queryClient.setQueryData(["mistake-notes", "detail", id], data);
       void queryClient.invalidateQueries({ queryKey: ["mistake-notes"] });
       toast.success("ჩანაწერი განახლდა");
     },
@@ -66,7 +66,8 @@ export function useDeleteMistakeNote() {
   return useMutation({
     mutationKey: ["mistake-notes", "delete"],
     mutationFn: (id: string) => deleteMistakeNote(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      queryClient.removeQueries({ queryKey: ["mistake-notes", "detail", id] });
       void queryClient.invalidateQueries({ queryKey: ["mistake-notes"] });
       toast.success("ჩანაწერი წაიშალა");
     },
