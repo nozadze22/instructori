@@ -126,7 +126,7 @@ export function GoogleMapsProvider({ children }: { children: ReactNode }) {
     return (
       <MapsSetupPanel
         title="Google Maps API key აკლია"
-        body="დაამატე რეალური გასაღები frontend/.env ფაილში და გადატვირთე pnpm dev."
+        body="ლოკალურად დაამატე NEXT_PUBLIC_GOOGLE_MAPS_API_KEY frontend/.env-ში და გადატვირთე pnpm dev. Vercel-ზე იგივე ცვლადი Environment Variables-ში ჩაწერე და Redeploy გააკეთე."
         docsUrl="https://console.cloud.google.com/google/maps-apis/credentials"
       />
     );
