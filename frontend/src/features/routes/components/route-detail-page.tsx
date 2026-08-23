@@ -134,25 +134,27 @@ function LiveNavScreen({
 
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-black">
-      <RouteMapView
-        path={path}
-        commands={steps.map((step) => ({
-          lat: step.lat,
-          lng: step.lng,
-          action: step.action,
-          label: actionLabel(step.action),
-        }))}
-        activeIndex={activeStepIndex ?? undefined}
-        vehiclePosition={simulation.position}
-        followVehicle={simulation.followCamera}
-        showCommandMarkers={false}
-        showVehicleMarker
-        navigationMode
-        headingDeg={simulation.headingDeg}
-        traveledPath={simulation.traveledPath}
-        aheadPath={simulation.aheadPath}
-        className="h-full rounded-none border-none"
-      />
+      <div className="relative min-h-0 flex-1">
+        <RouteMapView
+          path={path}
+          commands={steps.map((step) => ({
+            lat: step.lat,
+            lng: step.lng,
+            action: step.action,
+            label: actionLabel(step.action),
+          }))}
+          activeIndex={activeStepIndex ?? undefined}
+          vehiclePosition={simulation.position}
+          followVehicle={simulation.followCamera}
+          showCommandMarkers={false}
+          showVehicleMarker
+          navigationMode
+          headingDeg={simulation.headingDeg}
+          traveledPath={simulation.traveledPath}
+          aheadPath={simulation.aheadPath}
+          className="absolute inset-0 h-full min-h-0 rounded-none border-none"
+        />
+      </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-3xl bg-[#1a73e8] text-white shadow-2xl">

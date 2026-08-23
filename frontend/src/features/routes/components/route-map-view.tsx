@@ -30,6 +30,27 @@ type RouteMapViewProps = {
 
 const TBILISI = { lat: 41.7151, lng: 44.7833 };
 
+function ResizeMap() {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    const googleMap = map as google.maps.Map;
+    const run = () => {
+      google.maps.event.trigger(googleMap, "resize");
+    };
+    run();
+    const timer = window.setTimeout(run, 80);
+    window.addEventListener("resize", run);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", run);
+    };
+  }, [map]);
+
+  return null;
+}
+
 function FitBounds({
   path,
   enabled,
@@ -167,10 +188,11 @@ function RouteMapViewInner({
       streetViewControl={false}
       fullscreenControl={false}
       zoomControl={!navigationMode}
-      style={{ width: "100%", height: "100%" }}
+      style={{ width: "100%", height: "100%", display: "block" }}
       clickableIcons={false}
       colorScheme="DARK"
     >
+      <ResizeMap />
       <FitBounds path={path} enabled={!navigationMode} />
       <NavCamera
         position={vehiclePosition}
@@ -275,25 +297,28 @@ export function RouteMapView({
   return (
     <div
       className={cn(
-        "h-90 overflow-hidden rounded-2xl border border-white/10 md:h-105",
+        "relative overflow-hidden rounded-2xl border border-white/10",
+        navigationMode ? "h-full min-h-0" : "h-90 md:h-105",
         className,
       )}
     >
-      <GoogleMapsProvider>
-        <RouteMapViewInner
-          path={path}
-          commands={commands}
-          activeIndex={activeIndex}
-          vehiclePosition={vehiclePosition}
-          followVehicle={followVehicle}
-          showCommandMarkers={showCommandMarkers}
-          showVehicleMarker={showVehicleMarker}
-          navigationMode={navigationMode}
-          headingDeg={headingDeg}
-          traveledPath={traveledPath}
-          aheadPath={aheadPath}
-        />
-      </GoogleMapsProvider>
+      <div className="absolute inset-0">
+        <GoogleMapsProvider>
+          <RouteMapViewInner
+            path={path}
+            commands={commands}
+            activeIndex={activeIndex}
+            vehiclePosition={vehiclePosition}
+            followVehicle={followVehicle}
+            showCommandMarkers={showCommandMarkers}
+            showVehicleMarker={showVehicleMarker}
+            navigationMode={navigationMode}
+            headingDeg={headingDeg}
+            traveledPath={traveledPath}
+            aheadPath={aheadPath}
+          />
+        </GoogleMapsProvider>
+      </div>
     </div>
   );
 }
