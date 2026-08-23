@@ -77,8 +77,8 @@ export function waypointPinIcon(fill: string) {
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: { width: 32, height: 42 },
-    anchor: { x: 16, y: 42 },
-    labelOrigin: { x: 16, y: 15 },
+    scaledSize: new google.maps.Size(32, 42),
+    anchor: new google.maps.Point(16, 42),
+    labelOrigin: new google.maps.Point(16, 15),
   };
 }
