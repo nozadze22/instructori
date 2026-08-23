@@ -1,10 +1,20 @@
 import { type NextRequest } from "next/server";
 
-const backendUrl = (
-  process.env.BACKEND_URL ??
-  process.env.NEXT_PUBLIC_BACKEND_URL ??
-  "https://simdrive-pro-api.fly.dev"
-).replace(/\/$/, "");
+const DEFAULT_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
+
+function resolveBackendUrl(): string {
+  for (const raw of [
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    DEFAULT_BACKEND_URL,
+  ]) {
+    const value = raw?.trim().replace(/\/$/, "") ?? "";
+    if (/^https?:\/\//i.test(value)) {
+      return value;
+    }
+  }
+  return DEFAULT_BACKEND_URL;
+}
 
 const FORWARD_REQUEST_HEADERS = new Set([
   "accept",
@@ -25,7 +35,7 @@ async function proxy(
 ) {
   try {
     const { path } = await context.params;
-    const url = `${backendUrl}/${path.join("/")}${request.nextUrl.search}`;
+    const url = `${resolveBackendUrl()}/${path.join("/")}${request.nextUrl.search}`;
 
     const headers = new Headers();
     request.headers.forEach((value, key) => {
