@@ -2,10 +2,8 @@ import type { ReactNode } from "react";
 
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -51,31 +49,29 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <Card
+    <div
       className={cn(
-        "border-none bg-transparent py-0 shadow-none ring-0",
+        "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
-      <CardHeader className="grid gap-4 px-0 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div className="min-w-0 max-w-2xl space-y-3">
-          {eyebrow}
-          <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
-            {title}
-          </CardTitle>
-          {description ? (
-            <CardDescription className="max-w-xl text-sm leading-6 md:text-base md:leading-7">
-              {description}
-            </CardDescription>
-          ) : null}
-        </div>
-        {actions ? (
-          <CardAction className="flex shrink-0 flex-wrap items-center gap-2 justify-self-start sm:justify-self-end">
-            {actions}
-          </CardAction>
+      <div className="min-w-0 max-w-2xl space-y-3">
+        {eyebrow}
+        <h1 className="text-2xl font-extrabold tracking-tight wrap-break-word text-foreground md:text-4xl">
+          {title}
+        </h1>
+        {description ? (
+          <p className="max-w-xl text-sm leading-6 text-pretty text-muted-foreground md:text-base md:leading-7">
+            {description}
+          </p>
         ) : null}
-      </CardHeader>
-    </Card>
+      </div>
+      {actions ? (
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          {actions}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

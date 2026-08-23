@@ -61,22 +61,26 @@ export function BurgerMenu({ appHref, isAdmin }: BurgerMenuProps) {
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
               >
                 <LayoutDashboard className="size-4" />
-                <span>{isAdmin ? "ადმინი" : "დაშბორდი"}</span>
+                <span>{isAdmin ? "ადმინ პანელი" : "დაშბორდი"}</span>
               </Link>
-              <Link
-                href={isAdmin ? "/admin/routes" : "/routes"}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
-              >
-                <Map className="size-4" />
-                <span>მარშრუტები</span>
-              </Link>
-              <Link
-                href="/profile"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
-              >
-                <UserRound className="size-4" />
-                <span>პროფილი</span>
-              </Link>
+              {!isAdmin ? (
+                <>
+                  <Link
+                    href="/routes"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+                  >
+                    <Map className="size-4" />
+                    <span>მარშრუტები</span>
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+                  >
+                    <UserRound className="size-4" />
+                    <span>პროფილი</span>
+                  </Link>
+                </>
+              ) : null}
             </>
           ) : (
             <>

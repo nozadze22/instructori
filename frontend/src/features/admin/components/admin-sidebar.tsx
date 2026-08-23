@@ -5,14 +5,21 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Car,
+  Home,
   LayoutDashboard,
   Map,
-  Settings,
   ShieldPlus,
   Users,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
 import { cn } from "@/lib/utils";
@@ -26,7 +33,12 @@ const navItems = [
   { href: "#", label: "ანალიტიკა", icon: BarChart3, disabled: true },
 ] as const;
 
-export function AdminSidebar() {
+type AdminSidebarProps = {
+  mobileOpen: boolean;
+  onMobileOpenChange: (open: boolean) => void;
+};
+
+function AdminSidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { data: me } = useGetMe();
   const { data: profile } = useGetProfile({ enabled: !!me });
@@ -41,10 +53,11 @@ export function AdminSidebar() {
       .toUpperCase() ?? "AD";
 
   return (
-    <aside className="fixed top-0 left-0 z-40 flex h-screen w-64 flex-col gap-2 border-r border-white/10 bg-surface-low/80 p-4 shadow-xl backdrop-blur-xl">
+    <>
       <div className="mb-6 px-2">
         <Link
           href="/admin"
+          onClick={onNavigate}
           className="text-xl font-semibold tracking-tight text-primary"
         >
           SimDrive Pro
@@ -78,6 +91,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98]",
                 active
@@ -91,10 +105,19 @@ export function AdminSidebar() {
           );
         })}
 
-        <span className="mt-auto flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground/50">
-          <Settings className="size-5" />
-          პარამეტრები
-        </span>
+        <Link
+          href="/"
+          onClick={onNavigate}
+          className={cn(
+            "mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98]",
+            pathname === "/"
+              ? "bg-primary-container text-on-primary-container"
+              : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+          )}
+        >
+          <Home className="size-5" />
+          Homepage
+        </Link>
       </nav>
 
       <div className="mt-2 flex items-center gap-3 border-t border-white/5 px-2 pt-4">
@@ -113,6 +136,35 @@ export function AdminSidebar() {
           <p className="text-[10px] text-muted-foreground">სტატუსი: ონლაინ</p>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function AdminSidebar({
+  mobileOpen,
+  onMobileOpenChange,
+}: AdminSidebarProps) {
+  return (
+    <>
+      <aside className="fixed top-0 left-0 z-40 hidden h-screen w-64 flex-col gap-2 border-r border-white/10 bg-surface-low/80 p-4 shadow-xl backdrop-blur-xl lg:flex">
+        <AdminSidebarBody />
+      </aside>
+
+      <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
+        <SheetContent
+          side="left"
+          showCloseButton
+          className="w-72 max-w-[85vw] gap-0 border-white/10 bg-surface-low p-4"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>ადმინ მენიუ</SheetTitle>
+            <SheetDescription>ნავიგაცია ადმინ პანელში</SheetDescription>
+          </SheetHeader>
+          <div className="flex h-full min-h-0 flex-col gap-2">
+            <AdminSidebarBody onNavigate={() => onMobileOpenChange(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
