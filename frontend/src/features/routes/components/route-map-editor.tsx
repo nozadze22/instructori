@@ -261,7 +261,7 @@ function RouteMapEditorInner({
   const routeReady = path.length >= 2;
 
   return (
-    <div className="relative z-0 h-[min(72vh,720px)] min-h-[520px] w-full overflow-hidden">
+    <div className="relative z-0 h-[min(58vh,560px)] min-h-[340px] w-full overflow-hidden sm:h-[min(72vh,720px)] sm:min-h-[520px]">
       <Map
         defaultCenter={initialCenter}
         defaultZoom={13}
@@ -324,10 +324,10 @@ function RouteMapEditorInner({
         ))}
       </Map>
 
-      {/* Floating control panel */}
-      <aside className="pointer-events-none absolute inset-y-3 left-3 z-[1] flex w-[min(100%-1.5rem,288px)] flex-col gap-3 sm:inset-y-4 sm:left-4">
-        <div className="pointer-events-auto flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0b0e15]/88 shadow-[0_20px_50px_rgb(0_0_0_/_.45)] backdrop-blur-xl">
-          <div className="border-b border-white/8 px-4 py-3.5">
+      {/* Floating control panel — compact dock on phone, side panel on desktop */}
+      <aside className="pointer-events-none absolute inset-x-2 bottom-2 z-[1] flex flex-col overflow-hidden sm:inset-x-auto sm:inset-y-4 sm:left-4 sm:bottom-auto sm:h-auto sm:max-h-[calc(100%-2rem)] sm:w-72">
+        <div className="pointer-events-auto flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0b0e15]/92 shadow-[0_20px_50px_rgb(0_0_0_/_.45)] backdrop-blur-xl sm:h-full sm:flex-1">
+          <div className="hidden border-b border-white/8 px-4 py-3.5 sm:block">
             <div className="flex items-center gap-2.5">
               <span className="flex size-9 items-center justify-center rounded-xl bg-primary-container/20 text-primary">
                 <MapPinned className="size-4" />
@@ -345,12 +345,12 @@ function RouteMapEditorInner({
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+          <div className="flex min-h-0 flex-col gap-2 p-2 sm:flex-1 sm:gap-3 sm:p-3">
             {mode === "waypoints" ? (
               <div className="space-y-2">
                 <Button
                   type="button"
-                  className="h-10 w-full rounded-xl font-semibold premium-gradient border-0 text-white shadow-md"
+                  className="h-9 w-full rounded-xl font-semibold premium-gradient border-0 text-white shadow-md sm:h-10"
                   disabled={building || waypoints.length < 2}
                   onClick={() => void calculateRoute(waypoints)}
                 >
@@ -365,8 +365,7 @@ function RouteMapEditorInner({
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 rounded-xl border-white/10 bg-white/4 text-xs hover:bg-white/8"
-                    disabled={waypoints.length === 0 || building}
+                    className="h-8 rounded-xl border-white/10 bg-white/4 text-xs hover:bg-white/8 sm:h-9"
                     onClick={handleUndo}
                   >
                     <Undo2 className="size-3.5" />
@@ -375,7 +374,7 @@ function RouteMapEditorInner({
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 rounded-xl border-white/10 bg-white/4 text-xs hover:bg-white/8"
+                    className="h-8 rounded-xl border-white/10 bg-white/4 text-xs hover:bg-white/8 sm:h-9"
                     disabled={
                       (waypoints.length === 0 && path.length === 0) || building
                     }
@@ -392,7 +391,7 @@ function RouteMapEditorInner({
               </div>
             )}
 
-            <div className="flex items-center justify-between px-0.5">
+            <div className="hidden items-center justify-between px-0.5 sm:flex">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Waypoints
               </p>
@@ -401,11 +400,11 @@ function RouteMapEditorInner({
               </span>
             </div>
 
-            <div className="admin-scrollbar min-h-0 flex-1 overflow-y-auto pr-0.5">
+            <div className="admin-scrollbar hidden min-h-0 flex-1 overflow-y-auto pr-0.5 sm:block">
               {waypoints.length === 0 ? (
-                <div className="flex h-full min-h-28 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 text-center">
-                  <MousePointerClick className="size-5 text-muted-foreground/70" />
-                  <p className="text-xs text-muted-foreground">
+                <div className="flex h-auto min-h-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-2 text-center sm:h-full sm:min-h-28 sm:gap-2 sm:px-4">
+                  <MousePointerClick className="hidden size-5 text-muted-foreground/70 sm:block" />
+                  <p className="text-[11px] text-muted-foreground sm:text-xs">
                     რუკაზე დააწკაპუნე პირველი წერტილისთვის
                   </p>
                 </div>

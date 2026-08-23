@@ -3,16 +3,16 @@
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
+  Home,
+  Hourglass,
   LayoutDashboard,
   LogOut,
   Map,
   Shield,
   UserRound,
-  Hourglass,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,18 +76,9 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="group relative size-9 cursor-pointer overflow-visible rounded-full border-0 bg-transparent p-0 hover:bg-transparent"
-            aria-label="მომხმარებლის მენიუ"
-          />
-        }
-      >
-        <span className="absolute inset-0 rounded-full bg-primary/25 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100 group-data-popup-open:opacity-100" />
-        <Avatar className="relative size-9 ring-2 ring-primary/35 ring-offset-2 ring-offset-surface transition-[box-shadow,transform] duration-300 group-hover:ring-primary/60 group-data-popup-open:ring-primary/70">
+      <DropdownMenuTrigger className="relative z-50 inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+        <span className="pointer-events-none absolute inset-0 rounded-full bg-primary/25 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100 data-popup-open:opacity-100" />
+        <Avatar className="pointer-events-none relative size-9 ring-2 ring-primary/35 ring-offset-2 ring-offset-surface">
           {profile?.avatarUrl ? (
             <AvatarImage src={profile.avatarUrl} alt={user.fullName} />
           ) : null}
@@ -153,6 +144,19 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
             <span className="flex-1 text-sm font-medium">{dashboardLabel}</span>
             <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
           </DropdownMenuItem>
+
+          {isAdmin ? (
+            <DropdownMenuItem
+              className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+              onClick={() => router.push("/")}
+            >
+              <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                <Home className="size-4" />
+              </span>
+              <span className="flex-1 text-sm font-medium">Homepage</span>
+              <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+            </DropdownMenuItem>
+          ) : null}
 
           {!isAdmin && isActive ? (
             <DropdownMenuItem
