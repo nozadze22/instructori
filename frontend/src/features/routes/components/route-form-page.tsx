@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, MapPinned, Mic2, Trash2 } from "lucide-react";
+import { ArrowLeft, Globe2, Lock, MapPin, MapPinned, Text, Trash2 } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
@@ -13,12 +13,19 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Field,
   FieldContent,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -38,11 +45,9 @@ import {
   useUpdateRoute,
 } from "@/features/routes/hooks/routes";
 import {
-  ROUTE_ACTIONS,
-  actionLabel,
   defaultVoiceText,
   parseRoutePath,
-  type RouteAction,
+  VOICE_QUICK_PHRASES,
 } from "@/features/routes/lib/route-actions";
 import {
   routeFormDefaults,
@@ -73,6 +78,14 @@ type RouteFormPageProps = {
   embedded?: boolean;
 };
 
+const detailsFieldLabelClassName =
+  "px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase";
+
+const detailsInputGroupClassName =
+  "h-11 rounded-xl border-white/10 bg-surface-lowest px-1 shadow-none transition-shadow focus-within:border-primary/50 focus-within:shadow-[0_0_18px_rgb(173_198_255/10%)]";
+
+const detailsInputAddonClassName = "pl-3 pr-2 text-muted-foreground";
+
 function toFormValues(route: Route): RouteFormSchema {
   return {
     title: route.title,
@@ -86,7 +99,8 @@ function toFormValues(route: Route): RouteFormSchema {
       lng: step.lng,
       action: step.action,
       distanceBeforeVoice: step.distanceBeforeVoice,
-      voiceText: step.voiceText ?? "",
+      voiceText:
+        step.voiceText?.trim() || defaultVoiceText(step.action) || "",
       audioUrl: step.audioUrl ?? "",
     })),
   };
@@ -116,9 +130,8 @@ function RouteFormContent({
     "mode",
     searchParams.mode.withOptions({ history: "replace", shallow: true }),
   );
-  const [pendingAction, setPendingAction] = useQueryState(
-    "action",
-    searchParams.action.withOptions({ history: "replace", shallow: true }),
+  const [pendingVoiceText, setPendingVoiceText] = useState<string>(
+    VOICE_QUICK_PHRASES[0]?.text ?? "",
   );
 
   const form = useForm<RouteFormSchema>({
@@ -130,7 +143,7 @@ function RouteFormContent({
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "steps",
   });
@@ -143,9 +156,13 @@ function RouteFormContent({
   });
   const visibility = useWatch({ control: form.control, name: "visibility" });
   const selectedCity = cities.find((city) => city.name === selectedCityName);
-  const mapCenter = selectedCity
-    ? { lat: selectedCity.lat, lng: selectedCity.lng }
-    : null;
+  const mapCenter = useMemo(
+    () =>
+      selectedCity
+        ? { lat: selectedCity.lat, lng: selectedCity.lng }
+        : null,
+    [selectedCity],
+  );
 
   useEffect(() => {
     if (!route) return;
@@ -181,12 +198,9 @@ function RouteFormContent({
       steps: values.steps.map((step, index) => ({
         lat: step.lat,
         lng: step.lng,
-        action: step.action,
-        distanceBeforeVoice: step.distanceBeforeVoice,
-        voiceText:
-          step.voiceText ||
-          defaultVoiceText(step.action, step.distanceBeforeVoice) ||
-          undefined,
+        action: "CUSTOM" as const,
+        distanceBeforeVoice: 0,
+        voiceText: step.voiceText.trim(),
         audioUrl: step.audioUrl || undefined,
         order: index,
       })),
@@ -241,8 +255,8 @@ function RouteFormContent({
             {isEdit ? "მარშრუტის რედაქტირება" : "ახალი მარშრუტი"}
           </h1>
           <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
-            შეავსე დეტალები, რუკაზე დახატე საგამოცდო მარშრუტი და დაამატე
-            ხმოვანი ბრძანებები.
+            შეავსე დეტალები, დააყენე წერტილები, ააგე მარშრუტი და დაამატე
+            ხმოვანი ბრძანებები რუკაზე.
           </p>
         </div>
       </div>
@@ -250,103 +264,137 @@ function RouteFormContent({
       <Form {...form}>
         <form onSubmit={onSubmit} className="space-y-6" noValidate>
           {/* Details card */}
-          <section className="glass-card space-y-5 rounded-2xl p-5 md:p-6">
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary-container/15 text-primary">
+          <section className="glass-card overflow-hidden rounded-2xl">
+            <div className="flex items-center gap-3 border-b border-white/8 px-5 py-4 md:px-6">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/20">
                 <MapPinned className="size-4" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-base font-semibold tracking-tight">
                   მარშრუტის დეტალები
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   სათაური, ქალაქი და გამოქვეყნება
                 </p>
               </div>
             </div>
 
-            <FieldGroup className="grid gap-4 md:grid-cols-2">
+            <FieldGroup className="gap-6 p-5 md:p-6">
               <Field
-                className="md:col-span-2"
                 data-invalid={!!form.formState.errors.title}
               >
-                <FieldLabel htmlFor="title">სათაური</FieldLabel>
+                <FieldLabel htmlFor="title" className={detailsFieldLabelClassName}>
+                  სათაური
+                </FieldLabel>
                 <FieldContent>
-                  <Input
-                    id="title"
-                    placeholder="საბურთალო #1"
-                    className="h-11 rounded-xl border-white/10 bg-surface-lowest"
-                    {...form.register("title")}
-                  />
+                  <InputGroup className={detailsInputGroupClassName}>
+                    <InputGroupAddon className={detailsInputAddonClassName}>
+                      <Text className="size-4" />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="title"
+                      placeholder="საბურთალო #1"
+                      className="h-full"
+                      {...form.register("title")}
+                    />
+                  </InputGroup>
                   <FieldError errors={[form.formState.errors.title]} />
                 </FieldContent>
               </Field>
 
-              <Field data-invalid={!!form.formState.errors.city}>
-                <FieldLabel htmlFor="city">ქალაქი</FieldLabel>
-                <FieldContent>
-                  <Select
-                    value={selectedCityName || null}
-                    onValueChange={(value) => setCity(value)}
-                    disabled={citiesLoading}
-                  >
-                    <SelectTrigger
-                      id="city"
-                      className="min-h-11 w-full cursor-pointer rounded-xl border-white/10 bg-surface-lowest px-3"
+              <div className="grid gap-5 md:grid-cols-2">
+                <Field data-invalid={!!form.formState.errors.city}>
+                  <FieldLabel htmlFor="city" className={detailsFieldLabelClassName}>
+                    ქალაქი
+                  </FieldLabel>
+                  <FieldContent>
+                    <Select
+                      value={selectedCityName || null}
+                      onValueChange={(value) => setCity(value)}
+                      disabled={citiesLoading}
                     >
-                      <SelectValue placeholder="აირჩიე ქალაქი" />
-                    </SelectTrigger>
-                    <SelectContent
-                      align="start"
-                      side="bottom"
-                      sideOffset={8}
-                      alignItemWithTrigger={false}
-                      className="max-h-72"
-                    >
-                      {cities.map((city) => (
-                        <SelectItem
-                          key={city.id}
-                          value={city.name}
-                          className="cursor-pointer"
-                        >
-                          {city.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FieldError errors={[form.formState.errors.city]} />
-                </FieldContent>
-              </Field>
+                      <SelectTrigger
+                        id="city"
+                        className="min-h-11 w-full cursor-pointer rounded-xl border-white/10 bg-surface-lowest px-3 shadow-none transition-shadow focus:border-primary/50 focus:shadow-[0_0_18px_rgb(173_198_255/10%)]"
+                      >
+                        <MapPin className="size-4 shrink-0 text-muted-foreground" />
+                        <SelectValue placeholder="აირჩიე ქალაქი" />
+                      </SelectTrigger>
+                      <SelectContent
+                        align="start"
+                        side="bottom"
+                        sideOffset={8}
+                        alignItemWithTrigger={false}
+                        className="max-h-72"
+                      >
+                        {cities.map((city) => (
+                          <SelectItem
+                            key={city.id}
+                            value={city.name}
+                            className="cursor-pointer"
+                          >
+                            {city.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      ქალაქის არჩევით რუკა ავტომატურად გადაინაცვლება.
+                    </FieldDescription>
+                    <FieldError errors={[form.formState.errors.city]} />
+                  </FieldContent>
+                </Field>
 
-              <Field>
-                <FieldLabel>გამოქვეყნება</FieldLabel>
-                <FieldContent>
-                  <div className="flex h-11 items-center justify-between rounded-xl border border-white/10 bg-surface-lowest px-3">
-                    <span className="text-sm text-muted-foreground">
-                      გამოჩნდეს კატალოგში
-                    </span>
-                    <Switch
-                      checked={isPublished}
-                      onCheckedChange={(checked) =>
-                        form.setValue("isPublished", checked)
-                      }
-                    />
-                  </div>
-                </FieldContent>
-              </Field>
+                <Field>
+                  <FieldLabel className={detailsFieldLabelClassName}>
+                    გამოქვეყნება
+                  </FieldLabel>
+                  <FieldContent>
+                    <label className="flex h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-lowest px-3 transition-colors hover:border-white/20 hover:bg-white/5">
+                      <span className="text-sm text-foreground">
+                        გამოჩნდეს კატალოგში
+                      </span>
+                      <Switch
+                        checked={isPublished}
+                        onCheckedChange={(checked) =>
+                          form.setValue("isPublished", checked, {
+                            shouldDirty: true,
+                          })
+                        }
+                      />
+                    </label>
+                    <FieldDescription>
+                      გამორთული მარშრუტი მხოლოდ შენთვის ჩანს.
+                    </FieldDescription>
+                  </FieldContent>
+                </Field>
+              </div>
 
               {isAdmin ? (
-                <Field className="md:col-span-2">
-                  <FieldLabel>ხილვადობა</FieldLabel>
+                <Field>
+                  <FieldLabel className={detailsFieldLabelClassName}>
+                    ხილვადობა
+                  </FieldLabel>
                   <FieldContent>
-                    <div className="grid w-full grid-cols-2 gap-2">
+                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
                       {(
                         [
-                          { value: "SYSTEM", label: "სისტემური (ყველასთვის)" },
-                          { value: "PRIVATE", label: "პირადი" },
+                          {
+                            value: "SYSTEM",
+                            label: "სისტემური",
+                            hint: "ყველასთვის",
+                            icon: Globe2,
+                          },
+                          {
+                            value: "PRIVATE",
+                            label: "პირადი",
+                            hint: "მხოლოდ შენთვის",
+                            icon: Lock,
+                          },
                         ] as const
                       ).map((option) => {
                         const active = visibility === option.value;
+                        const Icon = option.icon;
                         return (
                           <button
                             key={option.value}
@@ -357,13 +405,30 @@ function RouteFormContent({
                               })
                             }
                             className={cn(
-                              "flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-sm font-medium transition-all",
+                              "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-all",
                               active
-                                ? "border-primary bg-primary/12 text-primary"
+                                ? "border-primary/60 bg-primary/12 text-primary shadow-[0_0_18px_rgb(173_198_255/8%)]"
                                 : "border-white/10 bg-surface-lowest text-muted-foreground hover:border-white/20 hover:bg-white/5 hover:text-foreground",
                             )}
                           >
-                            {option.label}
+                            <span
+                              className={cn(
+                                "flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                                active
+                                  ? "border-primary/30 bg-primary/15 text-primary"
+                                  : "border-white/10 bg-black/20 text-muted-foreground",
+                              )}
+                            >
+                              <Icon className="size-4" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-sm font-medium leading-snug">
+                                {option.label}
+                              </span>
+                              <span className="block text-[11px] leading-snug opacity-80">
+                                {option.hint}
+                              </span>
+                            </span>
                           </button>
                         );
                       })}
@@ -373,18 +438,34 @@ function RouteFormContent({
               ) : null}
 
               <Field
-                className="md:col-span-2"
                 data-invalid={!!form.formState.errors.description}
               >
-                <FieldLabel htmlFor="description">აღწერა</FieldLabel>
+                <FieldLabel
+                  htmlFor="description"
+                  className={detailsFieldLabelClassName}
+                >
+                  აღწერა
+                </FieldLabel>
                 <FieldContent>
-                  <Textarea
-                    id="description"
-                    rows={2}
-                    placeholder="მოკლე აღწერა მარშრუტის შესახებ"
-                    className="rounded-xl border-white/10 bg-surface-lowest"
-                    {...form.register("description")}
-                  />
+                  <InputGroup
+                    className={`${detailsInputGroupClassName} h-auto min-h-[6.5rem] items-start py-3`}
+                  >
+                    <InputGroupAddon
+                      className={`${detailsInputAddonClassName} pt-0.5`}
+                    >
+                      <Text className="size-4" />
+                    </InputGroupAddon>
+                    <InputGroupTextarea
+                      id="description"
+                      rows={3}
+                      placeholder="მოკლე აღწერა მარშრუტის შესახებ"
+                      className="min-h-[5rem] resize-none py-0 leading-relaxed"
+                      {...form.register("description")}
+                    />
+                  </InputGroup>
+                  <FieldDescription>
+                    არასავალდებულო — დაეხმარება სტუდენტებს მარშრუტის არჩევაში.
+                  </FieldDescription>
                   <FieldError errors={[form.formState.errors.description]} />
                 </FieldContent>
               </Field>
@@ -446,22 +527,44 @@ function RouteFormContent({
             </div>
 
             {mapMode === "command" ? (
-              <div className="flex flex-wrap gap-2">
-                {ROUTE_ACTIONS.map((action) => (
-                  <button
-                    key={action.value}
-                    type="button"
-                    onClick={() => void setPendingAction(action.value)}
-                    className={cn(
-                      "cursor-pointer rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all",
-                      pendingAction === action.value
-                        ? "border-primary bg-primary/12 text-primary"
-                        : "border-white/10 bg-surface-low text-muted-foreground hover:border-white/20 hover:bg-white/5 hover:text-foreground",
-                    )}
-                  >
-                    {action.label}
-                  </button>
-                ))}
+              <div className="space-y-2 rounded-xl border border-white/10 bg-surface-lowest/80 p-3">
+                <Field>
+                  <FieldLabel htmlFor="pending-voice">
+                    რა ითქვას ამ წერტილზე?
+                  </FieldLabel>
+                  <FieldContent>
+                    <Input
+                      id="pending-voice"
+                      value={pendingVoiceText}
+                      onChange={(event) =>
+                        setPendingVoiceText(event.target.value)
+                      }
+                      placeholder="მოუხვიეთ მარჯვნივ."
+                      className="h-11 rounded-xl border-white/10 bg-surface-low"
+                    />
+                  </FieldContent>
+                </Field>
+                <div className="flex flex-wrap gap-1.5">
+                  {VOICE_QUICK_PHRASES.map((phrase) => (
+                    <button
+                      key={phrase.label}
+                      type="button"
+                      onClick={() => setPendingVoiceText(phrase.text)}
+                      className={cn(
+                        "cursor-pointer rounded-full border px-2.5 py-1.5 text-[11px] font-medium leading-none transition-all sm:px-3 sm:text-xs",
+                        pendingVoiceText === phrase.text
+                          ? "border-primary bg-primary/12 text-primary"
+                          : "border-white/10 bg-surface-low text-muted-foreground hover:border-white/20 hover:bg-white/5 hover:text-foreground",
+                      )}
+                    >
+                      {phrase.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  ტექსტი შეიყვანე, შემდეგ რუკაზე დააწკაპუნე — ხმა იქ
+                  ითქმება, სადაც პინს დადებ.
+                </p>
               </div>
             ) : null}
 
@@ -469,155 +572,79 @@ function RouteFormContent({
               path={path}
               commands={fields}
               mode={mapMode}
-              pendingAction={pendingAction}
+              pendingVoiceText={pendingVoiceText}
               mapCenter={mapCenter}
               onPathChange={(nextPath) =>
                 form.setValue("path", nextPath, { shouldValidate: true })
               }
               onAddCommand={(point) => {
-                const distance = 200;
+                const voiceText = pendingVoiceText.trim();
+                if (!voiceText) return;
                 append({
                   lat: point.lat,
                   lng: point.lng,
-                  action: pendingAction,
-                  distanceBeforeVoice: distance,
-                  voiceText: defaultVoiceText(pendingAction, distance),
+                  action: "CUSTOM",
+                  distanceBeforeVoice: 0,
+                  voiceText,
                   audioUrl: "",
                 });
               }}
             />
             <FieldError errors={[form.formState.errors.path]} />
-          </section>
 
-          {/* Voice commands */}
-          <section className="glass-card space-y-4 rounded-2xl p-5 md:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-primary-container/15 text-primary">
-                  <Mic2 className="size-4" />
-                </span>
-                <div>
-                  <h2 className="text-base font-semibold tracking-tight">
-                    ხმოვანი ბრძანებები
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    რუკაზე დაჭერით ემატება · აქედან შეცვლი ხმას
-                  </p>
-                </div>
-              </div>
-              <span className="rounded-full bg-white/6 px-2.5 py-1 text-xs tabular-nums text-muted-foreground">
-                {fields.length}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {fields.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center text-sm text-muted-foreground">
-                  ჯერ არ არის ბრძანება. აირჩიე ტიპი და დააწკაპუნე რუკაზე.
+            {fields.length > 0 ? (
+              <div className="space-y-2 rounded-xl border border-white/10 bg-surface-lowest/60 p-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  დამატებული ბრძანებები ({fields.length})
                 </p>
-              ) : (
-                fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="rounded-2xl border border-white/10 bg-surface-lowest/70 p-4 transition hover:border-white/14"
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold text-primary">
-                        {index + 1}. {actionLabel(field.action)}
-                      </div>
+                <div className="space-y-2">
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="flex items-start gap-2 rounded-xl border border-white/10 bg-surface-low/70 p-2"
+                    >
+                      <span className="mt-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary">
+                        {index + 1}
+                      </span>
+                      <Field
+                        className="min-w-0 flex-1"
+                        data-invalid={
+                          !!form.formState.errors.steps?.[index]?.voiceText
+                        }
+                      >
+                        <FieldContent>
+                          <Textarea
+                            rows={2}
+                            aria-label={`ბრძანება ${index + 1}`}
+                            placeholder="რა ითქვას?"
+                            className="min-h-10 rounded-xl border-white/10 bg-surface-lowest"
+                            {...form.register(`steps.${index}.voiceText`)}
+                          />
+                          <FieldError
+                            errors={[
+                              form.formState.errors.steps?.[index]?.voiceText,
+                            ]}
+                          />
+                        </FieldContent>
+                      </Field>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="text-destructive hover:bg-destructive/10"
+                        className="mt-1 shrink-0 text-destructive hover:bg-destructive/10"
                         onClick={() => remove(index)}
                       >
                         <Trash2 className="size-4" />
                       </Button>
                     </div>
-
-                    <FieldGroup className="grid gap-3 md:grid-cols-2">
-                      <Field>
-                        <FieldLabel>ტიპი</FieldLabel>
-                        <FieldContent>
-                          <select
-                            className="h-10 w-full rounded-xl border border-white/10 bg-surface-low px-3 text-sm"
-                            value={field.action}
-                            onChange={(event) => {
-                              const action = event.target
-                                .value as RouteAction;
-                              const distance =
-                                form.getValues(
-                                  `steps.${index}.distanceBeforeVoice`,
-                                ) || 200;
-                              update(index, {
-                                ...form.getValues(`steps.${index}`),
-                                action,
-                                voiceText: defaultVoiceText(action, distance),
-                              });
-                            }}
-                          >
-                            {ROUTE_ACTIONS.map((action) => (
-                              <option key={action.value} value={action.value}>
-                                {action.label}
-                              </option>
-                            ))}
-                          </select>
-                        </FieldContent>
-                      </Field>
-
-                      <Field
-                        data-invalid={
-                          !!form.formState.errors.steps?.[index]
-                            ?.distanceBeforeVoice
-                        }
-                      >
-                        <FieldLabel
-                          htmlFor={`steps.${index}.distanceBeforeVoice`}
-                        >
-                          ხმა მანძილზე (მ)
-                        </FieldLabel>
-                        <FieldContent>
-                          <Input
-                            id={`steps.${index}.distanceBeforeVoice`}
-                            type="number"
-                            min={0}
-                            max={5000}
-                            className="h-10 rounded-xl border-white/10 bg-surface-low"
-                            {...form.register(
-                              `steps.${index}.distanceBeforeVoice`,
-                              { valueAsNumber: true },
-                            )}
-                          />
-                        </FieldContent>
-                      </Field>
-
-                      <Field
-                        className="md:col-span-2"
-                        data-invalid={
-                          !!form.formState.errors.steps?.[index]?.voiceText
-                        }
-                      >
-                        <FieldLabel htmlFor={`steps.${index}.voiceText`}>
-                          ხმოვანი ტექსტი
-                        </FieldLabel>
-                        <FieldContent>
-                          <Textarea
-                            id={`steps.${index}.voiceText`}
-                            rows={2}
-                            className="rounded-xl border-white/10 bg-surface-low"
-                            {...form.register(`steps.${index}.voiceText`)}
-                          />
-                          <p className="mt-1.5 text-[11px] text-muted-foreground">
-                            ხმა ავტომატურად იგენერირება ამ ტექსტიდან (TTS).
-                          </p>
-                        </FieldContent>
-                      </Field>
-                    </FieldGroup>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))}
+                </div>
+              </div>
+            ) : mapMode === "command" ? (
+              <p className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-sm text-muted-foreground">
+                ჯერ არ არის ბრძანება. დაწერე ტექსტი და დააწკაპუნე რუკაზე.
+              </p>
+            ) : null}
           </section>
 
           <div className="relative z-10 flex flex-col gap-3 rounded-2xl border border-white/10 bg-surface-low/80 p-4 sm:flex-row sm:items-center sm:justify-between">

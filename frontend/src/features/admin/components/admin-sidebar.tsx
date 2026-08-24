@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  Car,
   Home,
   LayoutDashboard,
   Map,
@@ -29,8 +27,6 @@ const navItems = [
   { href: "/admin/users", label: "ინსტრუქტორები", icon: Users },
   { href: "/admin/routes", label: "მარშრუტები", icon: Map },
   { href: "/admin/create", label: "ადმინის შექმნა", icon: ShieldPlus },
-  { href: "#", label: "სიმულაცია", icon: Car, disabled: true },
-  { href: "#", label: "ანალიტიკა", icon: BarChart3, disabled: true },
 ] as const;
 
 type AdminSidebarProps = {
@@ -75,18 +71,6 @@ function AdminSidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          if ("disabled" in item && item.disabled) {
-            return (
-              <span
-                key={item.label}
-                className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground/50"
-              >
-                <Icon className="size-5" />
-                {item.label}
-              </span>
-            );
-          }
-
           return (
             <Link
               key={item.href}
@@ -106,11 +90,11 @@ function AdminSidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         })}
 
         <Link
-          href="/"
+          href="/marshrutebi"
           onClick={onNavigate}
           className={cn(
             "mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 active:scale-[0.98]",
-            pathname === "/"
+            pathname === "/marshrutebi" || pathname.startsWith("/marshrutebi/")
               ? "bg-primary-container text-on-primary-container"
               : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
           )}

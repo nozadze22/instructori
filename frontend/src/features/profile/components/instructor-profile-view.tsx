@@ -8,7 +8,8 @@ import {
   MessageSquare,
   Pencil,
   Phone,
-  Play,
+  Bookmark,
+  Route as RouteIcon,
   Star,
 } from "lucide-react";
 
@@ -30,12 +31,12 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import type { AuthUser } from "@/features/auth/login/api/login";
 import type { Profile } from "@/features/profile/api/profile";
 import { ProfileForm } from "@/features/profile/components/profile-form";
 import { cn } from "@/lib/utils";
+import { userDisplayName, userInitials } from "@/lib/user-display";
 
 const DEFAULT_AVATAR =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAk8ZE87DirpwqEjq7rwWQcXS22FobH_lOgCKCkw86uiWyb16jmfPP2ZavJig0ubEM3tIOGWjjNULNJ5GyjhHilyVdRKEWQQKIuyHcnErZ1FbSF4J9a6f_XxXw_DRfDsT00DSRW2dw-bwuGpWoD5gPCgmbkWzmwfx-z-Eho3p92fTBXBgcNkmuCprkvw5POki-bcd0QM9mszy6RLNhPtivM6AMFrAcd-YcMgkPziJlFXXXVPhc-Z7O8lZIgrnDRmsI8UyQ";
@@ -59,13 +60,8 @@ export function InstructorProfileView({
   profile,
 }: InstructorProfileViewProps) {
   const avatar = profile?.avatarUrl || DEFAULT_AVATAR;
-  const initials = user.fullName
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const displayName = userDisplayName(user);
+  const initials = userInitials(user);
 
   const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
   const bio =
@@ -81,7 +77,7 @@ export function InstructorProfileView({
             <div className="size-32 overflow-hidden rounded-2xl border-2 border-white/10 shadow-2xl">
               <Image
                 src={avatar}
-                alt={user.fullName}
+                alt={displayName}
                 width={128}
                 height={128}
                 className="size-full scale-110 object-cover brightness-90 grayscale"
@@ -96,7 +92,7 @@ export function InstructorProfileView({
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
                 <CardTitle className="text-3xl font-bold tracking-tight">
-                  {user.fullName}
+                  {displayName}
                 </CardTitle>
                 <Badge className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
                   {user.role === "ADMIN" ? "ადმინისტრატორი" : "ინსტრუქტორი"}
@@ -225,14 +221,14 @@ export function InstructorProfileView({
               >
                 <ItemMedia variant="image">
                   <Avatar className="size-full rounded-sm">
-                    <AvatarImage src={avatar} alt={user.fullName} />
+                    <AvatarImage src={avatar} alt={displayName} />
                     <AvatarFallback className="rounded-sm bg-primary text-xs font-bold text-primary-foreground">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle>{user.fullName}</ItemTitle>
+                  <ItemTitle>{displayName}</ItemTitle>
                   <ItemDescription>{user.email}</ItemDescription>
                 </ItemContent>
               </Item>
@@ -251,31 +247,28 @@ export function InstructorProfileView({
           <Card className="glass rounded-2xl border-none bg-linear-to-br from-primary/10 to-transparent ring-1 ring-white/10">
             <CardHeader>
               <SectionTitle className="mb-0 text-sm tracking-wider uppercase">
-                მიმდინარე ტრენინგი
+                სწრაფი ბმულები
               </SectionTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Progress value={65} className="gap-0">
-                <span className="sr-only">65%</span>
-              </Progress>
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <h4 className="text-xs font-bold text-foreground">
-                    Night Driving Simulation
-                  </h4>
-                  <p className="text-[10px] text-muted-foreground">
-                    Session 4 of 6 • 45 min left
-                  </p>
-                </div>
+            <CardContent className="space-y-3">
+              {user.accessStatus === "ACTIVE" ? (
                 <Button
-                  type="button"
-                  size="icon"
-                  className="size-8 rounded-full bg-white text-black shadow-lg hover:bg-white/90"
-                  aria-label="გაგრძელება"
+                  render={<Link href="/chemi-marshrutebi" />}
+                  nativeButton={false}
+                  className="h-10 w-full justify-start rounded-lg px-4"
                 >
-                  <Play className="size-3.5 fill-current" />
+                  <Bookmark className="size-4" />
+                  ჩემი მარშრუტები
                 </Button>
-              </div>
+              ) : null}
+              <Button
+                render={<Link href="/marshrutebi" />}
+                nativeButton={false}
+                className="h-10 w-full justify-start rounded-lg px-4"
+              >
+                <RouteIcon className="size-4" />
+                მარშრუტების კატალოგი
+              </Button>
             </CardContent>
           </Card>
         </div>

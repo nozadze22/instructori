@@ -40,7 +40,7 @@ export function RouteCard({
   canEdit,
   editHref,
   onToggleSave,
-  savePending,
+  savePending = false,
   className,
 }: RouteCardProps) {
   const showSave =
@@ -48,10 +48,13 @@ export function RouteCard({
     route.isPublished &&
     Boolean(onToggleSave);
 
+  const saved = route.isSaved;
+
   return (
     <Card
       className={cn(
         "group relative h-full overflow-hidden rounded-[1.5rem] border-none bg-surface-lowest/55 py-0 shadow-[0_18px_50px_rgb(0_0_0/30%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:bg-surface-lowest/80 hover:shadow-[0_24px_60px_rgb(0_0_0/40%)] hover:ring-primary/35",
+        saved && showSave && "ring-primary/30 bg-surface-lowest/70",
         className,
       )}
     >
@@ -82,10 +85,10 @@ export function RouteCard({
                 დრაფტი
               </Badge>
             ) : null}
-            {route.isSaved ? (
+            {saved ? (
               <Badge
                 variant="outline"
-                className="rounded-full border-primary/20 bg-primary/10 text-[11px] text-primary"
+                className="rounded-full border-primary/30 bg-primary/15 text-[11px] text-primary"
               >
                 შენახული
               </Badge>
@@ -135,13 +138,24 @@ export function RouteCard({
             type="button"
             variant="outline"
             size="icon"
-            className="size-10 rounded-xl border-white/10"
-            disabled={savePending}
-            onClick={onToggleSave}
-            aria-label={route.isSaved ? "შენახვის მოხსნა" : "შენახვა"}
+            className={cn(
+              "size-10 rounded-xl transition-all duration-200",
+              saved
+                ? "border-primary/50 bg-primary/20 text-primary shadow-[0_0_20px_rgb(173_198_255/25%)] hover:bg-primary/30"
+                : "border-white/10 bg-transparent text-muted-foreground hover:border-primary/35 hover:bg-primary/10 hover:text-primary",
+              savePending && "opacity-80",
+            )}
+            aria-pressed={saved}
+            aria-label={saved ? "შენახვის მოხსნა" : "შენახვა"}
+            title={saved ? "შენახვის მოხსნა" : "შენახვა"}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onToggleSave?.();
+            }}
           >
-            {route.isSaved ? (
-              <BookmarkCheck className="size-4 text-primary" />
+            {saved ? (
+              <BookmarkCheck className="size-4 fill-primary text-primary" />
             ) : (
               <Bookmark className="size-4" />
             )}

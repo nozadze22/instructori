@@ -72,12 +72,13 @@ async function proxy(
       headers: responseHeaders,
     });
   } catch (error) {
-    const message =
+    const raw =
       error instanceof Error ? error.message : "API proxy failed";
-    return Response.json(
-      { message: `API proxy failed: ${message}` },
-      { status: 502 },
-    );
+    const message =
+      /fetch failed|econnrefused|enotfound|etimedout|network/i.test(raw)
+        ? "სერვისი დროებით მიუწვდომელია. სცადე რამდენიმე წუთში."
+        : "სერვისთან კავშირი ვერ დამყარდა.";
+    return Response.json({ message }, { status: 502 });
   }
 }
 

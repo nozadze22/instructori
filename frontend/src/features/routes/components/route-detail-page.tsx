@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -38,6 +38,7 @@ import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import {
   useDeleteRoute,
+  usePublicRoute,
   useRoute,
   useSaveRoute,
   useUnsaveRoute,
@@ -46,10 +47,10 @@ import { useRouteSimulation } from "@/features/routes/hooks/use-route-simulation
 import type { RouteStep } from "@/features/routes/api/routes";
 import type { PathPoint } from "@/features/routes/lib/route-actions";
 import {
-  actionLabel,
   defaultVoiceText,
   parseRoutePath,
 } from "@/features/routes/lib/route-actions";
+import { humanizeApiError } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
 
 const RouteMapView = dynamic(
@@ -71,17 +72,18 @@ type RouteDetailPageProps = {
   basePath: string;
   routeId: string;
   embedded?: boolean;
+  publicView?: boolean;
 };
 
-function stepVoice(step: {
-  action: Parameters<typeof defaultVoiceText>[0];
-  distanceBeforeVoice: number;
-  voiceText: string | null;
-}) {
-  return (
-    step.voiceText?.trim() ||
-    defaultVoiceText(step.action, step.distanceBeforeVoice)
-  );
+function stepVoice(
+  step: {
+    action: Parameters<typeof defaultVoiceText>[0];
+    voiceText: string | null;
+  },
+  index = 0,
+) {
+  const text = step.voiceText?.trim() || defaultVoiceText(step.action);
+  return text || `ბრძანება ${String(index + 1).padStart(2, "0")}`;
 }
 
 function metersBetween(a: PathPoint, b: PathPoint) {
@@ -141,7 +143,7 @@ function LiveNavScreen({
             lat: step.lat,
             lng: step.lng,
             action: step.action,
-            label: actionLabel(step.action),
+            label: stepVoice(step),
           }))}
           activeIndex={activeStepIndex ?? undefined}
           vehiclePosition={simulation.position}
@@ -164,7 +166,7 @@ function LiveNavScreen({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold tracking-wide text-white/80 uppercase">
-                {current ? actionLabel(current.action) : "ნავიგაცია"}
+                {current ? stepVoice(current).slice(0, 40) : "ნავიგაცია"}
                 {nextMeters != null ? ` · ${nextMeters} მ` : ""}
               </p>
               <p className="mt-1 text-lg leading-6 font-semibold tracking-tight">
@@ -234,27 +236,34 @@ function RouteDetailContent({
   basePath,
   routeId,
   embedded,
+  publicView = false,
 }: RouteDetailPageProps) {
   const router = useRouter();
   const { data: me } = useGetMe();
-  const { data: route, isLoading, isError, error } = useRoute(routeId);
+  const privateRouteQuery = useRoute(routeId, { enabled: !publicView });
+  const publicRouteQuery = usePublicRoute(routeId, { enabled: publicView });
+  const { data: route, isLoading, isError, error } = publicView
+    ? publicRouteQuery
+    : privateRouteQuery;
   const deleteRoute = useDeleteRoute();
   const saveRoute = useSaveRoute();
   const unsaveRoute = useUnsaveRoute();
   const [stepIndex, setStepIndex] = useState(0);
+  const [commandQuery, setCommandQuery] = useState("");
+  const stepListRef = useRef<HTMLDivElement>(null);
 
   const steps = useMemo(() => route?.steps ?? [], [route?.steps]);
   const path = useMemo(() => parseRoutePath(route?.path), [route?.path]);
 
   const simCommands = useMemo(
     () =>
-      steps.map((step) => ({
+      steps.map((step, index) => ({
         id: step.id,
         lat: step.lat,
         lng: step.lng,
         action: step.action,
         distanceBeforeVoice: step.distanceBeforeVoice,
-        voiceText: stepVoice(step),
+        voiceText: stepVoice(step, index),
       })),
     [steps],
   );
@@ -270,9 +279,41 @@ function RouteDetailContent({
   const current =
     activeStepIndex != null ? steps[activeStepIndex] : steps[stepIndex];
 
+  const visibleSteps = useMemo(() => {
+    const q = commandQuery.trim().toLowerCase();
+    if (!q) {
+      return steps.map((step, index) => ({ step, index }));
+    }
+    return steps
+      .map((step, index) => ({ step, index }))
+      .filter(({ step, index }) =>
+        stepVoice(step, index).toLowerCase().includes(q),
+      );
+  }, [commandQuery, steps]);
+
+  useEffect(() => {
+    if (activeStepIndex == null || !stepListRef.current) return;
+    const active = stepListRef.current.querySelector<HTMLElement>(
+      `[data-step-index="${activeStepIndex}"]`,
+    );
+    active?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeStepIndex]);
+
+  const idleNavigationCopy =
+    path.length < 2
+      ? publicView
+        ? "ამ მარშრუტს ჯერ არ აქვს გავლების ხაზი."
+        : "ჯერ დაამატე მარშრუტის ხაზი."
+      : publicView
+        ? "დააჭირე «ნავიგაციის დაწყება» — ჩართე Location ტელეფონში და მიჰყვი მარშრუტს."
+        : "დააჭირე დაწყებას მანქანაში. რუკა მხოლოდ შენს GPS-ს მიჰყვება — თუ არ იძრები, არსად არ წავა. ხმა მხოლოდ მონიშნულ გზაზე და მოძრაობისას.";
+
   const canEdit =
-    !!me && (me.role === "ADMIN" || route?.createdById === me.userId);
+    !publicView &&
+    !!me &&
+    (me.role === "ADMIN" || route?.createdById === me.userId);
   const canSave =
+    !publicView &&
     me?.role === "INSTRUCTOR" &&
     route?.visibility === "SYSTEM" &&
     route.isPublished &&
@@ -289,7 +330,7 @@ function RouteDetailContent({
   if (isError || !route) {
     return (
       <p className="py-16 text-center text-sm text-destructive">
-        {error instanceof Error ? error.message : "მარშრუტი ვერ მოიძებნა"}
+        {humanizeApiError(error)}
       </p>
     );
   }
@@ -303,7 +344,7 @@ function RouteDetailContent({
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
           >
             <ArrowLeft className="size-4" />
-            მარშრუტები
+            {publicView ? "უკან კატალოგში" : "მარშრუტები"}
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             <Badge
@@ -351,7 +392,7 @@ function RouteDetailContent({
             ) : null}
             <span>{path.length} წერტილი</span>
             <span>{route.steps.length} ბრძანება</span>
-            <span>{route.createdBy.fullName}</span>
+            {!publicView ? <span>{route.createdBy.fullName}</span> : null}
           </div>
         </div>
 
@@ -431,7 +472,7 @@ function RouteDetailContent({
           lat: step.lat,
           lng: step.lng,
           action: step.action,
-          label: actionLabel(step.action),
+          label: stepVoice(step),
         }))}
         activeIndex={activeStepIndex ?? undefined}
         vehiclePosition={simulation.position}
@@ -461,7 +502,7 @@ function RouteDetailContent({
           <div className="relative space-y-6">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold tracking-[0.2em] text-primary uppercase">
-                ცოცხალი ნავიგაცია
+                {publicView ? "ნავიგაცია" : "ცოცხალი ნავიგაცია"}
               </p>
               <span className="text-sm text-muted-foreground">
                 {simulation.totalCommands > 0
@@ -523,7 +564,8 @@ function RouteDetailContent({
                 <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                   <Volume2 className="size-4" />
                   {current
-                    ? `${actionLabel(current.action)} · ${current.distanceBeforeVoice}მ`
+                    ? stepVoice(current).slice(0, 48) +
+                      (stepVoice(current).length > 48 ? "…" : "")
                     : "ხმოვანი მითითება"}
                 </p>
                 <p className="text-xl leading-8 font-medium tracking-tight text-foreground md:text-2xl">
@@ -532,11 +574,7 @@ function RouteDetailContent({
                 </p>
               </div>
             ) : (
-              <p className="text-muted-foreground">
-                {path.length < 2
-                  ? "ჯერ დაამატე მარშრუტის ხაზი."
-                  : "დააჭირე დაწყებას მანქანაში. რუკა მხოლოდ შენს GPS-ს მიჰყვება — თუ არ იძრები, არსად არ წავა. ხმა მხოლოდ მონიშნულ გზაზე და მოძრაობისას."}
-              </p>
+              <p className="text-muted-foreground">{idleNavigationCopy}</p>
             )}
 
             <div className="flex flex-wrap gap-2">
@@ -576,69 +614,93 @@ function RouteDetailContent({
                   if (!text) return;
                   simulation.speakCurrent(text, {
                     action: current?.action,
-                    distance: current?.distanceBeforeVoice,
                   });
                 }}
               >
                 <Volume2 className="size-4" />
                 ხმის გამეორება
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-white/10"
-                disabled={stepIndex === 0}
-                onClick={() => setStepIndex((prev) => Math.max(0, prev - 1))}
-              >
-                <SkipBack className="size-4" />
-                წინა
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-white/10"
-                disabled={stepIndex >= steps.length - 1}
-                onClick={() =>
-                  setStepIndex((prev) => Math.min(steps.length - 1, prev + 1))
-                }
-              >
-                შემდეგი
-                <SkipForward className="size-4" />
-              </Button>
+              {!publicView ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl border-white/10"
+                    disabled={stepIndex === 0}
+                    onClick={() => setStepIndex((prev) => Math.max(0, prev - 1))}
+                  >
+                    <SkipBack className="size-4" />
+                    წინა
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl border-white/10"
+                    disabled={stepIndex >= steps.length - 1}
+                    onClick={() =>
+                      setStepIndex((prev) => Math.min(steps.length - 1, prev + 1))
+                    }
+                  >
+                    შემდეგი
+                    <SkipForward className="size-4" />
+                  </Button>
+                </>
+              ) : null}
             </div>
           </div>
         </section>
 
         <aside className="space-y-3 lg:col-span-5">
-          <h2 className="text-lg font-bold tracking-tight">ბრძანებების სია</h2>
-          <div className="space-y-2">
-            {steps.map((step, index) => (
-              <button
-                key={step.id}
-                type="button"
-                onClick={() => setStepIndex(index)}
-                className={cn(
-                  "w-full rounded-2xl border p-4 text-left transition-all",
-                  index === activeStepIndex
-                    ? "border-primary bg-primary/10"
-                    : "border-white/10 bg-surface-low/60 hover:bg-white/5",
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {actionLabel(step.action)}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                      {stepVoice(step)}
-                    </p>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold tracking-tight">ბრძანებების სია</h2>
+            <span className="text-xs text-muted-foreground">
+              {steps.length} სულ
+            </span>
+          </div>
+          {publicView && steps.length > 6 ? (
+            <input
+              type="search"
+              value={commandQuery}
+              onChange={(event) => setCommandQuery(event.target.value)}
+              placeholder="ძებნა ბრძანებაში..."
+              className="h-10 w-full rounded-xl border border-white/10 bg-surface-lowest px-3 text-sm outline-none transition-colors focus:border-primary/50"
+            />
+          ) : null}
+          <div
+            ref={stepListRef}
+            className="max-h-[min(70vh,32rem)] space-y-2 overflow-y-auto rounded-2xl border border-white/8 bg-surface-lowest/40 p-2 [-ms-overflow-style:none] [scrollbar-width:thin] md:p-3"
+          >
+            {visibleSteps.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+                ბრძანება ვერ მოიძებნა
+              </p>
+            ) : (
+              visibleSteps.map(({ step, index }) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  data-step-index={index}
+                  onClick={() => setStepIndex(index)}
+                  className={cn(
+                    "w-full cursor-pointer rounded-xl border p-3.5 text-left transition-all md:p-4",
+                    index === activeStepIndex
+                      ? "border-primary bg-primary/10"
+                      : "border-white/10 bg-surface-low/60 hover:bg-white/5",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-5 wrap-break-word">
+                        {stepVoice(step, index)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </div>
         </aside>
       </div>
@@ -647,6 +709,10 @@ function RouteDetailContent({
 }
 
 export function RouteDetailPage(props: RouteDetailPageProps) {
+  if (props.publicView) {
+    return <RouteDetailContent {...props} />;
+  }
+
   const roles = props.basePath.startsWith("/admin")
     ? (["ADMIN"] as const)
     : (["ADMIN", "INSTRUCTOR"] as const);

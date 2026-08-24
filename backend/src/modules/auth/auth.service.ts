@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChangePasswordDto, LoginDto, RegisterDto } from './dto/auth.dto';
+import type { Role as PrismaRole } from '../../generated/prisma/enums';
 import type {
   AccessSource,
   AccessStatus,
@@ -23,6 +24,15 @@ export type AuthTokenUser = {
   email: string;
   fullName: string;
   role: Role;
+  accessStatus: AccessStatus;
+  accessSource: AccessSource | null;
+};
+
+type DbAuthUser = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: PrismaRole;
   accessStatus: AccessStatus;
   accessSource: AccessSource | null;
 };
@@ -67,7 +77,7 @@ export class AuthService {
       },
     });
 
-    return this.issueSession(user);
+    return this.issueSession(this.toAuthTokenUser(user));
   }
 
   async login(dto: LoginDto) {
@@ -92,14 +102,7 @@ export class AuthService {
       throw new UnauthorizedException('Account is blocked');
     }
 
-    return this.issueSession({
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      accessStatus: user.accessStatus,
-      accessSource: user.accessSource,
-    });
+    return this.issueSession(this.toAuthTokenUser(user));
   }
 
   async getMe(userId: string): Promise<AuthUser> {
@@ -225,7 +228,18 @@ export class AuthService {
       throw new UnauthorizedException('Account is blocked');
     }
 
-    return user;
+    return this.toAuthTokenUser(user);
+  }
+
+  toAuthTokenUser(user: DbAuthUser): AuthTokenUser {
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role === 'USER' ? 'INSTRUCTOR' : user.role,
+      accessStatus: user.accessStatus,
+      accessSource: user.accessSource,
+    };
   }
 
   private hashRefreshToken(token: string) {

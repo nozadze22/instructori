@@ -16,7 +16,20 @@ function isInstructorAppPath(pathname: string) {
   return (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/routes") ||
-    pathname.startsWith("/profile")
+    pathname.startsWith("/mistake-notes")
+  );
+}
+
+function isFullBleedPublicPath(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/contact" ||
+    pathname === "/about" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/profile" ||
+    pathname === "/marshrutebi" ||
+    pathname.startsWith("/marshrutebi/")
   );
 }
 
@@ -25,6 +38,15 @@ export function AppChrome({ children }: { children: ReactNode }) {
 
   if (isAdminPanelPath(pathname) || isInstructorAppPath(pathname)) {
     return <>{children}</>;
+  }
+
+  if (isFullBleedPublicPath(pathname)) {
+    return (
+      <>
+        <Navbar />
+        <main className="mt-16 flex-1">{children}</main>
+      </>
+    );
   }
 
   return (

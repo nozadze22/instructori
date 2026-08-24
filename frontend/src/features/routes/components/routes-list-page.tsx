@@ -13,7 +13,6 @@ import {
   Search,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Empty,
@@ -212,47 +211,46 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
       </section>
 
       <ContentPanel>
-        <InputGroup className="h-11 w-full rounded-xl border-white/10 bg-surface-lowest/90 shadow-none transition-shadow focus-within:border-primary/50 focus-within:shadow-[0_0_18px_rgb(173_198_255/10%)]">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="ძიება სათაურით, ქალაქით ან აღწერით..."
-            className="h-full"
-          />
-        </InputGroup>
-
         <Tabs
           value={tab}
           onValueChange={(value) => {
             if (value) setTab(value);
           }}
-          className="gap-4"
+          className="w-full gap-4"
         >
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-surface-lowest/70 p-1 sm:grid-cols-4">
-            {TAB_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const count = counts[item.value];
-              return (
-                <TabsTrigger
-                  key={item.value}
-                  value={item.value}
-                  className="h-10 gap-2 rounded-lg px-2 data-active:bg-primary/15 data-active:text-primary data-active:shadow-none"
-                >
-                  <Icon className="size-3.5 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                  <Badge
-                    variant="outline"
-                    className="h-5 min-w-5 shrink-0 rounded-md border-white/10 bg-black/20 px-1.5 text-[10px] font-semibold text-muted-foreground"
+          <div className="flex w-full flex-col gap-3">
+            <InputGroup className="h-11 w-full rounded-xl border-white/10 bg-surface-lowest/90 shadow-none transition-shadow focus-within:border-primary/50 focus-within:shadow-[0_0_18px_rgb(173_198_255/10%)]">
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ძიება სათაურით, ქალაქით ან აღწერით..."
+                className="h-full"
+              />
+            </InputGroup>
+
+            <TabsList className="flex h-auto min-h-11 w-full snap-x snap-mandatory gap-1 overflow-x-auto rounded-xl bg-surface-lowest/70 p-1 group-data-horizontal/tabs:h-auto! [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-4 sm:overflow-visible sm:snap-none [&::-webkit-scrollbar]:hidden">
+              {TAB_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const count = counts[item.value];
+                return (
+                  <TabsTrigger
+                    key={item.value}
+                    value={item.value}
+                    className="inline-flex h-auto! min-h-10 min-w-[calc(50%-0.25rem)] shrink-0 snap-start cursor-pointer items-center justify-center gap-1.5 overflow-visible rounded-lg border-0 px-2.5 py-2 text-xs font-medium leading-snug after:hidden sm:min-h-0 sm:h-full sm:min-w-0 sm:shrink sm:px-2 sm:py-1.5 sm:text-sm dark:data-active:border-transparent dark:data-active:bg-primary/15 data-active:bg-primary/15 data-active:text-primary data-active:shadow-none"
                   >
-                    {isLoading ? "…" : count}
-                  </Badge>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+                    <Icon className="size-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-black/20 px-1.5 text-[10px] leading-none font-semibold tabular-nums text-muted-foreground">
+                      {isLoading ? "—" : count}
+                    </span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           <Separator className="bg-white/8" />
 

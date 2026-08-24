@@ -2,10 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import {
+  Bookmark,
   ChevronRight,
-  Home,
-  Hourglass,
-  LayoutDashboard,
   LogOut,
   Map,
   Shield,
@@ -25,6 +23,8 @@ import {
 import type { AuthUser } from "@/features/auth/login/api/login";
 import { useLogout } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
+import { appHomeForUser, isAdminUser } from "@/lib/auth-paths";
+import { userDisplayName, userInitials } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 
 type NavbarUserMenuProps = {
@@ -36,43 +36,28 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
   const { mutate: logout, isPending } = useLogout();
   const { data: profile } = useGetProfile({ enabled: true });
 
-  const initials = user.fullName
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const displayName = userDisplayName(user);
+  const initials = userInitials(user);
 
-  const isAdmin = user.role === "ADMIN";
-  const isActive = user.accessStatus === "ACTIVE";
-  const isPendingAccess = !isAdmin && user.accessStatus === "PENDING";
+  const isAdmin = isAdminUser(user);
+  const isPendingAccess =
+    user.role === "INSTRUCTOR" && user.accessStatus === "PENDING";
 
-  const dashboardHref = isAdmin
-      ? "/admin"
-    : isActive
-      ? "/dashboard"
-      : "/pending";
-
-  const dashboardLabel = isAdmin
+  const primaryHref = isAdmin ? "/admin" : appHomeForUser(user);
+  const primaryLabel = isAdmin
     ? "ადმინ პანელი"
-    : isActive
-      ? "დაშბორდი"
-      : "მოლოდინი";
-
-  const DashboardIcon = isAdmin
-    ? Shield
-    : isActive
-      ? LayoutDashboard
-      : Hourglass;
+    : isPendingAccess
+      ? "მოლოდინი"
+      : "მარშრუტები";
+  const PrimaryIcon = isAdmin ? Shield : Map;
 
   const statusLabel = isAdmin
     ? "ადმინი"
-    : isActive
-      ? "აქტიური"
-      : isPendingAccess
-        ? "მოლოდინში"
-        : "დაბლოკილი";
+    : isPendingAccess
+      ? "მოლოდინში"
+      : user.accessStatus === "BLOCKED"
+        ? "დაბლოკილი"
+        : "ინსტრუქტორი";
 
   return (
     <DropdownMenu>
@@ -80,7 +65,7 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
         <span className="pointer-events-none absolute inset-0 rounded-full bg-primary/25 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100 data-popup-open:opacity-100" />
         <Avatar className="pointer-events-none relative size-9 ring-2 ring-primary/35 ring-offset-2 ring-offset-surface">
           {profile?.avatarUrl ? (
-            <AvatarImage src={profile.avatarUrl} alt={user.fullName} />
+            <AvatarImage src={profile.avatarUrl} alt={displayName} />
           ) : null}
           <AvatarFallback className="bg-linear-to-br from-primary/25 to-primary-container/30 text-xs font-semibold text-primary">
             {initials || <UserRound className="size-4" />}
@@ -100,7 +85,7 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
               <div className="relative flex items-center gap-3">
                 <Avatar className="size-12 ring-2 ring-primary/30 ring-offset-2 ring-offset-surface-low">
                   {profile?.avatarUrl ? (
-                    <AvatarImage src={profile.avatarUrl} alt={user.fullName} />
+                    <AvatarImage src={profile.avatarUrl} alt={displayName} />
                   ) : null}
                   <AvatarFallback className="bg-linear-to-br from-primary/30 to-primary-container/40 text-sm font-semibold text-primary">
                     {initials || <UserRound className="size-5" />}
@@ -108,7 +93,7 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold tracking-tight text-foreground">
-                    {user.fullName}
+                    {displayName}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {user.email}
@@ -116,7 +101,7 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                   <span
                     className={cn(
                       "mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase",
-                      isAdmin || isActive
+                      isAdmin || user.accessStatus === "ACTIVE"
                         ? "bg-primary/15 text-primary"
                         : isPendingAccess
                           ? "bg-amber-500/15 text-amber-300"
@@ -136,52 +121,43 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
         <div className="space-y-1 p-2">
           <DropdownMenuItem
             className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-            onClick={() => router.push(dashboardHref)}
+            onClick={() => router.push(primaryHref)}
           >
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-focus/item:bg-primary/20">
-              <DashboardIcon className="size-4" />
+              <PrimaryIcon className="size-4" />
             </span>
-            <span className="flex-1 text-sm font-medium">{dashboardLabel}</span>
+            <span className="flex-1 text-sm font-medium">{primaryLabel}</span>
             <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
           </DropdownMenuItem>
 
-          {isAdmin ? (
-            <DropdownMenuItem
-              className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-              onClick={() => router.push("/")}
-            >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
-                <Home className="size-4" />
-              </span>
-              <span className="flex-1 text-sm font-medium">Homepage</span>
-              <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
-            </DropdownMenuItem>
-          ) : null}
-
-          {!isAdmin && isActive ? (
-            <DropdownMenuItem
-              className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-              onClick={() => router.push("/routes")}
-            >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
-                <Map className="size-4" />
-              </span>
-              <span className="flex-1 text-sm font-medium">მარშრუტები</span>
-              <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
-            </DropdownMenuItem>
-          ) : null}
-
           {!isAdmin ? (
-            <DropdownMenuItem
-              className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-              onClick={() => router.push("/profile")}
-            >
+            <>
+              {user.accessStatus === "ACTIVE" ? (
+                <DropdownMenuItem
+                  className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                  onClick={() => router.push("/chemi-marshrutebi")}
+                >
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                    <Bookmark className="size-4" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium">
+                    ჩემი მარშრუტები
+                  </span>
+                  <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                </DropdownMenuItem>
+              ) : null}
+
+              <DropdownMenuItem
+                className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                onClick={() => router.push("/profile")}
+              >
               <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
                 <UserRound className="size-4" />
               </span>
               <span className="flex-1 text-sm font-medium">პროფილი</span>
               <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
             </DropdownMenuItem>
+            </>
           ) : null}
         </div>
 

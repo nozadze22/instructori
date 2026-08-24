@@ -109,6 +109,39 @@ export async function getRoutes(): Promise<Route[]> {
   return apiRequest<Route[]>("/routes");
 }
 
+export type PublicRoutesQuery = {
+  q?: string;
+  city?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type PublicRoutesResponse = {
+  items: Route[];
+  total: number;
+  page: number;
+  pageSize: number;
+  cities: string[];
+};
+
+export async function getPublicRoutes(
+  params: PublicRoutesQuery = {},
+): Promise<PublicRoutesResponse> {
+  const search = new URLSearchParams();
+  if (params.q?.trim()) search.set("q", params.q.trim());
+  if (params.city?.trim()) search.set("city", params.city.trim());
+  if (params.page && params.page > 1) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  return apiRequest<PublicRoutesResponse>(
+    `/public/routes${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export async function getPublicRoute(id: string): Promise<Route> {
+  return apiRequest<Route>(`/public/routes/${id}`);
+}
+
 export async function getExamCities(): Promise<ExamCity[]> {
   return apiRequest<ExamCity[]>("/routes/cities");
 }

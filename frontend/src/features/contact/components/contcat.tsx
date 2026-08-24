@@ -77,7 +77,7 @@ const faqs = [
 
 export function Contact() {
   return (
-    <div className="overflow-x-hidden bg-background text-foreground">
+    <div className="overflow-x-hidden bg-surface-lowest text-foreground">
       <section className="relative flex min-h-[70vh] items-end overflow-hidden px-6 pb-16 pt-28 md:min-h-[75vh] md:pb-20">
         <Image
           src={HERO_IMAGE}
@@ -109,8 +109,8 @@ export function Contact() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-linear-to-b from-primary/5 to-transparent" />
 
         <div className="relative z-10 mx-auto max-w-container space-y-16 md:space-y-24">
-          <section className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
-            <div className="glass group relative overflow-hidden rounded-[2rem] border-0 p-6 shadow-[0_30px_80px_rgb(0_0_0_/_45%)] ring-1 ring-white/10 md:p-10 lg:col-span-7">
+          <section className="grid grid-cols-1 gap-8">
+            <div className="glass group relative mx-auto w-full max-w-3xl overflow-hidden rounded-[2rem] border-0 p-6 shadow-[0_30px_80px_rgb(0_0_0_/_45%)] ring-1 ring-white/10 md:p-10">
               <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-primary/10 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
               <div className="relative">
                 <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
@@ -119,14 +119,15 @@ export function Contact() {
                 <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-foreground">
                   მოგვწერეთ
                 </h2>
-                <p className="mb-8 max-w-md text-sm text-muted-foreground">
+                <p className="mb-8 max-w-none text-sm text-muted-foreground">
                   შეავსეთ ფორმა და ჩვენი გუნდი დაგიკავშირდებათ სამუშაო საათებში.
                 </p>
                 <ContactForm />
               </div>
             </div>
 
-            <aside className="flex flex-col gap-5 lg:col-span-5">
+              {/* საკონტაქტო ინფორმაცია ჯერ არ სჭირდება */}
+              {false && (
               <div className="glass relative overflow-hidden rounded-[2rem] p-7 shadow-[0_24px_70px_rgb(0_0_0_/_40%)] ring-1 ring-white/10 md:p-8">
                 <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent" />
                 <div className="relative">
@@ -186,7 +187,9 @@ export function Contact() {
                   </div>
                 </div>
               </div>
+              )}
 
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
               {supportHighlights.map(({ icon: Icon, title, description }) => (
                 <div
                   key={title}
@@ -209,7 +212,7 @@ export function Contact() {
                   </div>
                 </div>
               ))}
-            </aside>
+            </div>
           </section>
 
           <section className="space-y-8">

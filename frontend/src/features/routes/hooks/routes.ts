@@ -1,10 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
   createRoute,
   deleteRoute,
   getExamCities,
+  getPublicRoute,
+  getPublicRoutes,
   getRoute,
   getRoutes,
   getSavedRoutes,
@@ -13,13 +20,35 @@ import {
   unsaveRoute,
   updateRoute,
   type CreateRouteInput,
+  type PublicRoutesQuery,
   type UpdateRouteInput,
 } from "@/features/routes/api/routes";
+import {
+  applyOptimisticRouteSaved,
+  restoreRouteSavedSnapshot,
+  snapshotRouteSavedState,
+} from "@/features/routes/lib/route-save-cache";
 
 export function useRoutes() {
   return useQuery({
     queryKey: ["routes"],
     queryFn: getRoutes,
+  });
+}
+
+export function usePublicRoutes(params: PublicRoutesQuery = {}) {
+  return useQuery({
+    queryKey: ["routes", "public", params],
+    queryFn: () => getPublicRoutes(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function usePublicRoute(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["routes", "public", "detail", id],
+    queryFn: () => getPublicRoute(id),
+    enabled: (options?.enabled ?? true) && Boolean(id),
   });
 }
 
@@ -39,11 +68,11 @@ export function useSavedRoutes(options?: { enabled?: boolean }) {
   });
 }
 
-export function useRoute(id: string) {
+export function useRoute(id: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["routes", id],
     queryFn: () => getRoute(id),
-    enabled: Boolean(id),
+    enabled: (options?.enabled ?? true) && Boolean(id),
   });
 }
 
@@ -102,13 +131,21 @@ export function useSaveRoute() {
   return useMutation({
     mutationKey: ["routes", "save"],
     mutationFn: (id: string) => saveRoute(id),
+    onMutate: async (routeId) => {
+      await queryClient.cancelQueries({ queryKey: ["routes"] });
+      const snapshot = snapshotRouteSavedState(queryClient, routeId);
+      applyOptimisticRouteSaved(queryClient, routeId, true);
+      return { snapshot, routeId };
+    },
     onSuccess: (data) => {
       queryClient.setQueryData(["routes", data.id], data);
-      void queryClient.invalidateQueries({ queryKey: ["routes"] });
-      toast.success("მარშრუტი შენახულია");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _routeId, context) => {
+      restoreRouteSavedSnapshot(queryClient, context?.snapshot);
       toast.error(error.message || "შენახვა ვერ მოხერხდა");
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["routes", "saved"] });
     },
   });
 }
@@ -119,15 +156,38 @@ export function useUnsaveRoute() {
   return useMutation({
     mutationKey: ["routes", "unsave"],
     mutationFn: (id: string) => unsaveRoute(id),
-    onSuccess: (_data, id) => {
-      void queryClient.invalidateQueries({ queryKey: ["routes"] });
-      void queryClient.invalidateQueries({ queryKey: ["routes", id] });
-      toast.success("შენახვა მოიხსნა");
+    onMutate: async (routeId) => {
+      await queryClient.cancelQueries({ queryKey: ["routes"] });
+      const snapshot = snapshotRouteSavedState(queryClient, routeId);
+      applyOptimisticRouteSaved(queryClient, routeId, false);
+      return { snapshot, routeId };
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _routeId, context) => {
+      restoreRouteSavedSnapshot(queryClient, context?.snapshot);
       toast.error(error.message || "შენახვის მოხსნა ვერ მოხერხდა");
     },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["routes", "saved"] });
+    },
   });
+}
+
+export function useToggleRouteSave() {
+  const saveRouteMutation = useSaveRoute();
+  const unsaveRouteMutation = useUnsaveRoute();
+
+  return {
+    toggleSave(routeId: string, isSaved: boolean) {
+      if (isSaved) unsaveRouteMutation.mutate(routeId);
+      else saveRouteMutation.mutate(routeId);
+    },
+    pendingRouteId:
+      saveRouteMutation.isPending
+        ? saveRouteMutation.variables
+        : unsaveRouteMutation.isPending
+          ? unsaveRouteMutation.variables
+          : undefined,
+  };
 }
 
 export function useSyncExamCatalog() {

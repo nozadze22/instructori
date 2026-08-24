@@ -20,7 +20,10 @@ export const routeStepSchema = z.object({
   lng: z.number().min(-180).max(180),
   action: routeActionSchema,
   distanceBeforeVoice: z.number().int().min(0).max(5000),
-  voiceText: z.string().max(2000).optional().or(z.literal("")),
+  voiceText: z
+    .string()
+    .min(1, "დაწერე რა ითქვას")
+    .max(2000),
   audioUrl: z
     .string()
     .max(500)
