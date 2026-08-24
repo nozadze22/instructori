@@ -12,14 +12,21 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { navbarLinks } from "./navbar_links";
+import { visibleNavbarLinks } from "./navbar_links";
 
 type BurgerMenuProps = {
   appHref?: string | null;
   isAdmin?: boolean;
+  isInstructor?: boolean;
+  isLoggedIn?: boolean;
 };
 
-export function BurgerMenu({ appHref, isAdmin }: BurgerMenuProps) {
+export function BurgerMenu({
+  appHref,
+  isAdmin,
+  isInstructor,
+  isLoggedIn,
+}: BurgerMenuProps) {
   return (
     <Sheet>
       <SheetTrigger
@@ -40,7 +47,7 @@ export function BurgerMenu({ appHref, isAdmin }: BurgerMenuProps) {
         </SheetHeader>
         <Separator />
         <nav className="flex flex-col gap-2 p-4">
-          {navbarLinks.map((link) => {
+          {visibleNavbarLinks(Boolean(isLoggedIn)).map((link) => {
             const Icon = link.icon;
             return (
               <Link
@@ -63,14 +70,14 @@ export function BurgerMenu({ appHref, isAdmin }: BurgerMenuProps) {
                 <LayoutDashboard className="size-4" />
                 <span>{isAdmin ? "ადმინ პანელი" : "დაშბორდი"}</span>
               </Link>
-              {!isAdmin ? (
+              {isInstructor ? (
                 <>
                   <Link
                     href="/routes"
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
                   >
                     <Map className="size-4" />
-                    <span>მარშრუტები</span>
+                    <span>ჩემი მარშრუტები</span>
                   </Link>
                   <Link
                     href="/profile"

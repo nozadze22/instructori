@@ -135,9 +135,69 @@ function headingAlongAhead(ahead: PathPoint[]) {
   return bearingDeg(from, to);
 }
 
+const PASSED_STEP_BUFFER_M = 18;
+const ON_ROUTE_THRESHOLD_M = 35;
+const VOICE_ON_ROUTE_M = 80;
+const MOVING_SPEED_THRESHOLD_KMH = 3;
+const VOICE_CATCH_UP_M = 160;
+/** Speak at the pin; this small buffer covers GPS jitter. */
+const PIN_VOICE_APPROACH_M = 25;
+const VOICE_PREFETCH_M = 150;
+
+function isVoiceCueDue(options: {
+  remainingMeters: number;
+  previousRemainingMeters: number | null;
+}) {
+  const remaining = options.remainingMeters;
+  const previous = options.previousRemainingMeters;
+
+  if (remaining <= PIN_VOICE_APPROACH_M && remaining >= -VOICE_CATCH_UP_M) {
+    return true;
+  }
+
+  return (
+    previous != null &&
+    previous > PIN_VOICE_APPROACH_M &&
+    remaining < -VOICE_CATCH_UP_M
+  );
+}
+
+function pickUpcomingCommand(
+  path: PathPoint[],
+  commands: SimCommand[],
+  alongMeters: number,
+) {
+  let bestIndex = -1;
+  let bestRemaining = Infinity;
+
+  for (let i = 0; i < commands.length; i += 1) {
+    const snapped = closestOnPath(path, commands[i]);
+    const remaining = snapped.alongMeters - alongMeters;
+    if (remaining < -PASSED_STEP_BUFFER_M) continue;
+    if (remaining < bestRemaining) {
+      bestRemaining = remaining;
+      bestIndex = i;
+    }
+  }
+
+  if (bestIndex < 0) return null;
+
+  const command = commands[bestIndex];
+  return {
+    index: bestIndex,
+    command,
+    remaining: bestRemaining,
+    inVoiceRange: bestRemaining <= PIN_VOICE_APPROACH_M,
+  };
+}
+
 let activeAudio: HTMLAudioElement | null = null;
+let speakEpoch = 0;
+let speakChain: Promise<void> = Promise.resolve();
+const ttsUrlCache = new Map<string, string>();
 
 function stopAudio() {
+  speakEpoch += 1;
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.src = "";
@@ -169,37 +229,57 @@ function speakBrowser(text: string) {
 
   utterance.rate = 0.95;
   utterance.volume = 1;
-  window.setTimeout(() => synth.speak(utterance), 40);
+  window.setTimeout(() => synth.speak(utterance), 80);
   return true;
 }
 
-async function speakGeorgianMp3(text: string) {
-  const response = await fetch(getApiUrl("/routes/tts"), {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
+async function prefetchTts(text: string) {
+  const key = text.trim();
+  if (!key || ttsUrlCache.has(key)) return;
 
-  if (!response.ok) {
-    throw new Error(`TTS failed: ${response.status}`);
+  try {
+    const response = await fetch(getApiUrl("/routes/tts"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: key }),
+    });
+    if (!response.ok) return;
+    const blob = await response.blob();
+    ttsUrlCache.set(key, URL.createObjectURL(blob));
+  } catch {
+    // Prefetch is best-effort; playback will fetch again.
   }
+}
 
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  stopAudio();
+async function speakGeorgianMp3(text: string) {
+  let url = ttsUrlCache.get(text);
+  if (!url) {
+    const response = await fetch(getApiUrl("/routes/tts"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`TTS failed: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    url = URL.createObjectURL(blob);
+    ttsUrlCache.set(text, url);
+  }
 
   const audio = new Audio(url);
   activeAudio = audio;
 
   await new Promise<void>((resolve, reject) => {
     audio.onended = () => {
-      URL.revokeObjectURL(url);
       if (activeAudio === audio) activeAudio = null;
       resolve();
     };
     audio.onerror = () => {
-      URL.revokeObjectURL(url);
       if (activeAudio === audio) activeAudio = null;
       reject(new Error("Audio playback failed"));
     };
@@ -210,24 +290,27 @@ async function speakGeorgianMp3(text: string) {
 async function speakPrompt(options: {
   voiceText: string;
   action?: RouteAction;
-  distanceBeforeVoice?: number;
 }) {
-  const { voiceText, action, distanceBeforeVoice } = options;
+  const { voiceText, action } = options;
   if (!voiceText.trim()) return;
 
-  try {
-    await speakGeorgianMp3(voiceText);
-    return;
-  } catch {
-    // Browser has no Georgian voice — use full English instruction, not raw ka text.
-  }
+  const epoch = speakEpoch;
+  speakChain = speakChain
+    .catch(() => undefined)
+    .then(async () => {
+      if (epoch !== speakEpoch) throw new Error("cancelled");
 
-  const fallback =
-    action != null && distanceBeforeVoice != null
-      ? englishVoiceText(action, distanceBeforeVoice)
-      : "Navigation cue.";
+      try {
+        await speakGeorgianMp3(voiceText);
+      } catch {
+        if (epoch !== speakEpoch) throw new Error("cancelled");
+        const fallback =
+          action != null ? englishVoiceText(action) : "Navigation cue.";
+        if (!speakBrowser(fallback)) throw new Error("voice failed");
+      }
+    });
 
-  speakBrowser(fallback);
+  await speakChain;
 }
 
 function mapGeoError(code: number): Exclude<GeoErrorKind, null> {
@@ -266,6 +349,7 @@ export function useRouteSimulation(options: {
   const [traveledPath, setTraveledPath] = useState<PathPoint[]>([]);
 
   const spokenRef = useRef<Set<string>>(new Set());
+  const lastAlongRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const runningRef = useRef(false);
   const pathRef = useRef(path);
@@ -319,6 +403,7 @@ export function useRouteSimulation(options: {
     navTickInFlightRef.current = false;
     lastNavTickTsRef.current = 0;
     lastFixRef.current = null;
+    lastAlongRef.current = null;
     spokenRef.current = new Set();
   }, [stop]);
 
@@ -356,6 +441,63 @@ export function useRouteSimulation(options: {
     }
     setHeadingDeg(nextHeading);
 
+    const upcoming = pickUpcomingCommand(
+      pathRef.current,
+      commandsRef.current,
+      along.alongMeters,
+    );
+    const lastAlong = lastAlongRef.current;
+    const nearRouteForVoice = along.distMeters <= VOICE_ON_ROUTE_M;
+
+    if (upcoming) {
+      setActiveCommandIndex(upcoming.index);
+      if (upcoming.command.voiceText.trim()) {
+        if (upcoming.remaining <= VOICE_PREFETCH_M) {
+          setCurrentVoice(upcoming.command.voiceText);
+          void prefetchTts(upcoming.command.voiceText);
+        }
+      }
+    } else {
+      setActiveCommandIndex(null);
+    }
+
+    if (nearRouteForVoice) {
+      const due = commandsRef.current
+        .map((command) => {
+          const snapped = closestOnPath(pathRef.current, command);
+          return {
+            command,
+            remaining: snapped.alongMeters - along.alongMeters,
+            previousRemaining:
+              lastAlong == null ? null : snapped.alongMeters - lastAlong,
+          };
+        })
+        .filter(
+          ({ command, remaining, previousRemaining }) =>
+            Boolean(command.voiceText.trim()) &&
+            !spokenRef.current.has(command.id) &&
+            isVoiceCueDue({
+              remainingMeters: remaining,
+              previousRemainingMeters: previousRemaining,
+            }),
+        )
+        .sort((a, b) => a.remaining - b.remaining);
+
+      for (const { command } of due) {
+        spokenRef.current.add(command.id);
+        setPassedCount(spokenRef.current.size);
+        setCurrentVoice(command.voiceText);
+        void speakPrompt({
+          voiceText: command.voiceText,
+          action: command.action,
+        }).catch(() => {
+          spokenRef.current.delete(command.id);
+        });
+      }
+    }
+
+    lastAlongRef.current = along.alongMeters;
+
     const route = routeIdRef.current;
     if (!route || navTickInFlightRef.current || ts - lastNavTickTsRef.current < 700) {
       return;
@@ -368,8 +510,8 @@ export function useRouteSimulation(options: {
       lat: point.lat,
       lng: point.lng,
       speedKmh: speed,
-      onRouteThresholdMeters: 35,
-      movingSpeedThresholdKmh: 3,
+      onRouteThresholdMeters: ON_ROUTE_THRESHOLD_M,
+      movingSpeedThresholdKmh: MOVING_SPEED_THRESHOLD_KMH,
     })
       .then((result) => {
         if (unmountedRef.current || !runningRef.current) return;
@@ -377,44 +519,6 @@ export function useRouteSimulation(options: {
         setNavigationStatus(result.status);
         setNavigationReason(result.reason);
         setFollowCamera(true);
-
-        if (result.status !== "ACTIVE") {
-          setCurrentVoice(null);
-          setActiveCommandIndex(null);
-          return;
-        }
-
-        const instruction = result.nextInstruction;
-        if (!instruction) return;
-
-        const commandIndex = commandsRef.current.findIndex(
-          (command) => command.id === instruction.stepId,
-        );
-
-        if (commandIndex >= 0) {
-          setActiveCommandIndex(commandIndex);
-        }
-
-        const matchedCommand =
-          commandIndex >= 0 ? commandsRef.current[commandIndex] : null;
-        const voiceText =
-          instruction.voiceText?.trim() || matchedCommand?.voiceText || "";
-
-        if (!voiceText) return;
-        setCurrentVoice(voiceText);
-
-        if (!result.speak || spokenRef.current.has(instruction.stepId)) {
-          return;
-        }
-
-        spokenRef.current.add(instruction.stepId);
-        setPassedCount(spokenRef.current.size);
-
-        void speakPrompt({
-          voiceText,
-          action: matchedCommand?.action,
-          distanceBeforeVoice: matchedCommand?.distanceBeforeVoice,
-        });
       })
       .catch(() => {
         if (unmountedRef.current) return;
@@ -485,14 +589,10 @@ export function useRouteSimulation(options: {
     stop,
     reset,
     canRun: path.length >= 2 && totalLength > 0,
-    speakCurrent: (
-      text: string,
-      meta?: { action?: RouteAction; distance?: number },
-    ) =>
+    speakCurrent: (text: string, meta?: { action?: RouteAction }) =>
       void speakPrompt({
         voiceText: text,
         action: meta?.action,
-        distanceBeforeVoice: meta?.distance,
       }),
   };
 }

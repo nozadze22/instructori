@@ -18,12 +18,21 @@ export function PendingAccessScreen() {
       router.replace("/login");
       return;
     }
-    if (me.role === "ADMIN" || me.accessStatus === "ACTIVE") {
-      router.replace(me.role === "ADMIN" ? "/admin" : "/dashboard");
+    if (me.role === "ADMIN") {
+      router.replace("/admin");
+      return;
+    }
+    if (me.accessStatus === "ACTIVE") {
+      router.replace("/marshrutebi");
     }
   }, [isError, isLoading, me, router]);
 
-  if (isLoading || !me || me.accessStatus === "ACTIVE") {
+  if (
+    isLoading ||
+    !me ||
+    me.role !== "INSTRUCTOR" ||
+    me.accessStatus === "ACTIVE"
+  ) {
     return (
       <p className="text-sm text-muted-foreground">იტვირთება...</p>
     );
@@ -40,7 +49,7 @@ export function PendingAccessScreen() {
       </p>
       <div className="mt-6 flex gap-3">
         <Link
-          href="/"
+          href="/marshrutebi"
           className="inline-flex h-8 items-center justify-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
         >
           მთავარი

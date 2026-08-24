@@ -1,3 +1,5 @@
+import { humanizeApiError } from "@/lib/api-errors";
+
 export const API_URL = "/api";
 
 export function getApiUrl(path: string): string {
@@ -74,13 +76,23 @@ export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(getApiUrl(path), requestInit(init));
+  let response: Response;
+
+  try {
+    response = await fetch(getApiUrl(path), requestInit(init));
+  } catch (error) {
+    throw new Error(humanizeApiError(error));
+  }
 
   if (response.status === 401 && !AUTH_SKIP_REFRESH.has(path)) {
     const refreshed = await refreshSession();
     if (refreshed) {
-      const retried = await fetch(getApiUrl(path), requestInit(init));
-      return readResponse<T>(retried);
+      try {
+        const retried = await fetch(getApiUrl(path), requestInit(init));
+        return readResponse<T>(retried);
+      } catch (error) {
+        throw new Error(humanizeApiError(error));
+      }
     }
   }
 
@@ -90,7 +102,7 @@ export async function apiRequest<T>(
 async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = await parseErrorMessage(response);
-    throw new Error(message);
+    throw new Error(humanizeApiError(message));
   }
 
   if (response.status === 204) {

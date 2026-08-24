@@ -25,8 +25,8 @@ export function InstructorTopbar() {
 
       <div className="flex items-center gap-1.5 sm:gap-2">
         <Link
-          href="/"
-          aria-label="მთავარი გვერდი"
+          href="/marshrutebi"
+          aria-label="მარშრუტები"
           className={cn(
             buttonVariants({ variant: "ghost", size: "icon" }),
             "rounded-full text-muted-foreground hover:text-primary",

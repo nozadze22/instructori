@@ -23,6 +23,11 @@ import {
   getExamCatalogWithSources,
   loadSaRouteSources,
 } from './exam-route-sync';
+import {
+  distanceToPolylineMeters,
+  findUpcomingStep,
+  type PathPoint,
+} from './navigation-geometry';
 
 const routeInclude = {
   steps: {
@@ -48,82 +53,15 @@ function mapStepCreate(step: CreateRouteStepDto | CreateStepDto, index: number) 
     lat: step.lat,
     lng: step.lng,
     action: step.action,
-    distanceBeforeVoice: step.distanceBeforeVoice ?? 200,
+    distanceBeforeVoice: step.distanceBeforeVoice ?? 0,
     voiceText: step.voiceText,
     audioUrl: step.audioUrl,
     order: step.order ?? index,
   };
 }
 
-type PathPoint = { lat: number; lng: number };
-
-const EARTH_RADIUS_METERS = 6_371_000;
 const DEFAULT_ON_ROUTE_THRESHOLD_METERS = 20;
 const DEFAULT_MOVING_SPEED_THRESHOLD_KMH = 3;
-
-function toRadians(value: number) {
-  return (value * Math.PI) / 180;
-}
-
-function distanceMeters(a: PathPoint, b: PathPoint) {
-  const dLat = toRadians(b.lat - a.lat);
-  const dLng = toRadians(b.lng - a.lng);
-  const lat1 = toRadians(a.lat);
-  const lat2 = toRadians(b.lat);
-
-  const hav =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-
-  return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav));
-}
-
-function projectToMeters(origin: PathPoint, target: PathPoint) {
-  const metersPerDegLat = 111_320;
-  const metersPerDegLng = 111_320 * Math.cos(toRadians(origin.lat));
-
-  return {
-    x: (target.lng - origin.lng) * metersPerDegLng,
-    y: (target.lat - origin.lat) * metersPerDegLat,
-  };
-}
-
-function distanceToSegmentMeters(
-  point: PathPoint,
-  segmentStart: PathPoint,
-  segmentEnd: PathPoint,
-) {
-  const start = { x: 0, y: 0 };
-  const end = projectToMeters(segmentStart, segmentEnd);
-  const p = projectToMeters(segmentStart, point);
-
-  const vx = end.x - start.x;
-  const vy = end.y - start.y;
-  const wx = p.x - start.x;
-  const wy = p.y - start.y;
-
-  const lengthSq = vx * vx + vy * vy;
-  if (lengthSq === 0) return Math.hypot(wx, wy);
-
-  const t = Math.max(0, Math.min(1, (wx * vx + wy * vy) / lengthSq));
-  const closestX = start.x + t * vx;
-  const closestY = start.y + t * vy;
-
-  return Math.hypot(p.x - closestX, p.y - closestY);
-}
-
-function distanceToPolylineMeters(point: PathPoint, path: PathPoint[]) {
-  if (!path.length) return Number.POSITIVE_INFINITY;
-  if (path.length === 1) return distanceMeters(point, path[0]);
-
-  let minDistance = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < path.length - 1; i += 1) {
-    const dist = distanceToSegmentMeters(point, path[i], path[i + 1]);
-    if (dist < minDistance) minDistance = dist;
-  }
-
-  return minDistance;
-}
 
 @Injectable()
 export class RoutesService {
@@ -131,6 +69,120 @@ export class RoutesService {
 
   findCities() {
     return EXAM_CITIES;
+  }
+
+  async findPublicCatalog(
+    query: {
+      q?: string;
+      city?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+    userId?: string,
+  ) {
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(48, Math.max(1, Number(query.pageSize) || 12));
+    const skip = (page - 1) * pageSize;
+    const search = query.q?.trim();
+    const city = query.city?.trim();
+
+    const where: Prisma.RouteWhereInput = {
+      visibility: 'SYSTEM',
+      isPublished: true,
+      ...(city ? { city } : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { description: { contains: search, mode: 'insensitive' } },
+              { city: { contains: search, mode: 'insensitive' } },
+              {
+                createdBy: {
+                  fullName: { contains: search, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [matchedRoutes, cityRows] = await Promise.all([
+      this.prisma.route.findMany({
+        where,
+        include: routeInclude,
+      }),
+      this.prisma.route.findMany({
+        where: {
+          visibility: 'SYSTEM',
+          isPublished: true,
+          city: { not: null },
+        },
+        select: { city: true },
+        distinct: ['city'],
+      }),
+    ]);
+
+    const compareKa = (a: string, b: string) =>
+      a.localeCompare(b, 'ka', { sensitivity: 'base', numeric: true });
+
+    const sortedRoutes = [...matchedRoutes].sort((left, right) => {
+      const cityCompare = compareKa(left.city ?? '\uFFFF', right.city ?? '\uFFFF');
+      if (cityCompare !== 0) return cityCompare;
+      return compareKa(left.title, right.title);
+    });
+
+    const total = sortedRoutes.length;
+    const pageItems = sortedRoutes.slice(skip, skip + pageSize);
+    const itemsWithSaved = userId
+      ? await this.withSavedFlags(userId, pageItems)
+      : pageItems.map((route) => ({
+          ...route,
+          isSaved: false,
+          createdBy: {
+            ...route.createdBy,
+            email: '',
+          },
+        }));
+
+    return {
+      items: itemsWithSaved.map((route) => ({
+        ...route,
+        createdBy: {
+          ...route.createdBy,
+          email: '',
+        },
+      })),
+      total,
+      page,
+      pageSize,
+      cities: cityRows
+        .map((row) => row.city)
+        .filter((value): value is string => Boolean(value))
+        .sort(compareKa),
+    };
+  }
+
+  async findPublicRoute(routeId: string, userId?: string) {
+    const route = await this.prisma.route.findUnique({
+      where: { id: routeId },
+      include: routeInclude,
+    });
+
+    if (!route || route.visibility !== 'SYSTEM' || !route.isPublished) {
+      throw new NotFoundException('Route not found');
+    }
+
+    const [withSaved] = userId
+      ? await this.withSavedFlags(userId, [route])
+      : [{ ...route, isSaved: false }];
+
+    return {
+      ...withSaved,
+      createdBy: {
+        ...withSaved.createdBy,
+        email: '',
+      },
+    };
   }
 
   /**
@@ -194,6 +246,10 @@ export class RoutesService {
   }
 
   async create(user: AuthUser, dto: CreateRouteDto) {
+    if (user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can create routes');
+    }
+
     const visibility = this.resolveVisibility(user, dto.visibility);
 
     return this.prisma.route.create({
@@ -507,13 +563,9 @@ export class RoutesService {
       };
     }
 
-    const nextStep = route.steps.find((step) => {
-      const stepDistance = distanceMeters(currentPoint, {
-        lat: step.lat,
-        lng: step.lng,
-      });
-      return stepDistance <= step.distanceBeforeVoice;
-    });
+    const upcoming = findUpcomingStep(currentPoint, path, route.steps);
+    const nextStep =
+      upcoming?.inVoiceRange === true ? upcoming.step : null;
 
     return {
       status: 'ACTIVE',
@@ -523,7 +575,7 @@ export class RoutesService {
       speedKmh: dto.speedKmh,
       distanceToRouteMeters: Number(distanceToRouteMeters.toFixed(2)),
       followCamera: true,
-      speak: Boolean(nextStep?.voiceText),
+      speak: Boolean(nextStep),
       addPin: false,
       nextInstruction: nextStep
         ? {

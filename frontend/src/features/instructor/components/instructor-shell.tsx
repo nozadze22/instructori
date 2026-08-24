@@ -10,9 +10,9 @@ import { InstructorTopbar } from "@/features/instructor/components/instructor-to
 export function InstructorShell({ children }: { children: ReactNode }) {
   return (
     <AuthGate
-      roles={["INSTRUCTOR"]}
+      roles={["ADMIN"]}
       accessStatuses={["ACTIVE"]}
-      redirectTo="/pending"
+      redirectTo="/marshrutebi"
       loginRedirect="/login"
     >
       <div className="relative z-10 flex h-dvh overflow-hidden bg-surface-lowest">

@@ -40,13 +40,14 @@ export type MapCommand = {
   lat: number;
   lng: number;
   action: RouteAction;
+  voiceText?: string;
 };
 
 type RouteMapEditorProps = {
   path: PathPoint[];
   commands: MapCommand[];
   mode: "waypoints" | "command";
-  pendingAction: RouteAction;
+  pendingVoiceText: string;
   mapCenter?: PathPoint | null;
   onPathChange: (path: PathPoint[]) => void;
   onAddCommand: (point: PathPoint) => void;
@@ -63,12 +64,18 @@ function MapCamera({
   zoom?: number;
 }) {
   const map = useMap();
+  const appliedCenterKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!map || !center) return;
+    if (!map || center == null) return;
+
+    const centerKey = `${center.lat.toFixed(6)},${center.lng.toFixed(6)}`;
+    if (appliedCenterKeyRef.current === centerKey) return;
+
+    appliedCenterKeyRef.current = centerKey;
     map.panTo(center);
     map.setZoom(zoom);
-  }, [map, center, zoom]);
+  }, [center, map, zoom]);
 
   return null;
 }
@@ -93,7 +100,7 @@ function RouteMapEditorInner({
   path,
   commands,
   mode,
-  pendingAction,
+  pendingVoiceText,
   mapCenter,
   onPathChange,
   onAddCommand,
@@ -292,6 +299,7 @@ function RouteMapEditorInner({
             key={waypoint.id}
             position={{ lat: waypoint.lat, lng: waypoint.lng }}
             draggable={mode === "waypoints"}
+            clickable={mode === "waypoints"}
             icon={waypointPinIcon(waypointPinColor(waypoint.type))}
             label={{
               text: waypointMarkerLabel(waypoint),
@@ -313,13 +321,14 @@ function RouteMapEditorInner({
           <Marker
             key={`cmd-${index}-${command.lat}-${command.lng}`}
             position={{ lat: command.lat, lng: command.lng }}
+            clickable={false}
             label={{
               text: String(index + 1),
               color: "white",
               fontSize: "11px",
               fontWeight: "700",
             }}
-            title={actionLabel(command.action)}
+            title={command.voiceText?.trim() || actionLabel(command.action)}
           />
         ))}
       </Map>
@@ -339,7 +348,9 @@ function RouteMapEditorInner({
                 <p className="truncate text-[11px] text-muted-foreground">
                   {mode === "waypoints"
                     ? "Click → drag → Calculate"
-                    : `ბრძანება: ${actionLabel(pendingAction)}`}
+                    : pendingVoiceText.trim()
+                      ? `ბრძანება: ${pendingVoiceText.trim()}`
+                      : "დაწერე ტექსტი და დააწკაპუნე რუკაზე"}
                 </p>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Map, Marker, Polyline, useMap } from "@vis.gl/react-google-maps";
 
 import { GoogleMapsProvider } from "@/features/routes/components/google-maps-provider";
+import { RouteMapSvgFallback } from "@/features/routes/components/route-map-svg-fallback";
 import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
 import { actionLabel } from "@/features/routes/lib/route-actions";
 import { cn } from "@/lib/utils";
@@ -303,7 +304,21 @@ export function RouteMapView({
       )}
     >
       <div className="absolute inset-0">
-        <GoogleMapsProvider>
+        <GoogleMapsProvider
+          compact
+          fallback={
+            <RouteMapSvgFallback
+              path={path}
+              commands={commands}
+              activeIndex={activeIndex}
+              vehiclePosition={vehiclePosition}
+              showCommandMarkers={showCommandMarkers}
+              showVehicleMarker={showVehicleMarker}
+              traveledPath={traveledPath}
+              aheadPath={aheadPath}
+            />
+          }
+        >
           <RouteMapViewInner
             path={path}
             commands={commands}

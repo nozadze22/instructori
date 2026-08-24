@@ -35,7 +35,9 @@ const defaultValues: ContactSchema = {
 };
 
 const inputGroupClassName =
-  "h-12 rounded-xl border-white/10 bg-surface-lowest shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255_/_15%)]";
+  "h-12 rounded-xl border-white/10 bg-surface-lowest px-1 shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255_/_15%)]";
+
+const addonClassName = "pl-3 pr-2";
 
 export function ContactForm() {
   const { mutateAsync: createContact, isPending: isCreating } =
@@ -59,7 +61,7 @@ export function ContactForm() {
         className="space-y-6"
         noValidate
       >
-        <FieldGroup className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <FieldGroup className="grid! grid-cols-1 gap-5 md:grid-cols-2">
           <Field data-invalid={!!form.formState.errors.fullName}>
             <FieldLabel
               htmlFor="fullName"
@@ -69,13 +71,14 @@ export function ContactForm() {
             </FieldLabel>
             <FieldContent>
               <InputGroup className={inputGroupClassName}>
-                <InputGroupAddon>
+                <InputGroupAddon className={addonClassName}>
                   <User />
                 </InputGroupAddon>
                 <InputGroupInput
                   id="fullName"
                   placeholder="გიორგი ბერიძე"
                   autoComplete="name"
+                  className="h-full"
                   {...form.register("fullName")}
                 />
               </InputGroup>
@@ -92,7 +95,7 @@ export function ContactForm() {
             </FieldLabel>
             <FieldContent>
               <InputGroup className={inputGroupClassName}>
-                <InputGroupAddon>
+                <InputGroupAddon className={addonClassName}>
                   <Mail />
                 </InputGroupAddon>
                 <InputGroupInput
@@ -100,6 +103,7 @@ export function ContactForm() {
                   type="email"
                   placeholder="giorgi@example.com"
                   autoComplete="email"
+                  className="h-full"
                   {...form.register("email")}
                 />
               </InputGroup>
@@ -117,12 +121,13 @@ export function ContactForm() {
           </FieldLabel>
           <FieldContent>
             <InputGroup className={inputGroupClassName}>
-              <InputGroupAddon>
+              <InputGroupAddon className={addonClassName}>
                 <Type />
               </InputGroupAddon>
               <InputGroupInput
                 id="subject"
                 placeholder="სიმულატორის ტესტირება"
+                className="h-full"
                 {...form.register("subject")}
               />
             </InputGroup>
@@ -141,14 +146,14 @@ export function ContactForm() {
             <InputGroup
               className={`${inputGroupClassName} h-auto min-h-[10rem] items-start py-3`}
             >
-              <InputGroupAddon className="pt-1">
+              <InputGroupAddon className={`${addonClassName} pt-0.5`}>
                 <MessageSquareText />
               </InputGroupAddon>
               <InputGroupTextarea
                 id="message"
                 rows={5}
                 placeholder="როგორ შემიძლია დავჯავშნო პრაქტიკული მეცადინეობა?"
-                className="min-h-[8.5rem] resize-none"
+                className="min-h-[8.5rem] py-0 resize-none"
                 {...form.register("message")}
               />
             </InputGroup>
@@ -165,7 +170,7 @@ export function ContactForm() {
           disabled={form.formState.isSubmitting || isCreating}
         >
           გაგზავნა
-          <Send className="size-4" />
+          <Send data-icon="inline-end" className="size-4" />
         </Button>
       </form>
     </Form>

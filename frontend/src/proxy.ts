@@ -22,7 +22,26 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (
+    (pathname === "/marshrutebi" || pathname.startsWith("/marshrutebi/")) &&
+    !isAuthenticated
+  ) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   if (pathname.startsWith("/profile") && !isAuthenticated) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    (pathname === "/chemi-marshrutebi" ||
+      pathname.startsWith("/chemi-marshrutebi/")) &&
+    !isAuthenticated
+  ) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
@@ -48,6 +67,13 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
+    "/about",
+    "/about/:path*",
+    "/marshrutebi",
+    "/marshrutebi/:path*",
+    "/chemi-marshrutebi",
+    "/chemi-marshrutebi/:path*",
     "/dashboard/:path*",
     "/routes/:path*",
     "/profile/:path*",

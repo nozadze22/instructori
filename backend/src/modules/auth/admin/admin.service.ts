@@ -34,7 +34,7 @@ export class AdminService {
       throw new ForbiddenException('Admin already exists');
     }
     const user = await this.createAdminUser(dto);
-    return this.auth.issueSession(user);
+    return this.auth.issueSession(this.auth.toAuthTokenUser(user));
   }
 
   async adminCreate(dto: AdminCreateDto) {

@@ -6,7 +6,11 @@ import { PageFrame } from "@/features/instructor/components/page-frame";
 import { InstructorProfileView } from "@/features/profile/components/instructor-profile-view";
 import { useGetProfile } from "@/features/profile/hooks/profile";
 
-function ProfileContent() {
+type ProfilePageProps = {
+  variant?: "instructor" | "public";
+};
+
+function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   const { data: me, isLoading: meLoading } = useGetMe();
   const { data: profile, isLoading: profileLoading } = useGetProfile();
 
@@ -20,17 +24,25 @@ function ProfileContent() {
 
   if (!me) return null;
 
-  return (
-    <PageFrame>
-      <InstructorProfileView user={me} profile={profile ?? null} />
-    </PageFrame>
+  const body = (
+    <InstructorProfileView user={me} profile={profile ?? null} />
   );
+
+  if (variant === "public") {
+    return body;
+  }
+
+  return <PageFrame>{body}</PageFrame>;
 }
 
-export function ProfilePage() {
+export function ProfilePage({ variant = "instructor" }: ProfilePageProps) {
+  if (variant === "public") {
+    return <ProfileContent variant={variant} />;
+  }
+
   return (
     <AuthGate redirectTo="/login" loginRedirect="/login">
-      <ProfileContent />
+      <ProfileContent variant={variant} />
     </AuthGate>
   );
 }

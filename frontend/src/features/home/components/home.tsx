@@ -1,11 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
   BarChart3,
   CheckCircle2,
   Cloud,
-  Headset,
-  LayoutTemplate,
   PlayCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useGetMe } from "@/features/auth/login/hooks/login";
+import { appHomeForUser } from "@/lib/auth-paths";
 import { cn } from "@/lib/utils";
+
+const TRAILER_SRC =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
 
 const HERO_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCOoFI-_HToor0LPw_IvLc8NvbmrI8POGTrARkwRC_fp174Ae8Qv9ChKP0GWBol9ErxmEydGOsbAHDBUWsWrajkkw0yyvSPadHMX003JZW61t1U0Lo88ssaS3dgq9ry-oApA2QvkrlHpVAyK9WI2SPg-NiWo0KQkmD-FdB0TyKyUDTg74ZpqdOJpZ9EKMU5v2onNR7pz0aFW1T_uR2hzbC74ZkJHP_iKMmhxi6OE3qxFCyvJpXeGxNDKHVJlfMTXNgefDZhf4tSFdsB";
@@ -35,41 +50,18 @@ const stats = [
 
 const plans = [
   {
-    tier: "საწყისი",
-    name: "სტარტერი",
-    price: "$49",
-    featured: false,
-    features: [
-      "10 საპრაქტიკო მარშრუტი",
-      "ძირითადი ანალიტიკა",
-      "მხარდაჭერის პორტალი",
-    ],
-    cta: "დაიწყე",
-  },
-  {
-    tier: "ყველაზე პოპულარული",
-    name: "პრო მოსწავლე",
-    price: "$99",
+    tier: "სრული პაკეტი",
+    name: "რუკის სერვისი",
+    price: "100 ₾",
     featured: true,
     features: [
       "ულიმიტო მარშრუტები",
-      "მოწინავე ტელემეტრიის AI",
-      "VR მხარდაჭერა",
-      "პრიორიტეტული ინსტრუქტორის უკუკავშირი",
+      "ინტერაქტიული რუკა და ნავიგაცია",
+      "მარშრუტის რედაქტორი და სიმულაცია",
+      "რეალურ დროში ტელემეტრია",
+      "რუკაში შემავალი ყველა ფუნქცია",
     ],
-    cta: "განაახლე ახლა",
-  },
-  {
-    tier: "ბიზნესი",
-    name: "სასწავლო ცენტრი",
-    price: "$299",
-    featured: false,
-    features: [
-      "მრავალმომხმარებლიანი დაფა",
-      "ავტოპარკის მართვა",
-      "მორგებული კურსების კონსტრუქტორი",
-    ],
-    cta: "დაგვიკავშირდი",
+    cta: "დაიწყე",
   },
 ];
 
@@ -82,6 +74,16 @@ function FeatureIcon({ children }: { children: React.ReactNode }) {
 }
 
 export function Home() {
+  const router = useRouter();
+  const { data: me, isSuccess } = useGetMe();
+  const [trailerOpen, setTrailerOpen] = useState(false);
+
+  useEffect(() => {
+    if (isSuccess && me) {
+      router.replace(appHomeForUser(me));
+    }
+  }, [isSuccess, me, router]);
+
   return (
     <>
       <section
@@ -116,14 +118,45 @@ export function Home() {
               >
                 დაიწყე
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="glass h-12 rounded-xl border-white/10 px-12 text-sm text-foreground hover:bg-white/5"
-              >
-                <PlayCircle data-icon="inline-start" />
-                ტრეილერის ნახვა
-              </Button>
+              <Dialog open={trailerOpen} onOpenChange={setTrailerOpen}>
+                <DialogTrigger
+                  render={
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="glass h-12 rounded-xl border-white/10 px-12 text-sm text-foreground hover:bg-white/5"
+                    />
+                  }
+                >
+                  <PlayCircle data-icon="inline-start" />
+                  ტრეილერის ნახვა
+                </DialogTrigger>
+                <DialogContent
+                  overlayClassName="bg-black/70 supports-backdrop-filter:backdrop-blur-sm"
+                  className="w-[calc(100%-2rem)] gap-0 overflow-hidden border-0 bg-surface p-0 ring-1 ring-white/10 sm:max-w-3xl"
+                >
+                  <DialogHeader className="gap-1 px-5 pt-5 pr-12 pb-3">
+                    <DialogTitle className="text-lg">
+                      როგორ მუშაობს სერვისი
+                    </DialogTitle>
+                    <DialogDescription>
+                      რუკის სერვისის მოკლე დემო: მარშრუტები, ნავიგაცია და რუკაში
+                      შემავალი ყველა ფუნქცია.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="aspect-video bg-black">
+                    {trailerOpen ? (
+                      <video
+                        src={TRAILER_SRC}
+                        className="size-full object-cover"
+                        controls
+                        autoPlay
+                        playsInline
+                      />
+                    ) : null}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -153,6 +186,8 @@ export function Home() {
         </div>
       </section>
 
+      {/* სტატისტიკა ჯერ ტყუილია */}
+      {false && (
       <section className="border-y border-white/5 bg-surface-low/30 py-8 backdrop-blur-sm">
         <div className="mx-auto max-w-container px-6">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
@@ -169,6 +204,7 @@ export function Home() {
           </div>
         </div>
       </section>
+      )}
 
       <section id="history" className="bg-surface px-4 py-16">
         <div className="mx-auto max-w-container space-y-12">
@@ -183,7 +219,7 @@ export function Home() {
             </p>
           </div>
 
-          <div className="grid h-auto grid-cols-1 gap-6 md:grid-cols-3 md:grid-rows-[1fr_auto]">
+          <div className="grid h-auto grid-cols-1 items-stretch gap-6 md:grid-cols-3">
             <Card className="glass group relative gap-0 overflow-hidden border-0 bg-gradient-to-br from-white/[0.06] to-transparent py-6 shadow-[0_20px_60px_rgb(0_0_0_/_35%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/40 md:col-span-2">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgb(173_198_255_/_12%),transparent_45%)]" />
               <CardHeader className="relative space-y-4">
@@ -213,9 +249,9 @@ export function Home() {
               </CardContent>
             </Card>
 
-            <Card className="glass group relative items-center justify-center gap-4 overflow-hidden border-0 bg-gradient-to-b from-white/[0.06] to-transparent py-8 text-center shadow-[0_20px_60px_rgb(0_0_0_/_35%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/40">
+            <Card className="glass group relative gap-4 overflow-hidden border-0 bg-gradient-to-b from-white/[0.06] to-transparent py-6 shadow-[0_20px_60px_rgb(0_0_0_/_35%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/40">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgb(173_198_255_/_10%),transparent_60%)]" />
-              <CardHeader className="relative items-center space-y-4">
+              <CardHeader className="relative space-y-4">
                 <FeatureIcon>
                   <Cloud className="size-6" />
                 </FeatureIcon>
@@ -227,37 +263,6 @@ export function Home() {
                   დაყენებას მყისიერად.
                 </CardDescription>
               </CardHeader>
-            </Card>
-
-            <Card className="glass group relative gap-4 overflow-hidden border-0 bg-gradient-to-br from-white/[0.06] to-transparent py-6 shadow-[0_20px_60px_rgb(0_0_0_/_35%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/40">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgb(173_198_255_/_10%),transparent_55%)]" />
-              <CardHeader className="relative space-y-4">
-                <FeatureIcon>
-                  <LayoutTemplate className="size-6" />
-                </FeatureIcon>
-                <CardTitle className="text-xl font-semibold">
-                  მორგებადი HUD
-                </CardTitle>
-                <CardDescription className="text-base leading-relaxed text-muted-foreground">
-                  მოარგე ინტერფეისი შენს სასწავლო სტილს ან კონკრეტული მანქანის
-                  მართვის ელემენტებს.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="glass group relative overflow-hidden border-0 bg-gradient-to-r from-white/[0.06] via-transparent to-primary/5 py-6 shadow-[0_20px_60px_rgb(0_0_0_/_35%)] ring-1 ring-white/10 transition-all duration-300 hover:-translate-y-1 hover:ring-primary/40 md:col-span-2">
-              <CardContent className="relative flex w-full flex-col items-center gap-6 px-6 md:flex-row">
-                <div className="flex h-40 w-full items-center justify-center rounded-2xl border border-primary/15 bg-gradient-to-br from-surface-highest to-surface-high shadow-inner md:w-1/3">
-                  <Headset className="size-16 text-primary drop-shadow-[0_0_20px_rgb(173_198_255_/_40%)]" />
-                </div>
-                <div className="w-full space-y-2 md:w-2/3">
-                  <h3 className="text-xl font-semibold">VR გამოცდილება</h3>
-                  <p className="text-base leading-relaxed text-muted-foreground">
-                    სრული მხარდაჭერა წამყვანი VR ყურსასმენებისთვის სრული
-                    ჩაძირვისა და სივრცითი ცნობიერების ტრენინგისთვის.
-                  </p>
-                </div>
-              </CardContent>
             </Card>
           </div>
         </div>
@@ -271,14 +276,14 @@ export function Home() {
         <div className="relative z-10 mx-auto max-w-container">
           <div className="mb-12 space-y-4 text-center">
             <h2 className="text-2xl font-bold tracking-tight md:text-[30px] md:leading-[38px]">
-              ინვესტირება შენს უნარებში
+              რუკის მომსახურება
             </h2>
             <p className="text-base text-muted-foreground">
-              მოქნილი გეგმები ინდივიდუალური სტუდენტებისა და მართვის სკოლებისთვის.
+              ერთი გეგმა რუკის სერვისისთვის და მასში შემავალი ყველა ფუნქციისთვის.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-3">
+          <div className="mx-auto grid max-w-md grid-cols-1 items-stretch">
             {plans.map((plan) => (
               <Card
                 key={plan.name}

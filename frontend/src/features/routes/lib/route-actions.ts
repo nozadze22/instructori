@@ -7,40 +7,57 @@ export type RouteAction =
   | "U_TURN"
   | "CUSTOM";
 
+export const VOICE_QUICK_PHRASES = [
+  { label: "მარჯვნივ", text: "მოუხვიეთ მარჯვნივ." },
+  { label: "მარცხნივ", text: "მოუხვიეთ მარცხნივ." },
+  { label: "პირდაპირ", text: "გააგრძელეთ პირდაპირ." },
+  { label: "წინ წასვლა", text: "გააგრძელეთ წინ." },
+  { label: "გაჩერება", text: "გააჩერეთ." },
+  { label: "ნელა", text: "შეამცირეთ სიჩქარე." },
+  { label: "სიგნალი", text: "ჩართეთ სიგნალი." },
+  { label: "პარკინგი", text: "დაიწყეთ დაპარკინგება." },
+  { label: "უკან", text: "უკან გასვლა." },
+  { label: "შებრუნება", text: "შეაბრუნეთ." },
+  { label: "მობრუნება", text: "მობრუნდით." },
+  { label: "გადაუსვება", text: "გადაასვით." },
+  { label: "შემოუერთება", text: "შემოერთდით." },
+  { label: "გზაჯვარედინი", text: "გადაიკვეთ გზაჯვარედინი." },
+] as const;
+
 export const ROUTE_ACTIONS: {
   value: RouteAction;
   label: string;
-  defaultVoice: (distance: number) => string;
+  defaultVoice: () => string;
 }[] = [
   {
     value: "TURN_LEFT",
     label: "მარცხნივ",
-    defaultVoice: (d) => `${d} მეტრში მოუხვიეთ მარცხნივ.`,
+    defaultVoice: () => "მოუხვიეთ მარცხნივ.",
   },
   {
     value: "TURN_RIGHT",
     label: "მარჯვნივ",
-    defaultVoice: (d) => `${d} მეტრში მოუხვიეთ მარჯვნივ.`,
+    defaultVoice: () => "მოუხვიეთ მარჯვნივ.",
   },
   {
     value: "STOP",
     label: "გაჩერება",
-    defaultVoice: (d) => `${d} მეტრში გააჩერეთ.`,
+    defaultVoice: () => "გააჩერეთ.",
   },
   {
     value: "PARKING",
     label: "პარკინგი",
-    defaultVoice: (d) => `${d} მეტრში დაიწყეთ დაპარკინგება.`,
+    defaultVoice: () => "დაიწყეთ დაპარკინგება.",
   },
   {
     value: "REVERSE",
     label: "უკან",
-    defaultVoice: (d) => `${d} მეტრში უკან გასვლა.`,
+    defaultVoice: () => "უკან გასვლა.",
   },
   {
     value: "U_TURN",
     label: "შებრუნება",
-    defaultVoice: (d) => `${d} მეტრში შეაბრუნეთ.`,
+    defaultVoice: () => "შეაბრუნეთ.",
   },
   {
     value: "CUSTOM",
@@ -53,30 +70,26 @@ export function actionLabel(action: RouteAction) {
   return ROUTE_ACTIONS.find((item) => item.value === action)?.label ?? action;
 }
 
-export function defaultVoiceText(action: RouteAction, distance: number) {
-  return (
-    ROUTE_ACTIONS.find((item) => item.value === action)?.defaultVoice(
-      distance,
-    ) ?? ""
-  );
+export function defaultVoiceText(action: RouteAction) {
+  return ROUTE_ACTIONS.find((item) => item.value === action)?.defaultVoice() ?? "";
 }
 
-export function englishVoiceText(action: RouteAction, distance: number) {
+export function englishVoiceText(action: RouteAction) {
   switch (action) {
     case "TURN_LEFT":
-      return `In ${distance} meters, turn left.`;
+      return "Turn left.";
     case "TURN_RIGHT":
-      return `In ${distance} meters, turn right.`;
+      return "Turn right.";
     case "STOP":
-      return `In ${distance} meters, stop. Check your mirrors.`;
+      return "Stop. Check your mirrors.";
     case "PARKING":
-      return `In ${distance} meters, start parking.`;
+      return "Start parking.";
     case "REVERSE":
-      return `In ${distance} meters, reverse.`;
+      return "Reverse.";
     case "U_TURN":
-      return `In ${distance} meters, make a U-turn.`;
+      return "Make a U-turn.";
     default:
-      return `Instruction in ${distance} meters.`;
+      return "Navigation cue.";
   }
 }
 
