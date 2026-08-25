@@ -26,21 +26,33 @@ const PIN_VOICE_APPROACH_METERS = 25;
 export function isVoiceCueDue(options: {
   remainingMeters: number;
   previousRemainingMeters: number | null;
+  distanceToPinMeters?: number;
 }) {
   const remaining = options.remainingMeters;
   const previous = options.previousRemainingMeters;
+  const dist = options.distanceToPinMeters;
+
+  if (dist != null && dist <= PIN_VOICE_APPROACH_METERS) {
+    return true;
+  }
 
   if (
-    remaining <= PIN_VOICE_APPROACH_METERS &&
-    remaining >= -VOICE_CATCH_UP_METERS
+    dist != null &&
+    dist > PIN_VOICE_APPROACH_METERS &&
+    remaining > 0
   ) {
-    return true;
+    return false;
+  }
+
+  if (remaining <= PIN_VOICE_APPROACH_METERS && remaining >= -VOICE_CATCH_UP_METERS) {
+    return dist == null || dist <= PIN_VOICE_APPROACH_METERS * 1.5;
   }
 
   return (
     previous != null &&
     previous > PIN_VOICE_APPROACH_METERS &&
-    remaining < -VOICE_CATCH_UP_METERS
+    remaining < -VOICE_CATCH_UP_METERS &&
+    (dist == null || dist <= VOICE_CATCH_UP_METERS)
   );
 }
 
@@ -158,10 +170,14 @@ export function findUpcomingStep(
     if (remainingMeters < -PASSED_STEP_BUFFER_METERS) continue;
 
     if (!best || remainingMeters < best.remainingMeters) {
+      const distanceToPinMeters = distanceMeters(currentPoint, {
+        lat: step.lat,
+        lng: step.lng,
+      });
       best = {
         step,
         remainingMeters,
-        inVoiceRange: remainingMeters <= PIN_VOICE_APPROACH_METERS,
+        inVoiceRange: distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
       };
     }
   }

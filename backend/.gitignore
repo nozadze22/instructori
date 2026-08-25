@@ -27,3 +27,7 @@ Thumbs.db
 # Prisma generated client
 /generated/prisma
 /src/generated/prisma
+
+# Script scratch (PDF exports, one-off geodata)
+/tmp-*
+/tmp-sa-pages/
