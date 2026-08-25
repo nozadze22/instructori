@@ -137,35 +137,51 @@ function headingAlongAhead(ahead: PathPoint[]) {
 
 const PASSED_STEP_BUFFER_M = 18;
 const ON_ROUTE_THRESHOLD_M = 35;
-const VOICE_ON_ROUTE_M = 80;
+const VOICE_ON_ROUTE_M = 120;
 const MOVING_SPEED_THRESHOLD_KMH = 3;
 const VOICE_CATCH_UP_M = 160;
 /** Speak at the pin; this small buffer covers GPS jitter. */
 const PIN_VOICE_APPROACH_M = 25;
-const VOICE_PREFETCH_M = 150;
+const VOICE_PREFETCH_AHEAD_M = 80;
 
-function isVoiceCueDue(options: {
-  remainingMeters: number;
-  previousRemainingMeters: number | null;
+function isVoiceCueDueAtPin(options: {
+  distanceToPinMeters: number;
+  alongRemainingMeters: number;
+  previousAlongRemainingMeters: number | null;
 }) {
-  const remaining = options.remainingMeters;
-  const previous = options.previousRemainingMeters;
+  const { distanceToPinMeters: dist, alongRemainingMeters: remaining, previousAlongRemainingMeters: previous } = options;
 
-  if (remaining <= PIN_VOICE_APPROACH_M && remaining >= -VOICE_CATCH_UP_M) {
+  if (dist <= PIN_VOICE_APPROACH_M) {
     return true;
   }
 
-  return (
+  if (
     previous != null &&
     previous > PIN_VOICE_APPROACH_M &&
-    remaining < -VOICE_CATCH_UP_M
-  );
+    remaining < -VOICE_CATCH_UP_M &&
+    dist <= VOICE_CATCH_UP_M
+  ) {
+    return true;
+  }
+
+  if (
+    previous != null &&
+    previous > 0 &&
+    remaining <= 0 &&
+    remaining >= -VOICE_CATCH_UP_M &&
+    dist <= PIN_VOICE_APPROACH_M * 1.5
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 function pickUpcomingCommand(
   path: PathPoint[],
   commands: SimCommand[],
   alongMeters: number,
+  currentPoint: PathPoint,
 ) {
   let bestIndex = -1;
   let bestRemaining = Infinity;
@@ -183,18 +199,37 @@ function pickUpcomingCommand(
   if (bestIndex < 0) return null;
 
   const command = commands[bestIndex];
+  const distanceToPin = haversineMeters(currentPoint, {
+    lat: command.lat,
+    lng: command.lng,
+  });
   return {
     index: bestIndex,
     command,
     remaining: bestRemaining,
-    inVoiceRange: bestRemaining <= PIN_VOICE_APPROACH_M,
+    distanceToPin,
+    inVoiceRange: distanceToPin <= PIN_VOICE_APPROACH_M,
   };
 }
 
 let activeAudio: HTMLAudioElement | null = null;
 let speakEpoch = 0;
 let speakChain: Promise<void> = Promise.resolve();
+let audioUnlocked = false;
 const ttsUrlCache = new Map<string, string>();
+
+function unlockAudioPlayback() {
+  if (audioUnlocked || typeof window === "undefined") return;
+  const audio = new Audio();
+  audio.src =
+    "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+  audio.volume = 0.001;
+  void audio.play().then(() => {
+    audioUnlocked = true;
+  }).catch(() => {
+    // Retry on next user gesture.
+  });
+}
 
 function stopAudio() {
   speakEpoch += 1;
@@ -283,7 +318,18 @@ async function speakGeorgianMp3(text: string) {
       if (activeAudio === audio) activeAudio = null;
       reject(new Error("Audio playback failed"));
     };
-    void audio.play().catch(reject);
+
+    const tryPlay = (attempt: number) => {
+      void audio.play().catch((error: unknown) => {
+        if (attempt < 2) {
+          window.setTimeout(() => tryPlay(attempt + 1), 120);
+          return;
+        }
+        reject(error instanceof Error ? error : new Error("Audio playback failed"));
+      });
+    };
+
+    tryPlay(0);
   });
 }
 
@@ -349,6 +395,7 @@ export function useRouteSimulation(options: {
   const [traveledPath, setTraveledPath] = useState<PathPoint[]>([]);
 
   const spokenRef = useRef<Set<string>>(new Set());
+  const pendingSpeakRef = useRef<Set<string>>(new Set());
   const lastAlongRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const runningRef = useRef(false);
@@ -405,6 +452,7 @@ export function useRouteSimulation(options: {
     lastFixRef.current = null;
     lastAlongRef.current = null;
     spokenRef.current = new Set();
+    pendingSpeakRef.current = new Set();
   }, [stop]);
 
   const applyFix = useCallback((coords: GeolocationCoordinates, ts: number) => {
@@ -445,6 +493,7 @@ export function useRouteSimulation(options: {
       pathRef.current,
       commandsRef.current,
       along.alongMeters,
+      point,
     );
     const lastAlong = lastAlongRef.current;
     const nearRouteForVoice = along.distMeters <= VOICE_ON_ROUTE_M;
@@ -452,7 +501,7 @@ export function useRouteSimulation(options: {
     if (upcoming) {
       setActiveCommandIndex(upcoming.index);
       if (upcoming.command.voiceText.trim()) {
-        if (upcoming.remaining <= VOICE_PREFETCH_M) {
+        if (upcoming.distanceToPin <= PIN_VOICE_APPROACH_M + VOICE_PREFETCH_AHEAD_M) {
           setCurrentVoice(upcoming.command.voiceText);
           void prefetchTts(upcoming.command.voiceText);
         }
@@ -464,35 +513,50 @@ export function useRouteSimulation(options: {
     if (nearRouteForVoice) {
       const due = commandsRef.current
         .map((command) => {
-          const snapped = closestOnPath(pathRef.current, command);
+          const pinPoint = { lat: command.lat, lng: command.lng };
+          const distanceToPin = haversineMeters(point, pinPoint);
+          const snapped = closestOnPath(pathRef.current, pinPoint);
+          const alongRemaining = snapped.alongMeters - along.alongMeters;
+          const previousAlongRemaining =
+            lastAlong == null ? null : snapped.alongMeters - lastAlong;
+
           return {
             command,
-            remaining: snapped.alongMeters - along.alongMeters,
-            previousRemaining:
-              lastAlong == null ? null : snapped.alongMeters - lastAlong,
+            distanceToPin,
+            alongRemaining,
+            previousAlongRemaining,
           };
         })
         .filter(
-          ({ command, remaining, previousRemaining }) =>
+          ({ command, distanceToPin, alongRemaining, previousAlongRemaining }) =>
             Boolean(command.voiceText.trim()) &&
             !spokenRef.current.has(command.id) &&
-            isVoiceCueDue({
-              remainingMeters: remaining,
-              previousRemainingMeters: previousRemaining,
+            !pendingSpeakRef.current.has(command.id) &&
+            isVoiceCueDueAtPin({
+              distanceToPinMeters: distanceToPin,
+              alongRemainingMeters: alongRemaining,
+              previousAlongRemainingMeters: previousAlongRemaining,
             }),
         )
-        .sort((a, b) => a.remaining - b.remaining);
+        .sort((a, b) => a.distanceToPin - b.distanceToPin);
 
       for (const { command } of due) {
-        spokenRef.current.add(command.id);
-        setPassedCount(spokenRef.current.size);
+        pendingSpeakRef.current.add(command.id);
         setCurrentVoice(command.voiceText);
         void speakPrompt({
           voiceText: command.voiceText,
           action: command.action,
-        }).catch(() => {
-          spokenRef.current.delete(command.id);
-        });
+        })
+          .then(() => {
+            spokenRef.current.add(command.id);
+            setPassedCount(spokenRef.current.size);
+          })
+          .catch(() => {
+            pendingSpeakRef.current.delete(command.id);
+          })
+          .finally(() => {
+            pendingSpeakRef.current.delete(command.id);
+          });
       }
     }
 
@@ -540,6 +604,10 @@ export function useRouteSimulation(options: {
     setRunning(true);
     setFollowCamera(true);
     setGeoError(null);
+    unlockAudioPlayback();
+    spokenRef.current = new Set();
+    pendingSpeakRef.current = new Set();
+    lastAlongRef.current = null;
 
     stopWatch();
     watchIdRef.current = navigator.geolocation.watchPosition(

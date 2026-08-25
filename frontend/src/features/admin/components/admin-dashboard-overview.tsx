@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useAdminUsers } from "@/features/admin/hooks/users";
 import { cn } from "@/lib/utils";
 
@@ -71,10 +71,19 @@ export function AdminDashboardOverview() {
             სისტემაში.
           </p>
         </div>
-        <Button className="rounded-xl font-bold shadow-lg shadow-primary/10">
-          <Plus className="size-4" />
-          ახალი მარშრუტი
-        </Button>
+        <Link
+          href="/admin/routes/new"
+          className={cn(
+            buttonVariants({ variant: "default" }),
+            "group relative h-11 gap-2 overflow-hidden rounded-full px-5 text-sm font-bold shadow-[0_8px_28px_rgb(173_198_255/32%)] ring-1 ring-white/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary hover:shadow-[0_14px_36px_rgb(173_198_255/48%)] active:translate-y-0 active:scale-[0.98]",
+          )}
+        >
+          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/35 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+          <span className="relative flex size-6 items-center justify-center rounded-full bg-primary-foreground/12">
+            <Plus className="size-3.5" strokeWidth={2.75} />
+          </span>
+          <span className="relative">ახალი მარშრუტი</span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

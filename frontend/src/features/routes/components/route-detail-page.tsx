@@ -30,7 +30,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -250,6 +249,7 @@ function RouteDetailContent({
   const unsaveRoute = useUnsaveRoute();
   const [stepIndex, setStepIndex] = useState(0);
   const [commandQuery, setCommandQuery] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const stepListRef = useRef<HTMLDivElement>(null);
 
   const steps = useMemo(() => route?.steps ?? [], [route?.steps]);
@@ -429,39 +429,47 @@ function RouteDetailContent({
             </Link>
           ) : null}
           {canEdit ? (
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    className="h-10 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
-                  />
-                }
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="size-4" />
                 წაშლა
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>წავშალოთ მარშრუტი?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    ეს მოქმედება შეუქცევადია. მარშრუტი და ბრძანებები წაიშლება.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>გაუქმება</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() =>
-                      deleteRoute.mutate(route.id, {
-                        onSuccess: () => router.push(basePath),
-                      })
-                    }
-                  >
-                    წაშლა
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              </Button>
+              {deleteOpen
+                ? createPortal(
+                    <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                      <AlertDialogContent className="max-w-md border-white/10 bg-surface-lowest shadow-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>წავშალოთ მარშრუტი?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            «{route.title}» სამუდამოდ წაიშლება ერთად ყველა
+                            ბრძანებასთან. ეს მოქმედება შეუქცევადია.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>გაუქმება</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            disabled={deleteRoute.isPending}
+                            onClick={() =>
+                              deleteRoute.mutate(route.id, {
+                                onSuccess: () => router.push(basePath),
+                              })
+                            }
+                          >
+                            წაშლა
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>,
+                    document.body,
+                  )
+                : null}
+            </>
           ) : null}
         </div>
       </div>
