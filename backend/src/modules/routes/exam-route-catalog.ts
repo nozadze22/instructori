@@ -15,16 +15,7 @@ export type ExamRouteCatalogItem = {
  * Path geometry is filled later (digitize from official PDF maps).
  */
 const ROUTE_COUNTS: Record<string, number> = {
-  rustavi: 8,
-  sachkhere: 11,
-  kutaisi: 4,
-  poti: 10,
-  zugdidi: 3,
-  akhaltsikhe: 6,
   batumi: 3,
-  gori: 4,
-  ozurgeti: 3,
-  telavi: 5,
 };
 
 export function buildExamRouteCatalog(
