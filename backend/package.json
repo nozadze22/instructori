@@ -24,7 +24,10 @@
     "prisma:studio": "prisma studio",
     "scrape:sa-routes": "node scripts/scrape-sa-route-sources.mjs",
     "seed:demo-route": "node scripts/seed-demo-route.mjs",
-    "seed:batumi-routes": "node scripts/seed-batumi-routes.mjs"
+    "seed:batumi-routes": "node scripts/seed-batumi-routes.mjs",
+    "import:simulatori": "node scripts/import-simulatori-route.mjs",
+    "import:simulatori:batumi": "node scripts/import-simulatori-batumi-all.mjs",
+    "export:simulatori:browser": "node scripts/export-simulatori-batumi-browser.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1100.0",

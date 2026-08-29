@@ -31,3 +31,7 @@ Thumbs.db
 # Script scratch (PDF exports, one-off geodata)
 /tmp-*
 /tmp-sa-pages/
+
+# simulatori.ge exports (proprietary — keep local)
+/data/simulatori/*.json
+!/data/simulatori/manifest.json
