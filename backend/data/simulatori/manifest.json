@@ -1,0 +1,22 @@
+{
+  "routes": [
+    {
+      "sourceKey": "batumi-1",
+      "title": "ბათუმი — საგამოცდო მარშრუტი №1",
+      "simulatoriId": "cmq0u9t8n0001jm09u5fj37ih",
+      "file": "batumi-1.json"
+    },
+    {
+      "sourceKey": "batumi-2",
+      "title": "ბათუმი — საგამოცდო მარშრუტი №2",
+      "simulatoriId": "cmpzogrg40007ju0966e6ljrk",
+      "file": "batumi-2.json"
+    },
+    {
+      "sourceKey": "batumi-3",
+      "title": "ბათუმი — საგამოცდო მარშრუტი №3",
+      "simulatoriId": "cmpzoy2mm0001lb091otu4eoy",
+      "file": "batumi-3.json"
+    }
+  ]
+}
