@@ -58,7 +58,13 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
   const isEdit = Boolean(noteId);
   const { data: note, isLoading: noteLoading } = useMistakeNote(noteId ?? "");
   const { data: cities = [], isLoading: citiesLoading } = useExamCities();
-  const { data: routes = [], isLoading: routesLoading } = useRoutes();
+  const { data: routesData, isLoading: routesLoading } = useRoutes({
+    pageSize: 500,
+  });
+  const routes = useMemo(
+    () => routesData?.items ?? [],
+    [routesData?.items],
+  );
   const createNote = useCreateMistakeNote();
   const updateNote = useUpdateMistakeNote(noteId ?? "");
 

@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +22,7 @@ import {
   CreateStepDto,
   NavigationTickDto,
   ReorderStepsDto,
+  RoutesListQueryDto,
   RouteTtsDto,
   UpdateRouteDto,
   UpdateStepDto,
@@ -42,8 +44,11 @@ export class RoutesController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.routesService.findAll(user);
+  findAll(
+    @CurrentUser() user: AuthUser,
+    @Query() query: RoutesListQueryDto,
+  ) {
+    return this.routesService.findAll(user, query);
   }
 
   @Get('cities')

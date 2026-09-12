@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Smartphone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/components/shared/pwa-install-provider";
@@ -19,7 +19,7 @@ export function PwaInstallButton({
   size = "sm",
   variant = "outline",
 }: PwaInstallButtonProps) {
-  const { showInstallButton, requestInstall } = usePwaInstall();
+  const { showInstallButton, openInstallInstructions } = usePwaInstall();
 
   if (!showInstallButton) return null;
 
@@ -29,9 +29,9 @@ export function PwaInstallButton({
       variant={variant}
       size={size}
       className={cn("shrink-0", className)}
-      onClick={() => void requestInstall()}
+      onClick={openInstallInstructions}
     >
-      <Download data-icon="inline-start" />
+      <Smartphone data-icon="inline-start" />
       {showLabel ? "აპის ჩამოტვირთვა" : null}
     </Button>
   );

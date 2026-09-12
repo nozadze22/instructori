@@ -26,6 +26,13 @@ export const searchParams = {
     "U_TURN",
     "CUSTOM",
   ] as const).withDefault("TURN_RIGHT"),
+  routeTab: parseAsStringEnum(["all", "mine", "system", "saved"] as const).withDefault(
+    "all",
+  ),
+  adminRouteTab: parseAsStringEnum(["all", "mine", "system", "saved"] as const).withDefault(
+    "system",
+  ),
+  install: parseAsStringEnum(["select", "android", "ios"] as const),
 };
 
 /** Server Components: parse searchParams once per request */
