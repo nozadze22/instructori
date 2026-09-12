@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Noto_Sans_Georgian } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { AppSerwistProvider } from "@/components/providers/serwist-provider";
 import { AppChrome } from "@/components/shared/app-chrome";
 import "./globals.css";
 
@@ -18,9 +19,14 @@ export const metadata: Metadata = {
   title: "SimDrive Pro | პროფესიული სიმულაციური ტრენინგი",
   description:
     "ყველაზე მოწინავე მართვის სიმულაციის პლატფორმა მაღალი სტანდარტის გამოცდებისთვის.",
-  applicationName: "Instructori",
+  applicationName: "SimDrive Pro",
   appleWebApp: {
-    title: "Instructori",
+    capable: true,
+    title: "SimDrive Pro",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: {
+    telephone: false,
   },
   icons: {
     icon: [
@@ -31,6 +37,11 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   manifest: "/site.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#10131a",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -45,9 +56,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">
-        <Providers>
-          <AppChrome>{children}</AppChrome>
-        </Providers>
+        <AppSerwistProvider>
+          <Providers>
+            <AppChrome>{children}</AppChrome>
+          </Providers>
+        </AppSerwistProvider>
       </body>
     </html>
   );
