@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LayoutDashboard, LogIn, Map, Menu, UserPlus, UserRound } from "lucide-react";
 
+import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -47,6 +48,9 @@ export function BurgerMenu({
         </SheetHeader>
         <Separator />
         <nav className="flex flex-col gap-2 p-4">
+          <div className="px-3 pb-1">
+            <PwaInstallButton className="w-full" variant="secondary" />
+          </div>
           {visibleNavbarLinks(Boolean(isLoggedIn)).map((link) => {
             const Icon = link.icon;
             return (

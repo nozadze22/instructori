@@ -5,6 +5,7 @@ import { Bell, Home } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
+import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { NavbarUserMenu } from "@/components/shared/navbar/navbar-user-menu";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,12 @@ export function InstructorTopbar() {
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <PwaInstallButton
+          variant="ghost"
+          size="icon-sm"
+          showLabel={false}
+          className="rounded-full text-muted-foreground hover:text-primary"
+        />
         <Link
           href="/marshrutebi"
           aria-label="მარშრუტები"
