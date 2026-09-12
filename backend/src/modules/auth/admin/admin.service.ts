@@ -105,6 +105,103 @@ export class AdminService {
     return { users };
   }
 
+  async getStats() {
+    const since = new Date();
+    since.setDate(since.getDate() - 6);
+    since.setHours(0, 0, 0, 0);
+
+    const [
+      totalInstructors,
+      activeInstructors,
+      pendingInstructors,
+      blockedInstructors,
+      totalRoutes,
+      publishedRoutes,
+      systemRoutes,
+      routesWithVoice,
+      recentInstructors,
+      routes,
+    ] = await Promise.all([
+      this.prisma.user.count({ where: { role: 'INSTRUCTOR' } }),
+      this.prisma.user.count({
+        where: { role: 'INSTRUCTOR', accessStatus: 'ACTIVE' },
+      }),
+      this.prisma.user.count({
+        where: { role: 'INSTRUCTOR', accessStatus: 'PENDING' },
+      }),
+      this.prisma.user.count({
+        where: { role: 'INSTRUCTOR', accessStatus: 'BLOCKED' },
+      }),
+      this.prisma.route.count(),
+      this.prisma.route.count({ where: { isPublished: true } }),
+      this.prisma.route.count({ where: { visibility: 'SYSTEM' } }),
+      this.prisma.route.count({
+        where: { steps: { some: {} } },
+      }),
+      this.prisma.user.findMany({
+        where: { role: 'INSTRUCTOR', createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
+      this.prisma.route.findMany({
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          city: true,
+          isPublished: true,
+          visibility: true,
+          sourceKey: true,
+          path: true,
+          updatedAt: true,
+          _count: { select: { steps: true } },
+        },
+      }),
+    ]);
+
+    const dayKeys: string[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      const day = new Date(since);
+      day.setDate(since.getDate() + i);
+      dayKeys.push(day.toISOString().slice(0, 10));
+    }
+
+    const countsByDay = Object.fromEntries(dayKeys.map((key) => [key, 0]));
+    for (const user of recentInstructors) {
+      const key = user.createdAt.toISOString().slice(0, 10);
+      if (key in countsByDay) countsByDay[key] += 1;
+    }
+
+    return {
+      users: {
+        total: totalInstructors,
+        active: activeInstructors,
+        pending: pendingInstructors,
+        blocked: blockedInstructors,
+      },
+      routes: {
+        total: totalRoutes,
+        published: publishedRoutes,
+        system: systemRoutes,
+        withVoice: routesWithVoice,
+      },
+      registrationsByDay: dayKeys.map((date) => ({
+        date,
+        count: countsByDay[date] ?? 0,
+      })),
+      routesList: routes.map((route) => ({
+        id: route.id,
+        title: route.title,
+        city: route.city,
+        isPublished: route.isPublished,
+        visibility: route.visibility,
+        sourceKey: route.sourceKey,
+        stepsCount: route._count.steps,
+        pathPoints: Array.isArray(route.path) ? route.path.length : 0,
+        updatedAt: route.updatedAt.toISOString(),
+      })),
+    };
+  }
+
   async updateUserAccess(userId: string, dto: UpdateUserAccessDto) {
     const existing = await this.prisma.user.findUnique({
       where: { id: userId },

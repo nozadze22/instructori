@@ -22,6 +22,15 @@ const PASSED_STEP_BUFFER_METERS = 18;
 const VOICE_CATCH_UP_METERS = 160;
 /** Speak at the pin; this small buffer covers GPS jitter. */
 const PIN_VOICE_APPROACH_METERS = 25;
+/** Ignore pins farther ahead on the route (covers 300 m warning cues). */
+const VOICE_LOOKAHEAD_METERS = 350;
+
+function isInAlongRouteSpeakWindow(remainingMeters: number) {
+  return (
+    remainingMeters >= -VOICE_CATCH_UP_METERS &&
+    remainingMeters <= VOICE_LOOKAHEAD_METERS
+  );
+}
 
 export function isVoiceCueDue(options: {
   remainingMeters: number;
@@ -31,6 +40,12 @@ export function isVoiceCueDue(options: {
   const remaining = options.remainingMeters;
   const previous = options.previousRemainingMeters;
   const dist = options.distanceToPinMeters;
+
+  // Loop routes can place unrelated pins geographically close — require
+  // the command to be the next one along the driven path, not just nearby.
+  if (!isInAlongRouteSpeakWindow(remaining)) {
+    return false;
+  }
 
   if (dist != null && dist <= PIN_VOICE_APPROACH_METERS) {
     return true;
@@ -44,14 +59,15 @@ export function isVoiceCueDue(options: {
     return false;
   }
 
-  if (remaining <= PIN_VOICE_APPROACH_METERS && remaining >= -VOICE_CATCH_UP_METERS) {
+  if (remaining >= 0 && remaining <= PIN_VOICE_APPROACH_METERS) {
     return dist == null || dist <= PIN_VOICE_APPROACH_METERS * 1.5;
   }
 
   return (
     previous != null &&
     previous > PIN_VOICE_APPROACH_METERS &&
-    remaining < -VOICE_CATCH_UP_METERS &&
+    remaining < 0 &&
+    remaining >= -VOICE_CATCH_UP_METERS &&
     (dist == null || dist <= VOICE_CATCH_UP_METERS)
   );
 }
@@ -177,7 +193,9 @@ export function findUpcomingStep(
       best = {
         step,
         remainingMeters,
-        inVoiceRange: distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
+        inVoiceRange:
+          isInAlongRouteSpeakWindow(remainingMeters) &&
+          distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
       };
     }
   }
