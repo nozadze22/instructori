@@ -8,6 +8,9 @@
 const SA_SOURCE_URL =
   'https://www.sa.gov.ge/home/file?id=%E2%84%96598_%E1%83%91%E1%83%A0%E1%83%AB%E1%83%90%E1%83%9C%E1%83%94%E1%83%91%E1%83%98%E1%83%A1_%E1%83%93%E1%83%90%E1%83%9C%E1%83%90%E1%83%A0%E1%83%97%E1%83%98_%E1%83%9B%E1%83%90%E1%83%A0%E1%83%A8%E1%83%A0%E1%83%A3%E1%83%A2%E1%83%94%E1%83%91%E1%83%98_b%2C_be_28_07_2026_16_22.pdf';
 
+const OFFICIAL_EXAM_ROUTE_DESCRIPTION =
+  'ოფიციალური B კატეგორიის საგამოცდო მარშრუტი (მომსახურების სააგენტო). რუკის გეომეტრია და ხმოვანი ბრძანებები';
+
 function haversineMeters(a, b) {
   const toRad = (d) => (d * Math.PI) / 180;
   const R = 6371000;
@@ -95,8 +98,7 @@ export const BATUMI_ROUTES = [
     existingRouteId: '291b8f19-614c-42ac-bff6-33dad11e03ec',
     title: 'ბათუმი — საგამოცდო მარშრუტი №1',
     city: 'ბათუმი',
-    description:
-      'ოფიციალური B კატეგორიის საგამოცდო მარშრუტი №1 (პუშკინი / ორბელიანი). ხმა ერთება ბრძანების პინზე.',
+    description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
     sourceUrl: SA_SOURCE_URL,
     updateOnly: true,
   },
@@ -104,8 +106,7 @@ export const BATUMI_ROUTES = [
     sourceKey: 'batumi-2',
     title: 'ბათუმი — საგამოცდო მარშრუტი №2',
     city: 'ბათუმი',
-    description:
-      'ოფიციალური B კატეგორიის საგამოცდო მარშრუტი №2 (აბაშიძე / ხიმშიაშვილი / სანაპირო). PDF-ის მიხედვით; გზის ხაზი შეიძლება დაზუსტდეს Route Builder-ში.',
+    description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
     sourceUrl: SA_SOURCE_URL,
     path: toPathJson(interpolatePath(route2Waypoints)),
     steps: [
@@ -125,8 +126,7 @@ export const BATUMI_ROUTES = [
     sourceKey: 'batumi-3',
     title: 'ბათუმი — საგამოცდო მარშრუტი №3',
     city: 'ბათუმი',
-    description:
-      'ოფიციალური B კატეგორიის საგამოცდო მარშრუტი №3 (ლერმონტოვი / გრიბოედოვი / ბაგრატიონი). PDF-ის მიხედვით; გზის ხაზი შეიძლება დაზუსტდეს Route Builder-ში.',
+    description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
     sourceUrl: SA_SOURCE_URL,
     path: toPathJson(interpolatePath(route3Waypoints)),
     steps: [

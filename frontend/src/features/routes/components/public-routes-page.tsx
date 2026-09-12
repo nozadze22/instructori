@@ -14,6 +14,7 @@ import {
 import { useForm, useWatch } from "react-hook-form";
 import { useQueryState } from "nuqs";
 
+import { PwaInstallBanner } from "@/components/shared/pwa-install-banner";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -51,7 +52,7 @@ import { humanizeApiError } from "@/lib/api-errors";
 import { searchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 15;
 const EMPTY_CITY_LIST: string[] = [];
 
 type CatalogSearchValues = {
@@ -128,6 +129,7 @@ export function PublicRoutesPage() {
 
   const routes = data?.items ?? [];
   const total = data?.total ?? 0;
+  const pageSize = data?.pageSize ?? PAGE_SIZE;
   const cities = data?.cities ?? EMPTY_CITY_LIST;
   const filteredCities = useMemo(() => {
     const q = citySearch.trim().toLowerCase();
@@ -137,10 +139,10 @@ export function PublicRoutesPage() {
       .sort((a, b) => a.localeCompare(b, "ka", { sensitivity: "base" }));
   }, [cities, citySearch]);
   const cityLabel = city || "ყველა ქალაქი";
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const rangeStart = total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const rangeEnd = Math.min(safePage * PAGE_SIZE, total);
+  const rangeStart = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(safePage * pageSize, total);
   const pageNumbers = buildPageNumbers(safePage, totalPages);
 
   useEffect(() => {
@@ -183,6 +185,8 @@ export function PublicRoutesPage() {
               მარშრუტი და დაიწყე ნავიგაცია.
             </p>
           </div>
+
+          <PwaInstallBanner className="mx-auto max-w-3xl" />
 
           <div className="mx-auto max-w-3xl space-y-3">
             <Form {...form}>

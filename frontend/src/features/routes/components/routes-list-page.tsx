@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Bookmark,
+  ChevronLeft,
+  ChevronRight,
   FolderKanban,
   Globe2,
   Map,
@@ -12,6 +14,8 @@ import {
   Route as RouteIcon,
   Search,
 } from "lucide-react";
+import { useQueryState } from "nuqs";
+import { useForm, useWatch } from "react-hook-form";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -27,6 +31,12 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+} from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,12 +50,14 @@ import {
   StatTile,
 } from "@/features/instructor/components/page-frame";
 import { RouteCard } from "@/features/routes/components/route-card";
+import type { RoutesListFilter } from "@/features/routes/api/routes";
 import {
   useRoutes,
   useSaveRoute,
   useSyncExamCatalog,
   useUnsaveRoute,
 } from "@/features/routes/hooks/routes";
+import { searchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 
 type RoutesListPageProps = {
@@ -53,63 +65,111 @@ type RoutesListPageProps = {
   embedded?: boolean;
 };
 
+type RoutesSearchValues = {
+  q: string;
+};
+
 const TAB_ITEMS = [
   { value: "all", label: "ყველა", icon: FolderKanban },
   { value: "mine", label: "ჩემი", icon: RouteIcon },
   { value: "system", label: "სისტემური", icon: Globe2 },
   { value: "saved", label: "შენახული", icon: Bookmark },
-] as const;
+] as const satisfies ReadonlyArray<{
+  value: RoutesListFilter;
+  label: string;
+  icon: typeof FolderKanban;
+}>;
+
+const PAGE_SIZE = 12;
+
+function buildPageNumbers(current: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set<number>([1, totalPages, current]);
+  if (current > 1) pages.add(current - 1);
+  if (current < totalPages) pages.add(current + 1);
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: Array<number | "ellipsis"> = [];
+
+  sorted.forEach((page, index) => {
+    const prev = sorted[index - 1];
+    if (prev != null && page - prev > 1) result.push("ellipsis");
+    result.push(page);
+  });
+
+  return result;
+}
 
 function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
   const { data: me } = useGetMe();
-  const { data: routes = [], isLoading, isError, error } = useRoutes();
   const saveRoute = useSaveRoute();
   const unsaveRoute = useUnsaveRoute();
   const syncExamCatalog = useSyncExamCatalog();
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("all");
+  const [query, setQuery] = useQueryState(
+    "q",
+    searchParams.q.withOptions({ history: "replace", shallow: true }),
+  );
+  const [page, setPage] = useQueryState(
+    "page",
+    searchParams.page.withOptions({ history: "replace", shallow: true }),
+  );
   const isAdminPanel = basePath.startsWith("/admin");
+  const [tab, setTab] = useQueryState(
+    "tab",
+    (isAdminPanel ? searchParams.adminRouteTab : searchParams.routeTab).withOptions(
+      { history: "replace", shallow: true },
+    ),
+  );
+  const form = useForm<RoutesSearchValues>({
+    defaultValues: { q: query },
+    mode: "onChange",
+  });
+  const searchInput = useWatch({ control: form.control, name: "q" }) ?? "";
   const canSyncExam = isAdminPanel && me?.role === "ADMIN";
 
-  const counts = useMemo(() => {
-    const mine = routes.filter((route) => route.createdById === me?.userId);
-    const system = routes.filter((route) => route.visibility === "SYSTEM");
-    const saved = routes.filter((route) => route.isSaved);
-    return {
-      all: routes.length,
-      mine: mine.length,
-      system: system.length,
-      saved: saved.length,
-    };
-  }, [me?.userId, routes]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const next = searchInput.trim() || null;
+      const current = query.trim() || null;
+      if (next === current) return;
+      void setQuery(next);
+      if (page !== 1) void setPage(1);
+    }, 150);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const byQuery = (list: typeof routes) =>
-      !q
-        ? list
-        : list.filter(
-            (route) =>
-              route.title.toLowerCase().includes(q) ||
-              route.city?.toLowerCase().includes(q) ||
-              route.description?.toLowerCase().includes(q),
-          );
+    return () => window.clearTimeout(timeoutId);
+  }, [page, query, searchInput, setPage, setQuery]);
 
-    const mine = routes.filter((route) => route.createdById === me?.userId);
-    const system = routes.filter((route) => route.visibility === "SYSTEM");
-    const saved = routes.filter((route) => route.isSaved);
+  const listQuery = useMemo(
+    () => ({
+      q: query.trim() || undefined,
+      filter: tab,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
+    [page, query, tab],
+  );
 
-    switch (tab) {
-      case "mine":
-        return byQuery(mine);
-      case "system":
-        return byQuery(system);
-      case "saved":
-        return byQuery(saved);
-      default:
-        return byQuery(routes);
-    }
-  }, [me?.userId, query, routes, tab]);
+  const { data, isLoading, isFetching, isError, error } = useRoutes(listQuery);
+
+  const routes = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const counts = data?.counts ?? {
+    all: 0,
+    mine: 0,
+    system: 0,
+    saved: 0,
+  };
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageNumbers = buildPageNumbers(safePage, totalPages);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (page > totalPages) void setPage(totalPages > 1 ? totalPages : null);
+  }, [isLoading, page, setPage, totalPages]);
 
   const toggleSave = (routeId: string, isSaved: boolean) => {
     if (isSaved) unsaveRoute.mutate(routeId);
@@ -132,9 +192,13 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
           }
         : tab === "mine"
           ? {
-              title: "ჯერ არ გაქვს მარშრუტი",
-              description: "შექმენი პირველი პირადი მარშრუტი ვარჯიშისთვის.",
-              showCreate: true,
+              title: isAdminPanel
+                ? "პირადად შექმნილი მარშრუტი არ არის"
+                : "ჯერ არ გაქვს მარშრუტი",
+              description: isAdminPanel
+                ? "იმპორტირებული საგამოცდო მარშრუტები „სისტემური“ ფილტრშია."
+                : "შექმენი პირველი პირადი მარშრუტი ვარჯიშისთვის.",
+              showCreate: !isAdminPanel,
             }
           : {
               title: "მარშრუტები არ მოიძებნა",
@@ -151,7 +215,11 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
           <PageEyebrow icon={<Map className="size-3.5" />}>Routes</PageEyebrow>
         }
         title="მარშრუტები"
-        description="შექმენი პირადი მარშრუტები ან შეინახე ადმინის სისტემური კატალოგი ვარჯიშისთვის."
+        description={
+          isAdminPanel
+            ? "სისტემური საგამოცდო მარშრუტების მართვა. იმპორტირებული მარშრუტები „სისტემური“ ფილტრში ჩანს."
+            : "შექმენი პირადი მარშრუტები ან შეინახე ადმინის სისტემური კატალოგი ვარჯიშისთვის."
+        }
         actions={
           <>
             {canSyncExam ? (
@@ -214,7 +282,9 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
         <Tabs
           value={tab}
           onValueChange={(value) => {
-            if (value) setTab(value);
+            if (!value) return;
+            void setTab(value as RoutesListFilter);
+            if (page !== 1) void setPage(1);
           }}
           className="w-full gap-4"
         >
@@ -224,8 +294,8 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
                 <Search />
               </InputGroupAddon>
               <InputGroupInput
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={searchInput}
+                onChange={(event) => form.setValue("q", event.target.value)}
                 placeholder="ძიება სათაურით, ქალაქით ან აღწერით..."
                 className="h-full"
               />
@@ -268,7 +338,7 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
                   : "ჩატვირთვა ვერ მოხერხდა"}
               </p>
             </div>
-          ) : filtered.length === 0 ? (
+          ) : routes.length === 0 ? (
             <Empty className="rounded-[1.5rem] border border-dashed border-white/12 bg-surface-lowest/40 py-16">
               <EmptyHeader>
                 <EmptyMedia
@@ -300,32 +370,95 @@ function RoutesListContent({ basePath, embedded }: RoutesListPageProps) {
               ) : null}
             </Empty>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((route) => {
-                const canEdit =
-                  me?.role === "ADMIN" || route.createdById === me?.userId;
-                const canSave =
-                  me?.role === "INSTRUCTOR" &&
-                  route.visibility === "SYSTEM" &&
-                  route.createdById !== me.userId;
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {routes.map((route) => {
+                  const canEdit =
+                    me?.role === "ADMIN" || route.createdById === me?.userId;
+                  const canSave =
+                    me?.role === "INSTRUCTOR" &&
+                    route.visibility === "SYSTEM" &&
+                    route.createdById !== me.userId;
 
-                return (
-                  <RouteCard
-                    key={route.id}
-                    route={route}
-                    href={`${basePath}/${route.id}`}
-                    canEdit={canEdit}
-                    editHref={`${basePath}/${route.id}/edit`}
-                    onToggleSave={
-                      canSave
-                        ? () => toggleSave(route.id, route.isSaved)
-                        : undefined
-                    }
-                    savePending={saveRoute.isPending || unsaveRoute.isPending}
-                  />
-                );
-              })}
-            </div>
+                  return (
+                    <RouteCard
+                      key={route.id}
+                      route={route}
+                      href={`${basePath}/${route.id}`}
+                      canEdit={canEdit}
+                      editHref={`${basePath}/${route.id}/edit`}
+                      onToggleSave={
+                        canSave
+                          ? () => toggleSave(route.id, route.isSaved)
+                          : undefined
+                      }
+                      savePending={saveRoute.isPending || unsaveRoute.isPending}
+                    />
+                  );
+                })}
+              </div>
+
+              {totalPages > 1 ? (
+                <Pagination className="pt-2">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 cursor-pointer rounded-lg border-white/10 px-3"
+                        disabled={safePage <= 1 || isFetching}
+                        onClick={() => void setPage(Math.max(1, safePage - 1))}
+                      >
+                        <ChevronLeft className="size-4" />
+                        <span className="hidden sm:inline">წინა</span>
+                      </Button>
+                    </PaginationItem>
+
+                    {pageNumbers.map((item, index) =>
+                      item === "ellipsis" ? (
+                        <PaginationItem key={`ellipsis-${index}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={item}>
+                          <Button
+                            type="button"
+                            variant={item === safePage ? "default" : "ghost"}
+                            size="icon-sm"
+                            className={cn(
+                              "size-9 cursor-pointer rounded-lg",
+                              item === safePage &&
+                                "bg-primary/15 text-primary hover:bg-primary/20",
+                            )}
+                            disabled={isFetching}
+                            onClick={() => void setPage(item)}
+                          >
+                            {item}
+                          </Button>
+                        </PaginationItem>
+                      ),
+                    )}
+
+                    <PaginationItem>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 cursor-pointer rounded-lg border-white/10 px-3"
+                        disabled={safePage >= totalPages || isFetching}
+                        onClick={() =>
+                          void setPage(Math.min(totalPages, safePage + 1))
+                        }
+                      >
+                        <span className="hidden sm:inline">შემდეგი</span>
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              ) : null}
+            </>
           )}
         </Tabs>
       </ContentPanel>

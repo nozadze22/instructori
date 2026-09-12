@@ -105,8 +105,35 @@ export type NavigationTickResult = {
   } | null;
 };
 
-export async function getRoutes(): Promise<Route[]> {
-  return apiRequest<Route[]>("/routes");
+export type RoutesListFilter = "all" | "mine" | "system" | "saved";
+
+export type RoutesQuery = {
+  q?: string;
+  filter?: RoutesListFilter;
+  page?: number;
+  pageSize?: number;
+};
+
+export type RoutesListResponse = {
+  items: Route[];
+  total: number;
+  page: number;
+  pageSize: number;
+  counts: Record<RoutesListFilter, number>;
+};
+
+export async function getRoutes(
+  params: RoutesQuery = {},
+): Promise<RoutesListResponse> {
+  const search = new URLSearchParams();
+  if (params.q?.trim()) search.set("q", params.q.trim());
+  if (params.filter && params.filter !== "all") {
+    search.set("filter", params.filter);
+  }
+  if (params.page && params.page > 1) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  return apiRequest<RoutesListResponse>(`/routes${qs ? `?${qs}` : ""}`);
 }
 
 export type PublicRoutesQuery = {

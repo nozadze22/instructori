@@ -27,7 +27,13 @@
     "seed:batumi-routes": "node scripts/seed-batumi-routes.mjs",
     "import:simulatori": "node scripts/import-simulatori-route.mjs",
     "import:simulatori:batumi": "node scripts/import-simulatori-batumi-all.mjs",
-    "export:simulatori:browser": "node scripts/export-simulatori-batumi-browser.mjs"
+    "import:simulatori:city": "node scripts/import-simulatori-city.mjs",
+    "import:simulatori:all": "tsx scripts/import-simulatori-all.mjs",
+    "import:simulatori:except-batumi": "tsx scripts/import-simulatori-all.mjs --except-batumi",
+    "export:simulatori:all": "node scripts/export-simulatori-all-browser.mjs",
+    "export:simulatori:except-batumi": "node scripts/export-simulatori-all-browser.mjs --exclude batumi",
+    "export:simulatori:browser": "node scripts/export-simulatori-browser.mjs",
+    "export:simulatori:browser:batumi": "node scripts/export-simulatori-batumi-browser.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1100.0",
@@ -78,6 +84,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
