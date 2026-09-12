@@ -32,6 +32,10 @@ function getInitialPromptState(): {
   visible: boolean;
   mode: "android" | "ios";
 } {
+  if (typeof window === "undefined") {
+    return { visible: false, mode: "android" };
+  }
+
   if (isStandaloneMode()) {
     return { visible: false, mode: "android" };
   }
