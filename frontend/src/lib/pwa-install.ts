@@ -7,6 +7,8 @@ export type BeforeInstallPromptEvent = Event & {
 
 export type PwaPlatform = "android" | "ios" | "other";
 
+export type PwaInstallStep = "select" | "android" | "ios";
+
 export function isIosDevice() {
   if (typeof navigator === "undefined") return false;
 

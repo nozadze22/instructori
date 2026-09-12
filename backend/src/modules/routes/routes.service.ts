@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AuthUser } from '../auth/dto/auth-types';
+import { toAuthRole, type AuthUser } from '../auth/dto/auth-types';
 import {
   CreateRouteDto,
   CreateRouteStepDto,
@@ -18,7 +18,7 @@ import {
   UpdateRouteDto,
   UpdateStepDto,
 } from './dto/route.dto';
-import { EXAM_CITIES } from './exam-cities';
+import { ExamRegionsService } from './exam-regions.service';
 import {
   getExamCatalogWithSources,
   loadSaRouteSources,
@@ -65,10 +65,13 @@ const DEFAULT_MOVING_SPEED_THRESHOLD_KMH = 3;
 
 @Injectable()
 export class RoutesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly examRegionsService: ExamRegionsService,
+  ) {}
 
   findCities() {
-    return EXAM_CITIES;
+    return this.examRegionsService.getActiveExamCities();
   }
 
   async findPublicCatalog(
@@ -81,7 +84,7 @@ export class RoutesService {
     userId?: string,
   ) {
     const page = Math.max(1, Number(query.page) || 1);
-    const pageSize = Math.min(48, Math.max(1, Number(query.pageSize) || 12));
+    const pageSize = Math.min(48, Math.max(1, Number(query.pageSize) || 15));
     const skip = (page - 1) * pageSize;
     const search = query.q?.trim();
     const city = query.city?.trim();
@@ -106,26 +109,19 @@ export class RoutesService {
         : {}),
     };
 
-    const [matchedRoutes, cityRows] = await Promise.all([
-      this.prisma.route.findMany({
-        where,
-        include: routeInclude,
-      }),
-      this.prisma.route.findMany({
-        where: {
-          visibility: 'SYSTEM',
-          isPublished: true,
-          city: { not: null },
-        },
-        select: { city: true },
-        distinct: ['city'],
-      }),
-    ]);
+    const matchedRoutes = await this.prisma.route.findMany({
+      where,
+      include: routeInclude,
+    });
+
+    const visibleRoutes = await this.examRegionsService.filterPublicRoutes(
+      matchedRoutes,
+    );
 
     const compareKa = (a: string, b: string) =>
       a.localeCompare(b, 'ka', { sensitivity: 'base', numeric: true });
 
-    const sortedRoutes = [...matchedRoutes].sort((left, right) => {
+    const sortedRoutes = [...visibleRoutes].sort((left, right) => {
       const cityCompare = compareKa(left.city ?? '\uFFFF', right.city ?? '\uFFFF');
       if (cityCompare !== 0) return cityCompare;
       return compareKa(left.title, right.title);
@@ -155,8 +151,7 @@ export class RoutesService {
       total,
       page,
       pageSize,
-      cities: cityRows
-        .map((row) => row.city)
+      cities: [...new Set(sortedRoutes.map((route) => route.city).filter(Boolean))]
         .filter((value): value is string => Boolean(value))
         .sort(compareKa),
     };
@@ -169,6 +164,11 @@ export class RoutesService {
     });
 
     if (!route || route.visibility !== 'SYSTEM' || !route.isPublished) {
+      throw new NotFoundException('Route not found');
+    }
+
+    const isVisible = await this.examRegionsService.isRoutePubliclyVisible(route);
+    if (!isVisible) {
       throw new NotFoundException('Route not found');
     }
 
@@ -271,25 +271,91 @@ export class RoutesService {
     });
   }
 
-  async findAll(user: AuthUser) {
-    const routes =
-      user.role === 'ADMIN'
-        ? await this.prisma.route.findMany({
-            orderBy: { updatedAt: 'desc' },
-            include: routeInclude,
-          })
-        : await this.prisma.route.findMany({
-            where: {
-              OR: [
-                { createdById: user.userId },
-                { visibility: 'SYSTEM', isPublished: true },
-              ],
-            },
-            orderBy: { updatedAt: 'desc' },
-            include: routeInclude,
-          });
+  async findAll(
+    user: AuthUser,
+    query: {
+      q?: string;
+      filter?: 'all' | 'mine' | 'system' | 'saved';
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) {
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(48, Math.max(1, Number(query.pageSize) || 12));
+    const skip = (page - 1) * pageSize;
+    const search = query.q?.trim().toLowerCase();
+    const filter = query.filter ?? 'all';
+    const role = await this.resolveUserRole(user);
+    const isAdmin = role === 'ADMIN';
 
-    return this.withSavedFlags(user.userId, routes);
+    const routes = isAdmin
+      ? await this.prisma.route.findMany({
+          orderBy: { updatedAt: 'desc' },
+          include: routeInclude,
+        })
+      : await this.prisma.route.findMany({
+          where: {
+            OR: [
+              { createdById: user.userId },
+              { visibility: 'SYSTEM', isPublished: true },
+            ],
+          },
+          orderBy: { updatedAt: 'desc' },
+          include: routeInclude,
+        });
+
+    const visibleRoutes = isAdmin
+      ? routes
+      : await this.filterSystemRoutesForNonAdmin(routes, user.userId);
+
+    const withSaved = await this.withSavedFlags(user.userId, visibleRoutes);
+
+    const counts = {
+      all: withSaved.length,
+      mine: withSaved.filter((route) => route.createdById === user.userId)
+        .length,
+      system: withSaved.filter((route) => route.visibility === 'SYSTEM').length,
+      saved: withSaved.filter((route) => route.isSaved).length,
+    };
+
+    const matchesSearch = (route: (typeof withSaved)[number]) => {
+      if (!search) return true;
+      return (
+        route.title.toLowerCase().includes(search) ||
+        route.city?.toLowerCase().includes(search) ||
+        route.description?.toLowerCase().includes(search)
+      );
+    };
+
+    let filtered = withSaved;
+    switch (filter) {
+      case 'mine':
+        filtered = withSaved.filter((route) => route.createdById === user.userId);
+        break;
+      case 'system':
+        filtered = withSaved.filter((route) => route.visibility === 'SYSTEM');
+        break;
+      case 'saved':
+        filtered = withSaved.filter((route) => route.isSaved);
+        break;
+      default:
+        break;
+    }
+
+    if (search) {
+      filtered = filtered.filter(matchesSearch);
+    }
+
+    const total = filtered.length;
+    const items = filtered.slice(skip, skip + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      counts,
+    };
   }
 
   async findSaved(user: AuthUser) {
@@ -301,16 +367,19 @@ export class RoutesService {
       },
     });
 
-    return saved
-      .filter((item) => {
-        try {
-          this.assertCanView(user, item.route);
-          return true;
-        } catch {
-          return false;
-        }
-      })
-      .map((item) => ({ ...item.route, isSaved: true }));
+    const visible: Array<(typeof saved)[number]['route'] & { isSaved: true }> =
+      [];
+
+    for (const item of saved) {
+      try {
+        await this.assertCanView(user, item.route);
+        visible.push({ ...item.route, isSaved: true });
+      } catch {
+        // skip routes the user can no longer access
+      }
+    }
+
+    return visible;
   }
 
   async findOne(user: AuthUser, routeId: string) {
@@ -320,14 +389,14 @@ export class RoutesService {
     });
     if (!route) throw new NotFoundException('Route not found');
 
-    this.assertCanView(user, route);
+    await this.assertCanView(user, route);
     const [withFlag] = await this.withSavedFlags(user.userId, [route]);
     return withFlag;
   }
 
   async save(user: AuthUser, routeId: string) {
     const route = await this.requireRoute(routeId);
-    this.assertCanView(user, route);
+    await this.assertCanView(user, route);
 
     if (route.createdById === user.userId) {
       throw new BadRequestException('You already own this route');
@@ -516,7 +585,7 @@ export class RoutesService {
     });
     if (!route) throw new NotFoundException('Route not found');
 
-    this.assertCanView(user, route);
+    await this.assertCanView(user, route);
 
     const path = this.extractPathPoints(route.path);
     if (!path.length) {
@@ -611,6 +680,14 @@ export class RoutesService {
     return points;
   }
 
+  private async resolveUserRole(user: AuthUser): Promise<AuthUser['role']> {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { role: true },
+    });
+    return toAuthRole(dbUser?.role ?? user.role);
+  }
+
   private async withSavedFlags<T extends { id: string }>(
     userId: string,
     routes: T[],
@@ -649,17 +726,48 @@ export class RoutesService {
     return RouteVisibilityDto.PRIVATE;
   }
 
-  private assertCanView(
+  private async filterSystemRoutesForNonAdmin<
+    T extends {
+      id: string;
+      visibility: string;
+      city: string | null;
+      sourceKey: string | null;
+      createdById: string;
+    },
+  >(routes: T[], userId: string) {
+    const catalogRoutes = routes.filter(
+      (route) => route.visibility === 'SYSTEM' && route.createdById !== userId,
+    );
+    const visibleCatalogRoutes =
+      await this.examRegionsService.filterPublicRoutes(catalogRoutes);
+    const visibleCatalogIds = new Set(
+      visibleCatalogRoutes.map((route) => route.id),
+    );
+
+    return routes.filter((route) => {
+      if (route.visibility !== 'SYSTEM' || route.createdById === userId) {
+        return true;
+      }
+      return visibleCatalogIds.has(route.id);
+    });
+  }
+
+  private async assertCanView(
     user: AuthUser,
     route: {
       createdById: string;
       visibility: string;
       isPublished: boolean;
+      city?: string | null;
+      sourceKey?: string | null;
     },
   ) {
     if (user.role === 'ADMIN') return;
     if (route.createdById === user.userId) return;
-    if (route.visibility === 'SYSTEM' && route.isPublished) return;
+    if (route.visibility === 'SYSTEM' && route.isPublished) {
+      const visible = await this.examRegionsService.isRoutePubliclyVisible(route);
+      if (visible) return;
+    }
 
     throw new ForbiddenException('You cannot view this route');
   }

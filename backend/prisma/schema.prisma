@@ -172,3 +172,16 @@ model MistakeNote {
   @@index([routeId])
   @@index([city])
 }
+
+/// Official exam regions (cities). Admin can toggle visibility for public catalog.
+model ExamRegion {
+  id        String   @id
+  name      String
+  lat       Float
+  lng       Float
+  /// Lowercase substrings matched against Route.city and Route.sourceKey
+  keywords  Json     @default("[]")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

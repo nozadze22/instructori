@@ -6,6 +6,7 @@ import {
   Home,
   LayoutDashboard,
   Map,
+  MapPinned,
   ShieldPlus,
   Users,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin", label: "დაშბორდი", icon: LayoutDashboard, exact: true },
   { href: "/admin/users", label: "ინსტრუქტორები", icon: Users },
   { href: "/admin/routes", label: "მარშრუტები", icon: Map },
+  { href: "/admin/regions", label: "რეგიონები", icon: MapPinned },
   { href: "/admin/create", label: "ადმინის შექმნა", icon: ShieldPlus },
 ] as const;
 

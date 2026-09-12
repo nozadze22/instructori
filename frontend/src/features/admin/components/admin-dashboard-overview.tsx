@@ -19,6 +19,7 @@ import { useAdminUsers } from "@/features/admin/hooks/users";
 import { cn } from "@/lib/utils";
 
 const dayLabels = ["ორშ", "სამ", "ოთხ", "ხუთ", "პარ", "შაბ", "კვ"];
+const ROUTES_PREVIEW_LIMIT = 5;
 
 export function AdminDashboardOverview() {
   const { data: statsData, isLoading: statsLoading } = useAdminStats();
@@ -47,6 +48,8 @@ export function AdminDashboardOverview() {
 
   const publishedRoutes = stats.routesList.filter((r) => r.isPublished).length;
   const draftRoutes = stats.routesList.length - publishedRoutes;
+  const previewRoutes = stats.routesList.slice(0, ROUTES_PREVIEW_LIMIT);
+  const hasMoreRoutes = stats.routesList.length > ROUTES_PREVIEW_LIMIT;
 
   return (
     <div className="space-y-6">
@@ -223,8 +226,8 @@ export function AdminDashboardOverview() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {stats.routesList.length > 0 ? (
-                  stats.routesList.map((route) => (
+                {previewRoutes.length > 0 ? (
+                  previewRoutes.map((route) => (
                     <tr
                       key={route.id}
                       className="transition-colors hover:bg-white/5"
@@ -267,6 +270,15 @@ export function AdminDashboardOverview() {
               </tbody>
             </table>
           </div>
+          {hasMoreRoutes ? (
+            <Link
+              href="/admin/routes"
+              className="flex items-center justify-center gap-1 border-t border-white/5 py-3 text-sm text-muted-foreground transition-colors hover:text-primary"
+            >
+              ნახე სრულად
+              <ChevronRight className="size-4" />
+            </Link>
+          ) : null}
         </div>
 
         <div className="glass-panel glow-border flex h-full flex-col rounded-2xl p-6">

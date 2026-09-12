@@ -18,6 +18,7 @@ import 'dotenv/config';
 import { readFileSync } from 'fs';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { createRequire } from 'module';
+import { OFFICIAL_EXAM_ROUTE_DESCRIPTION } from './exam-route-description.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -40,6 +41,7 @@ function parseArgs(argv) {
     routeId: null,
     title: null,
     city: 'ბათუმი',
+    create: false,
   };
 
   for (let i = 2; i < argv.length; i += 1) {
@@ -66,6 +68,8 @@ function parseArgs(argv) {
     } else if (key === '--city' && next) {
       args.city = next;
       i += 1;
+    } else if (key === '--create') {
+      args.create = true;
     }
   }
 
@@ -279,11 +283,22 @@ async function loadPayload(args) {
 }
 
 async function loadPrisma() {
-  try {
-    return require('../dist/src/generated/prisma/client.js');
-  } catch {
-    return require('../src/generated/prisma/client.js');
+  const candidates = [
+    new URL('../dist/src/generated/prisma/client.js', import.meta.url).href,
+    new URL('../src/generated/prisma/client.ts', import.meta.url).href,
+  ];
+
+  for (const href of candidates) {
+    try {
+      return await import(href);
+    } catch {
+      // try next
+    }
   }
+
+  throw new Error(
+    'Prisma client not found. Run: pnpm prisma:generate (and use tsx to run import scripts)',
+  );
 }
 
 async function main() {
@@ -306,12 +321,38 @@ async function main() {
   const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
   const prisma = new PrismaClient({ adapter });
 
-  const existing = args.routeId
+  let existing = args.routeId
     ? await prisma.route.findUnique({ where: { id: args.routeId } })
     : await prisma.route.findUnique({ where: { sourceKey: args.sourceKey } });
 
   if (!existing) {
-    throw new Error('Target route not found in DB');
+    if (!args.create) {
+      throw new Error(
+        'Target route not found in DB. Pass --create to create it automatically.',
+      );
+    }
+
+    const admin = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+    if (!admin) {
+      throw new Error('ADMIN user not found — cannot create route');
+    }
+
+    existing = await prisma.route.create({
+      data: {
+        title: args.title ?? normalized.title ?? args.sourceKey,
+        description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
+        city: args.city,
+        sourceKey: args.sourceKey,
+        path: [],
+        visibility: 'SYSTEM',
+        isPublished: true,
+        createdById: admin.id,
+      },
+    });
+    console.log(`Created route ${existing.id} (${args.sourceKey})`);
   }
 
   await prisma.routeStep.deleteMany({ where: { routeId: existing.id } });
@@ -322,9 +363,7 @@ async function main() {
       title: args.title ?? normalized.title ?? existing.title,
       city: args.city,
       path: normalized.path,
-      description:
-        existing.description ??
-        `Imported from simulatori.ge (${args.fetch ?? 'file'})`,
+      description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
       visibility: 'SYSTEM',
       isPublished: true,
       steps: { create: normalized.steps },

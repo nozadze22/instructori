@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { EXAM_ROUTE_CATALOG } from './exam-route-catalog';
+import { OFFICIAL_EXAM_ROUTE_DESCRIPTION } from './exam-route-description';
 
 export type SaRouteSource = {
   title: string;
@@ -46,7 +47,6 @@ export function getExamCatalogWithSources() {
   return EXAM_ROUTE_CATALOG.map((item) => ({
     ...item,
     sourceUrl: resolveSourceUrlForCity(item.cityName),
-    description:
-      'ოფიციალური B კატეგორიის საგამოცდო მარშრუტი (მომსახურების სააგენტო). რუკის გეომეტრია და ხმოვანი ბრძანებები მოგვიანებით დაემატება.',
+    description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
   }));
 }

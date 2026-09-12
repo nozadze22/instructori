@@ -292,6 +292,30 @@ export class NavigationTickDto {
   movingSpeedThresholdKmh?: number;
 }
 
+export class RoutesListQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  q?: string;
+
+  @IsOptional()
+  @IsIn(['all', 'mine', 'system', 'saved'])
+  filter?: 'all' | 'mine' | 'system' | 'saved';
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(48)
+  pageSize?: number;
+}
+
 export class PublicRoutesQueryDto {
   @IsOptional()
   @IsString()

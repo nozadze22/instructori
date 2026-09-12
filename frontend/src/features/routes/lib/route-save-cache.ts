@@ -1,8 +1,9 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { Query, QueryClient } from "@tanstack/react-query";
 
 import type {
   PublicRoutesResponse,
   Route,
+  RoutesListResponse,
 } from "@/features/routes/api/routes";
 
 type RouteSavedSnapshot = {
@@ -10,9 +11,18 @@ type RouteSavedSnapshot = {
   publicCatalog: Array<[readonly unknown[], PublicRoutesResponse | undefined]>;
   publicDetail: Route | undefined;
   routeDetail: Route | undefined;
-  routesList: Route[] | undefined;
+  routesLists: Array<[readonly unknown[], RoutesListResponse | undefined]>;
   savedList: Route[] | undefined;
 };
+
+function isRoutesListQuery(query: Query) {
+  return (
+    query.queryKey[0] === "routes" &&
+    query.queryKey.length === 2 &&
+    typeof query.queryKey[1] === "object" &&
+    query.queryKey[1] !== null
+  );
+}
 
 function patchRouteInList(routes: Route[], routeId: string, isSaved: boolean) {
   return routes.map((route) =>
@@ -40,8 +50,15 @@ function findRouteInCaches(
     if (match) return match;
   }
 
-  const routesList = queryClient.getQueryData<Route[]>(["routes"]);
-  return routesList?.find((route) => route.id === routeId);
+  const routesLists = queryClient.getQueriesData<RoutesListResponse>({
+    predicate: isRoutesListQuery,
+  });
+  for (const [, list] of routesLists) {
+    const match = list?.items.find((route) => route.id === routeId);
+    if (match) return match;
+  }
+
+  return undefined;
 }
 
 export function snapshotRouteSavedState(
@@ -60,7 +77,9 @@ export function snapshotRouteSavedState(
       routeId,
     ]),
     routeDetail: queryClient.getQueryData<Route>(["routes", routeId]),
-    routesList: queryClient.getQueryData<Route[]>(["routes"]),
+    routesLists: queryClient.getQueriesData<RoutesListResponse>({
+      predicate: isRoutesListQuery,
+    }),
     savedList: queryClient.getQueryData<Route[]>(["routes", "saved"]),
   };
 }
@@ -84,7 +103,9 @@ export function restoreRouteSavedSnapshot(
       snapshot.routeDetail,
     );
   }
-  queryClient.setQueryData(["routes"], snapshot.routesList);
+  for (const [key, value] of snapshot.routesLists) {
+    queryClient.setQueryData(key, value);
+  }
   queryClient.setQueryData(["routes", "saved"], snapshot.savedList);
 }
 
@@ -113,8 +134,15 @@ export function applyOptimisticRouteSaved(
     route ? { ...route, isSaved } : route,
   );
 
-  queryClient.setQueryData<Route[]>(["routes"], (routes) =>
-    routes ? patchRouteInList(routes, routeId, isSaved) : routes,
+  queryClient.setQueriesData<RoutesListResponse>(
+    { predicate: isRoutesListQuery },
+    (list) => {
+      if (!list?.items) return list;
+      return {
+        ...list,
+        items: patchRouteInList(list.items, routeId, isSaved),
+      };
+    },
   );
 
   queryClient.setQueryData<Route[]>(["routes", "saved"], (saved) => {

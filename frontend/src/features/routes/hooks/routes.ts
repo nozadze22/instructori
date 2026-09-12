@@ -21,6 +21,7 @@ import {
   updateRoute,
   type CreateRouteInput,
   type PublicRoutesQuery,
+  type RoutesQuery,
   type UpdateRouteInput,
 } from "@/features/routes/api/routes";
 import {
@@ -29,10 +30,11 @@ import {
   snapshotRouteSavedState,
 } from "@/features/routes/lib/route-save-cache";
 
-export function useRoutes() {
+export function useRoutes(params: RoutesQuery = {}) {
   return useQuery({
-    queryKey: ["routes"],
-    queryFn: getRoutes,
+    queryKey: ["routes", params],
+    queryFn: () => getRoutes(params),
+    placeholderData: keepPreviousData,
   });
 }
 
