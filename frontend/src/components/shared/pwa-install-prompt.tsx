@@ -1,100 +1,17 @@
 "use client";
 
 import { Download, Share, X } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-
-const DISMISS_KEY = "simdrive-pwa-install-dismissed";
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
-function isIosDevice() {
-  if (typeof navigator === "undefined") return false;
-
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-}
-
-function isStandaloneMode() {
-  if (typeof window === "undefined") return false;
-
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in navigator &&
-      (navigator as Navigator & { standalone?: boolean }).standalone === true)
-  );
-}
-
-function getInitialPromptState(): {
-  visible: boolean;
-  mode: "android" | "ios";
-} {
-  if (typeof window === "undefined") {
-    return { visible: false, mode: "android" };
-  }
-
-  if (isStandaloneMode()) {
-    return { visible: false, mode: "android" };
-  }
-
-  if (localStorage.getItem(DISMISS_KEY) === "1") {
-    return { visible: false, mode: "android" };
-  }
-
-  if (isIosDevice()) {
-    return { visible: true, mode: "ios" };
-  }
-
-  return { visible: false, mode: "android" };
-}
+import { usePwaInstall } from "@/components/shared/pwa-install-provider";
 
 export function PwaInstallPrompt() {
-  const [promptState, setPromptState] = useState(getInitialPromptState);
-  const [installEvent, setInstallEvent] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const { bannerVisible, platform, requestInstall, dismissBanner } =
+    usePwaInstall();
 
-  const { visible, mode } = promptState;
+  if (!bannerVisible) return null;
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallEvent(event as BeforeInstallPromptEvent);
-      setPromptState({ visible: true, mode: "android" });
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
-    };
-  }, []);
-
-  const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, "1");
-    setPromptState((current) => ({ ...current, visible: false }));
-  };
-
-  const install = async () => {
-    if (!installEvent) return;
-
-    await installEvent.prompt();
-    const choice = await installEvent.userChoice;
-
-    if (choice.outcome === "accepted") {
-      setPromptState((current) => ({ ...current, visible: false }));
-      return;
-    }
-
-    dismiss();
-  };
-
-  if (!visible) return null;
+  const isIos = platform === "ios";
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[70] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -105,31 +22,35 @@ export function PwaInstallPrompt() {
               SimDrive Pro ტელეფონზე
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              {mode === "android"
-                ? "დააინსტალირე აპი ერთი ღილაკით — App Store-ის გარეშე."
-                : "Safari-ში დააჭირე Share → Add to Home Screen, რომ აპის სახით გამოიყენო."}
+              {isIos
+                ? "Safari-ში დააჭირე Share → Add to Home Screen, რომ აპის სახით გამოიყენო."
+                : "დააინსტალირე აპი ერთი ღილაკით — App Store-ის გარეშე."}
             </p>
           </div>
           <Button
             variant="ghost"
             size="icon-sm"
             aria-label="დახურვა"
-            onClick={dismiss}
+            onClick={dismissBanner}
           >
             <X />
           </Button>
         </div>
 
-        {mode === "android" ? (
-          <Button className="w-full" onClick={install}>
+        {isIos ? (
+          <Button
+            className="w-full"
+            variant="secondary"
+            onClick={() => void requestInstall()}
+          >
+            <Share data-icon="inline-start" />
+            როგორ დავამატო ტელეფონზე
+          </Button>
+        ) : (
+          <Button className="w-full" onClick={() => void requestInstall()}>
             <Download data-icon="inline-start" />
             აპის დაინსტალირება
           </Button>
-        ) : (
-          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-            <Share className="size-4 shrink-0 text-primary" />
-            <span>Safari → Share → Add to Home Screen</span>
-          </div>
         )}
       </div>
     </div>

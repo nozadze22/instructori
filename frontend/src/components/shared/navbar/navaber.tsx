@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { appHomeForUser, isAdminUser } from "@/lib/auth-paths";
 import { cn } from "@/lib/utils";
+import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { BurgerMenu } from "./burger_menu";
 import { NavbarLoginPopover } from "./navbar-login-popover";
 import { NavbarUserMenu } from "./navbar-user-menu";
@@ -55,6 +56,13 @@ export function Navbar({ className }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <PwaInstallButton
+            className="sm:hidden"
+            showLabel={false}
+            size="icon-sm"
+            variant="ghost"
+          />
+          <PwaInstallButton className="hidden sm:inline-flex" />
           {isLoading ? (
             <div className="size-8 animate-pulse rounded-full bg-white/10" />
           ) : me ? (
