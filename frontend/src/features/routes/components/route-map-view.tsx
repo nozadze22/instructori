@@ -145,7 +145,9 @@ function NavigationFollow({
   const targetRef = useRef<{ center: PathPoint; heading: number } | null>(null);
   const enabledRef = useRef(enabled);
 
-  enabledRef.current = enabled;
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   useEffect(() => {
     if (!position) return;

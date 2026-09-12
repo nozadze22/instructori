@@ -23,6 +23,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "scrape:sa-routes": "node scripts/scrape-sa-route-sources.mjs",
+    "sync:to-production": "tsx scripts/sync-to-production.mjs",
     "seed:demo-route": "node scripts/seed-demo-route.mjs",
     "seed:batumi-routes": "node scripts/seed-batumi-routes.mjs",
     "import:simulatori": "node scripts/import-simulatori-route.mjs",

@@ -8,6 +8,15 @@ export function getApiUrl(path: string): string {
   return `${base}${normalizedPath}`;
 }
 
+export class SessionReplacedError extends Error {
+  constructor() {
+    super("Logged in on another device");
+    this.name = "SessionReplacedError";
+  }
+}
+
+const SESSION_REPLACED_PATTERN = /logged in on another device|invalid refresh token/i;
+
 const AUTH_SKIP_REFRESH = new Set([
   "/auth/login",
   "/auth/register",
@@ -94,6 +103,7 @@ export async function apiRequest<T>(
         throw new Error(humanizeApiError(error));
       }
     }
+    throw new SessionReplacedError();
   }
 
   return readResponse<T>(response);
@@ -102,6 +112,9 @@ export async function apiRequest<T>(
 async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = await parseErrorMessage(response);
+    if (response.status === 401 && SESSION_REPLACED_PATTERN.test(message)) {
+      throw new SessionReplacedError();
+    }
     throw new Error(humanizeApiError(message));
   }
 

@@ -34,7 +34,9 @@ export class AdminService {
       throw new ForbiddenException('Admin already exists');
     }
     const user = await this.createAdminUser(dto);
-    return this.auth.issueSession(this.auth.toAuthTokenUser(user));
+    return this.auth.issueSession(this.auth.toAuthTokenUser(user), {
+      replaceAllSessions: true,
+    });
   }
 
   async adminCreate(dto: AdminCreateDto) {
@@ -76,14 +78,17 @@ export class AdminService {
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
-    return this.auth.issueSession({
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      accessStatus: user.accessStatus,
-      accessSource: user.accessSource,
-    });
+    return this.auth.issueSession(
+      {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        accessStatus: user.accessStatus,
+        accessSource: user.accessSource,
+      },
+      { replaceAllSessions: true },
+    );
   }
 
   async listUsers() {

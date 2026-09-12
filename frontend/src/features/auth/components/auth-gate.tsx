@@ -8,6 +8,7 @@ import type {
   Role,
 } from "@/features/auth/login/api/login";
 import { useGetMe } from "@/features/auth/login/hooks/login";
+import { SessionReplacedError } from "@/lib/api";
 
 type AuthGateProps = {
   children: ReactNode;
@@ -25,7 +26,7 @@ export function AuthGate({
   loginRedirect = "/login",
 }: AuthGateProps) {
   const router = useRouter();
-  const { data: me, isLoading, isError } = useGetMe();
+  const { data: me, isLoading, isError, error } = useGetMe();
 
   const allowed =
     !!me &&
@@ -35,13 +36,23 @@ export function AuthGate({
   useEffect(() => {
     if (isLoading) return;
     if (isError || !me) {
-      router.replace(loginRedirect);
+      const replaced =
+        error instanceof SessionReplacedError ||
+        (error instanceof Error &&
+          /logged in on another device|invalid refresh token/i.test(
+            error.message,
+          ));
+      router.replace(
+        replaced
+          ? `${loginRedirect}?reason=session_replaced`
+          : loginRedirect,
+      );
       return;
     }
     if (!allowed) {
       router.replace(redirectTo);
     }
-  }, [allowed, isError, isLoading, loginRedirect, me, redirectTo, router]);
+  }, [allowed, error, isError, isLoading, loginRedirect, me, redirectTo, router]);
 
   if (isLoading || !allowed) {
     return (
