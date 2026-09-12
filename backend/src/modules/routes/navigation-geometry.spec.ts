@@ -106,14 +106,32 @@ describe('isVoiceCueDue', () => {
     ).toBe(true);
   });
 
-  it('fires after a large GPS jump that skipped the pin', () => {
+  it('fires after a GPS jump that skipped the pin', () => {
     expect(
       isVoiceCueDue({
-        remainingMeters: -200,
+        remainingMeters: -120,
         previousRemainingMeters: 180,
         distanceToPinMeters: 80,
       }),
     ).toBe(true);
+  });
+
+  it('does not fire a loop pin that is only geographically close', () => {
+    expect(
+      isVoiceCueDue({
+        remainingMeters: 8781,
+        previousRemainingMeters: null,
+        distanceToPinMeters: 14,
+      }),
+    ).toBe(false);
+
+    expect(
+      isVoiceCueDue({
+        remainingMeters: -2155,
+        previousRemainingMeters: 140,
+        distanceToPinMeters: 24,
+      }),
+    ).toBe(false);
   });
 
   it('does not fire far ahead of the command', () => {
@@ -217,7 +235,6 @@ describe('drive simulation — voice at pin', () => {
 
   it('does not fire early when pin is off the drawn path', () => {
     const offPathPin: PathPoint = { lat: path[2].lat, lng: path[2].lng + 0.0008 };
-    const offCommand = step('off-path', offPathPin);
     const car = path[2];
     const carOnPath = closestOnPath(path, car);
     const pinOnPath = closestOnPath(path, offPathPin);
