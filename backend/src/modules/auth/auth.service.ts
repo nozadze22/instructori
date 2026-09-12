@@ -77,7 +77,9 @@ export class AuthService {
       },
     });
 
-    return this.issueSession(this.toAuthTokenUser(user));
+    return this.issueSession(this.toAuthTokenUser(user), {
+      replaceAllSessions: true,
+    });
   }
 
   async login(dto: LoginDto) {
@@ -102,7 +104,9 @@ export class AuthService {
       throw new UnauthorizedException('Account is blocked');
     }
 
-    return this.issueSession(this.toAuthTokenUser(user));
+    return this.issueSession(this.toAuthTokenUser(user), {
+      replaceAllSessions: true,
+    });
   }
 
   async getMe(userId: string): Promise<AuthUser> {
@@ -136,7 +140,10 @@ export class AuthService {
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: { passwordHash },
+        data: {
+          passwordHash,
+          sessionVersion: { increment: 1 },
+        },
       });
       await refreshTokens(tx).deleteMany({ where: { userId } });
     });
@@ -144,7 +151,50 @@ export class AuthService {
     return { ok: true };
   }
 
-  async issueSession(user: AuthTokenUser): Promise<AuthSession> {
+  async issueSession(
+    user: AuthTokenUser,
+    options: { replaceAllSessions?: boolean } = {},
+  ): Promise<AuthSession> {
+    const { replaceAllSessions = false } = options;
+    const refreshToken = randomBytes(48).toString('base64url');
+    const tokenHash = this.hashRefreshToken(refreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    let sessionVersion: number;
+
+    if (replaceAllSessions) {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const nextUser = await tx.user.update({
+          where: { id: user.id },
+          data: { sessionVersion: { increment: 1 } },
+          select: { sessionVersion: true },
+        });
+        await refreshTokens(tx).deleteMany({ where: { userId: user.id } });
+        await refreshTokens(tx).create({
+          data: {
+            userId: user.id,
+            tokenHash,
+            expiresAt,
+          },
+        });
+        return nextUser;
+      });
+      sessionVersion = updated.sessionVersion;
+    } else {
+      const current = await this.prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { sessionVersion: true },
+      });
+      sessionVersion = current.sessionVersion;
+      await refreshTokens(this.prisma).create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+    }
+
     const accessExpiresIn =
       this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
     const accessToken = this.jwt.sign(
@@ -155,20 +205,10 @@ export class AuthService {
         role: user.role,
         accessStatus: user.accessStatus,
         accessSource: user.accessSource,
+        sv: sessionVersion,
       },
       { expiresIn: accessExpiresIn as `${number}m` },
     );
-
-    const refreshToken = randomBytes(48).toString('base64url');
-    const tokenHash = this.hashRefreshToken(refreshToken);
-
-    await refreshTokens(this.prisma).create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
 
     return {
       accessToken,

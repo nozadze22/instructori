@@ -50,6 +50,7 @@ import {
   defaultVoiceText,
   parseRoutePath,
 } from "@/features/routes/lib/route-actions";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import { humanizeApiError } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +115,8 @@ function LiveNavScreen({
   simulation: ReturnType<typeof useRouteSimulation>;
   onStop: () => void;
 }) {
+  useWakeLock(true);
+
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";

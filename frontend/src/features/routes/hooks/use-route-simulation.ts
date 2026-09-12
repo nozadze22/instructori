@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { postNavigationTick } from "@/features/routes/api/routes";
+import { requestWakeLock, releaseWakeLock } from "@/hooks/use-wake-lock";
 import { getApiUrl } from "@/lib/api";
 import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
 import { englishVoiceText } from "@/features/routes/lib/route-actions";
@@ -530,6 +531,7 @@ export function useRouteSimulation(options: {
     setRunning(false);
     setFollowCamera(false);
     stopWatch();
+    void releaseWakeLock();
   }, [stopWatch]);
 
   const reset = useCallback(() => {
@@ -728,6 +730,7 @@ export function useRouteSimulation(options: {
     setRunning(true);
     setFollowCamera(true);
     setGeoError(null);
+    void requestWakeLock();
     void unlockAudioPlayback().then((ok) => {
       if (!unmountedRef.current) {
         setAudioBlocked(!ok);

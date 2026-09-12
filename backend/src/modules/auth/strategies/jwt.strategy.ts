@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PrismaService } from '../../../prisma/prisma.service';
 import type { AccessSource, AccessStatus, AuthUser } from '../dto/auth-types';
 import { ACCESS_TOKEN_COOKIE } from '../auth_guard/auth-cookie';
 
@@ -13,6 +14,7 @@ type JwtPayload = {
   role: AuthUser['role'];
   accessStatus?: AccessStatus;
   accessSource?: AccessSource | null;
+  sv?: number;
 };
 
 function cookieExtractor(req: Request): string | null {
@@ -23,7 +25,10 @@ function cookieExtractor(req: Request): string | null {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         cookieExtractor,
@@ -34,14 +39,40 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload): AuthUser {
+  async validate(payload: JwtPayload): Promise<AuthUser> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+        sessionVersion: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokenVersion = payload.sv ?? 0;
+    if (tokenVersion !== user.sessionVersion) {
+      throw new UnauthorizedException('Logged in on another device');
+    }
+
+    if (user.accessStatus === 'BLOCKED') {
+      throw new UnauthorizedException('Account is blocked');
+    }
+
     return {
-      userId: payload.sub,
-      email: payload.email,
-      fullName: payload.fullName,
-      role: payload.role,
-      accessStatus: payload.accessStatus ?? 'PENDING',
-      accessSource: payload.accessSource ?? null,
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role === 'USER' ? 'INSTRUCTOR' : user.role,
+      accessStatus: user.accessStatus,
+      accessSource: user.accessSource,
     };
   }
 }

@@ -27,6 +27,8 @@ import { useGetMe, useLogin } from "../hooks/login";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const sessionReplaced =
+    searchParams.get("reason") === "session_replaced";
   const { data: me, isLoading: isMeLoading, isSuccess } = useGetMe();
   const { mutate: login, isPending } = useLogin();
   const form = useForm<LoginSchema>({
@@ -57,6 +59,13 @@ export function LoginForm() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="glass-card rounded-[20px] p-8 shadow-2xl">
+          {sessionReplaced ? (
+            <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-100">
+              ამ ანგარიშით სხვა მოწყობილობიდან შესვლა მოხდა. აქედან გამოსავალი
+              სესია გაუქმდა — ხელახლა შედი, თუ აქ გინდა გაგრძელება.
+            </div>
+          ) : null}
+
           <div className="mb-8 flex flex-col items-center">
             <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
               <Gauge className="size-6 text-on-primary-container" />
