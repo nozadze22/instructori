@@ -18,6 +18,7 @@ import {
   SkipForward,
   Trash2,
   Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 
@@ -123,6 +124,8 @@ function LiveNavScreen({
 
   const cue =
     simulation.currentVoice || (current ? stepVoice(current) : "გააგრძელე მონიშნულ გზაზე");
+  const speakText =
+    simulation.currentVoice || (current ? stepVoice(current) : "");
   const nextMeters =
     simulation.position && current
       ? Math.round(
@@ -157,7 +160,25 @@ function LiveNavScreen({
         />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 space-y-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        {simulation.audioBlocked ? (
+          <button
+            type="button"
+            className="pointer-events-auto mx-auto flex w-full max-w-lg items-center gap-3 rounded-2xl bg-amber-500 px-4 py-3 text-left text-sm font-semibold text-black shadow-lg"
+            onClick={() => {
+              if (!speakText) {
+                void simulation.unlockAudio();
+                return;
+              }
+              void simulation.speakCurrent(speakText, {
+                action: current?.action,
+              });
+            }}
+          >
+            <VolumeX className="size-5 shrink-0" />
+            <span>დააჭირე ხმის ჩასართავად</span>
+          </button>
+        ) : null}
         <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-3xl bg-[#1a73e8] text-white shadow-2xl">
           <div className="flex items-start gap-3 px-4 py-3.5">
             <div className="mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-black">
@@ -218,6 +239,32 @@ function LiveNavScreen({
               />
             </div>
           </div>
+          <button
+            type="button"
+            className={cn(
+              "flex size-12 shrink-0 items-center justify-center rounded-2xl shadow-lg",
+              simulation.audioBlocked
+                ? "bg-amber-500 text-black"
+                : "bg-white/15 text-white backdrop-blur-md",
+            )}
+            disabled={!speakText && !simulation.audioBlocked}
+            aria-label="ხმის გამეორება"
+            onClick={() => {
+              if (!speakText) {
+                void simulation.unlockAudio();
+                return;
+              }
+              void simulation.speakCurrent(speakText, {
+                action: current?.action,
+              });
+            }}
+          >
+            {simulation.audioBlocked ? (
+              <VolumeX className="size-5" />
+            ) : (
+              <Volume2 className="size-5" />
+            )}
+          </button>
           <button
             type="button"
             className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black shadow-lg"
@@ -560,6 +607,28 @@ function RouteDetailContent({
               </p>
             ) : null}
 
+            {simulation.audioBlocked ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-left text-sm font-medium text-amber-100"
+                onClick={() => {
+                  const text =
+                    simulation.currentVoice ||
+                    (current ? stepVoice(current) : "");
+                  if (!text) {
+                    void simulation.unlockAudio();
+                    return;
+                  }
+                  void simulation.speakCurrent(text, {
+                    action: current?.action,
+                  });
+                }}
+              >
+                <VolumeX className="size-4 shrink-0" />
+                iPhone-ზე ხმა დაბლოკილია — დააჭირე ჩასართავად
+              </button>
+            ) : null}
+
             <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
@@ -619,8 +688,11 @@ function RouteDetailContent({
                   const text =
                     simulation.currentVoice ||
                     (current ? stepVoice(current) : "");
-                  if (!text) return;
-                  simulation.speakCurrent(text, {
+                  if (!text) {
+                    void simulation.unlockAudio();
+                    return;
+                  }
+                  void simulation.speakCurrent(text, {
                     action: current?.action,
                   });
                 }}

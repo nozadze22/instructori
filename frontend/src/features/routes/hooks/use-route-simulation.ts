@@ -231,18 +231,91 @@ let speakEpoch = 0;
 let speakChain: Promise<void> = Promise.resolve();
 let audioUnlocked = false;
 const ttsUrlCache = new Map<string, string>();
+let sharedAudioContext: AudioContext | null = null;
+let unlockAudioElement: HTMLAudioElement | null = null;
 
-function unlockAudioPlayback() {
-  if (audioUnlocked || typeof window === "undefined") return;
-  const audio = new Audio();
-  audio.src =
-    "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-  audio.volume = 0.001;
-  void audio.play().then(() => {
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+
+export class AudioBlockedError extends Error {
+  constructor() {
+    super("Audio playback blocked");
+    this.name = "AudioBlockedError";
+  }
+}
+
+function isAutoplayBlocked(error: unknown) {
+  return (
+    error instanceof DOMException &&
+    (error.name === "NotAllowedError" || error.name === "AbortError")
+  );
+}
+
+function prepareUnlockAudioElement() {
+  if (typeof window === "undefined") return null;
+  if (!unlockAudioElement) {
+    unlockAudioElement = new Audio();
+    unlockAudioElement.setAttribute("playsinline", "true");
+    unlockAudioElement.preload = "auto";
+  }
+  return unlockAudioElement;
+}
+
+function configurePlaybackAudio(audio: HTMLAudioElement) {
+  audio.setAttribute("playsinline", "true");
+  audio.preload = "auto";
+}
+
+export async function unlockAudioPlayback(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (audioUnlocked) return true;
+
+  let unlocked = false;
+
+  try {
+    const audio = prepareUnlockAudioElement();
+    if (audio) {
+      audio.src = SILENT_WAV;
+      audio.volume = 0.01;
+      audio.muted = false;
+      audio.currentTime = 0;
+      await audio.play();
+      audio.pause();
+      audio.currentTime = 0;
+      unlocked = true;
+    }
+  } catch {
+    // Fall through to Web Audio unlock.
+  }
+
+  if (!unlocked) {
+    try {
+      const AudioCtx =
+        window.AudioContext ??
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (AudioCtx) {
+        sharedAudioContext ??= new AudioCtx();
+        if (sharedAudioContext.state === "suspended") {
+          await sharedAudioContext.resume();
+        }
+        const buffer = sharedAudioContext.createBuffer(1, 1, 22050);
+        const source = sharedAudioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(sharedAudioContext.destination);
+        source.start(0);
+        source.stop(0);
+        unlocked = sharedAudioContext.state === "running";
+      }
+    } catch {
+      // Retry on next user gesture.
+    }
+  }
+
+  if (unlocked) {
     audioUnlocked = true;
-  }).catch(() => {
-    // Retry on next user gesture.
-  });
+  }
+  return unlocked;
 }
 
 function stopAudio() {
@@ -321,6 +394,7 @@ async function speakGeorgianMp3(text: string) {
   }
 
   const audio = new Audio(url);
+  configurePlaybackAudio(audio);
   activeAudio = audio;
 
   await new Promise<void>((resolve, reject) => {
@@ -335,6 +409,11 @@ async function speakGeorgianMp3(text: string) {
 
     const tryPlay = (attempt: number) => {
       void audio.play().catch((error: unknown) => {
+        if (isAutoplayBlocked(error)) {
+          audioUnlocked = false;
+          reject(new AudioBlockedError());
+          return;
+        }
         if (attempt < 2) {
           window.setTimeout(() => tryPlay(attempt + 1), 120);
           return;
@@ -362,8 +441,9 @@ async function speakPrompt(options: {
 
       try {
         await speakGeorgianMp3(voiceText);
-      } catch {
+      } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
+        if (error instanceof AudioBlockedError) throw error;
         const fallback =
           action != null ? englishVoiceText(action) : "Navigation cue.";
         if (!speakBrowser(fallback)) throw new Error("voice failed");
@@ -407,6 +487,7 @@ export function useRouteSimulation(options: {
   const [headingDeg, setHeadingDeg] = useState(0);
   const [aheadPath, setAheadPath] = useState<PathPoint[]>([]);
   const [traveledPath, setTraveledPath] = useState<PathPoint[]>([]);
+  const [audioBlocked, setAudioBlocked] = useState(false);
 
   const spokenRef = useRef<Set<string>>(new Set());
   const pendingSpeakRef = useRef<Set<string>>(new Set());
@@ -461,6 +542,7 @@ export function useRouteSimulation(options: {
     setNavigationStatus("NO_ACTION");
     setNavigationReason(null);
     setGeoError(null);
+    setAudioBlocked(false);
     navTickInFlightRef.current = false;
     lastNavTickTsRef.current = 0;
     lastFixRef.current = null;
@@ -468,6 +550,41 @@ export function useRouteSimulation(options: {
     spokenRef.current = new Set();
     pendingSpeakRef.current = new Set();
   }, [stop]);
+
+  const unlockAudio = useCallback(async () => {
+    const ok = await unlockAudioPlayback();
+    if (!unmountedRef.current) {
+      setAudioBlocked(!ok);
+    }
+    return ok;
+  }, []);
+
+  const speakCurrent = useCallback(
+    async (text: string, meta?: { action?: RouteAction }) => {
+      if (!text.trim()) return;
+
+      const ok = await unlockAudioPlayback();
+      if (!unmountedRef.current) {
+        setAudioBlocked(!ok);
+      }
+      if (!ok) return;
+
+      try {
+        await speakPrompt({
+          voiceText: text,
+          action: meta?.action,
+        });
+        if (!unmountedRef.current) {
+          setAudioBlocked(false);
+        }
+      } catch (error) {
+        if (!unmountedRef.current) {
+          setAudioBlocked(error instanceof AudioBlockedError);
+        }
+      }
+    },
+    [],
+  );
 
   const applyFix = useCallback((coords: GeolocationCoordinates, ts: number) => {
     const point = { lat: coords.latitude, lng: coords.longitude };
@@ -496,7 +613,12 @@ export function useRouteSimulation(options: {
     setTraveledPath(sliced.traveled);
 
     let nextHeading = headingAlongAhead(sliced.ahead);
-    if (coords.heading != null && Number.isFinite(coords.heading) && coords.heading >= 0) {
+    if (
+      speed > MOVING_SPEED_THRESHOLD_KMH &&
+      coords.heading != null &&
+      Number.isFinite(coords.heading) &&
+      coords.heading >= 0
+    ) {
       nextHeading = coords.heading;
     } else if (previous && speed > 4) {
       nextHeading = bearingDeg(previous.point, point);
@@ -550,8 +672,11 @@ export function useRouteSimulation(options: {
             spokenRef.current.add(command.id);
             setPassedCount(spokenRef.current.size);
           })
-          .catch(() => {
+          .catch((error) => {
             pendingSpeakRef.current.delete(command.id);
+            if (error instanceof AudioBlockedError && !unmountedRef.current) {
+              setAudioBlocked(true);
+            }
           })
           .finally(() => {
             pendingSpeakRef.current.delete(command.id);
@@ -603,7 +728,11 @@ export function useRouteSimulation(options: {
     setRunning(true);
     setFollowCamera(true);
     setGeoError(null);
-    unlockAudioPlayback();
+    void unlockAudioPlayback().then((ok) => {
+      if (!unmountedRef.current) {
+        setAudioBlocked(!ok);
+      }
+    });
     spokenRef.current = new Set();
     pendingSpeakRef.current = new Set();
     lastAlongRef.current = null;
@@ -656,10 +785,8 @@ export function useRouteSimulation(options: {
     stop,
     reset,
     canRun: path.length >= 2 && totalLength > 0,
-    speakCurrent: (text: string, meta?: { action?: RouteAction }) =>
-      void speakPrompt({
-        voiceText: text,
-        action: meta?.action,
-      }),
+    audioBlocked,
+    unlockAudio,
+    speakCurrent,
   };
 }
