@@ -3,54 +3,37 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  ArrowUpRight,
   ChevronRight,
-  Cloud,
-  KeyRound,
-  LineChart,
+  MapPin,
   Plus,
-  Rocket,
+  Route,
   UserPlus,
-  Wallet,
+  Users,
   AlertTriangle,
   BadgeCheck,
-  RefreshCw,
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { useAdminStats } from "@/features/admin/hooks/stats";
 import { useAdminUsers } from "@/features/admin/hooks/users";
 import { cn } from "@/lib/utils";
 
-const chartHeights = [40, 60, 55, 80, 95, 70, 45, 30, 50, 85, 65, 75];
-
-const simulatorRows = [
-  {
-    id: "#SD-TBS-01",
-    location: "თბილისი, ვაკე",
-    status: "online" as const,
-    latency: "12ms",
-  },
-  {
-    id: "#SD-BTM-02",
-    location: "ბათუმი, პორტი",
-    status: "online" as const,
-    latency: "24ms",
-  },
-  {
-    id: "#SD-KUT-01",
-    location: "ქუთაისი, ცენტრი",
-    status: "offline" as const,
-    latency: "—",
-  },
-];
+const dayLabels = ["ორშ", "სამ", "ოთხ", "ხუთ", "პარ", "შაბ", "კვ"];
 
 export function AdminDashboardOverview() {
-  const { data } = useAdminUsers();
-  const users = data?.users ?? [];
-  const activeCount = users.filter((u) => u.accessStatus === "ACTIVE").length;
-  const pendingCount = users.filter((u) => u.accessStatus === "PENDING").length;
-  const blockedCount = users.filter((u) => u.accessStatus === "BLOCKED").length;
-  const total = users.length;
+  const { data: statsData, isLoading: statsLoading } = useAdminStats();
+  const { data: usersData } = useAdminUsers();
+  const users = usersData?.users ?? [];
+
+  const stats = statsData ?? {
+    users: { total: 0, active: 0, pending: 0, blocked: 0 },
+    routes: { total: 0, published: 0, system: 0, withVoice: 0 },
+    registrationsByDay: [],
+    routesList: [],
+  };
+
+  const pendingCount = stats.users.pending;
+  const blockedCount = stats.users.blocked;
 
   const recentUsers = [...users]
     .sort(
@@ -58,6 +41,12 @@ export function AdminDashboardOverview() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 4);
+
+  const chartCounts = stats.registrationsByDay.map((item) => item.count);
+  const chartMax = Math.max(...chartCounts, 1);
+
+  const publishedRoutes = stats.routesList.filter((r) => r.isPublished).length;
+  const draftRoutes = stats.routesList.length - publishedRoutes;
 
   return (
     <div className="space-y-6">
@@ -88,44 +77,47 @@ export function AdminDashboardOverview() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="ჯამური შემოსავალი"
-          value="₾ 458,200"
+          label="დარეგისტრირებული ინსტრუქტორები"
+          value={statsLoading ? "…" : String(stats.users.total)}
           hint={
-            <span className="flex items-center text-xs font-bold text-green-400">
-              <ArrowUpRight className="size-3" /> 12%
+            <span className="text-xs text-muted-foreground">
+              მოლოდინში: {stats.users.pending}
             </span>
           }
-          icon={<Wallet className="size-5 text-primary" />}
+          icon={<Users className="size-5 text-primary" />}
           iconClassName="bg-primary/10"
         />
         <StatCard
-          label="აქტიური ლიცენზიები"
-          value={String(activeCount || 1240)}
+          label="აქტიური წვდომა"
+          value={statsLoading ? "…" : String(stats.users.active)}
           hint={
             <span className="text-xs text-muted-foreground">
-              მთლიანი: {total || 1500}
+              მთლიანი: {stats.users.total}
             </span>
           }
-          icon={<KeyRound className="size-5 text-secondary-foreground" />}
+          icon={<BadgeCheck className="size-5 text-green-400" />}
+          iconClassName="bg-green-500/10"
+        />
+        <StatCard
+          label="მარშრუტები"
+          value={statsLoading ? "…" : String(stats.routes.total)}
+          hint={
+            <span className="text-xs text-muted-foreground">
+              გამოქვეყნებული: {stats.routes.published}
+            </span>
+          }
+          icon={<Route className="size-5 text-secondary-foreground" />}
           iconClassName="bg-secondary/40"
         />
         <StatCard
-          label="სისტემის მდგომარეობა"
-          value="99.9%"
-          hint={<span className="text-xs text-muted-foreground">Uptime</span>}
-          trailing={
-            <div className="status-pulse size-3 rounded-full bg-green-500 text-green-500" />
-          }
-        />
-        <StatCard
-          label="აქტიური სიმულაციები"
-          value="84"
+          label="საგამოცდო მარშრუტები"
+          value={statsLoading ? "…" : String(stats.routes.system)}
           hint={
-            <span className="animate-pulse text-xs font-bold text-primary">
-              LIVE
+            <span className="text-xs text-muted-foreground">
+              ხმოვანი ბრძანებით: {stats.routes.withVoice}
             </span>
           }
-          icon={<Rocket className="size-5 text-muted-foreground" />}
+          icon={<MapPin className="size-5 text-muted-foreground" />}
           iconClassName="bg-white/5"
         />
       </div>
@@ -134,32 +126,32 @@ export function AdminDashboardOverview() {
         <div className="glass-panel glow-border rounded-2xl p-6 lg:col-span-2">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-semibold">სისტემის დატვირთვა</h3>
-              <p className="text-xs text-muted-foreground">ბოლო 24 საათი</p>
+              <h3 className="text-xl font-semibold">ახალი რეგისტრაციები</h3>
+              <p className="text-xs text-muted-foreground">ბოლო 7 დღე</p>
             </div>
-            <select className="rounded-lg border-none bg-surface-high px-3 py-1 text-xs text-foreground focus:ring-1 focus:ring-primary/30">
-              <option>დღიური</option>
-              <option>კვირეული</option>
-            </select>
           </div>
           <div className="flex h-64 items-end gap-2 px-2">
-            {chartHeights.map((height, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex-1 cursor-pointer rounded-t-sm bg-primary/20 transition-colors hover:bg-primary",
-                  index === 4 && "bg-primary/40",
-                )}
-                style={{ height: `${height}%` }}
-              />
-            ))}
+            {stats.registrationsByDay.map((item) => {
+              const height = Math.round((item.count / chartMax) * 100);
+              return (
+                <div
+                  key={item.date}
+                  className={cn(
+                    "flex-1 rounded-t-sm bg-primary/20 transition-colors hover:bg-primary",
+                    item.count > 0 && "bg-primary/40",
+                  )}
+                  style={{ height: `${Math.max(height, item.count > 0 ? 8 : 4)}%` }}
+                  title={`${item.date}: ${item.count}`}
+                />
+              );
+            })}
           </div>
           <div className="mt-4 flex justify-between text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-            <span>00:00</span>
-            <span>06:00</span>
-            <span>12:00</span>
-            <span>18:00</span>
-            <span>23:59</span>
+            {stats.registrationsByDay.map((item, index) => (
+              <span key={item.date}>
+                {dayLabels[index] ?? item.date.slice(5)}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -171,16 +163,14 @@ export function AdminDashboardOverview() {
             label="მომხმარებლების მართვა"
           />
           <QuickAction
-            href="#"
-            icon={<LineChart className="size-5 text-secondary-foreground" />}
-            label="ანგარიშის გენერირება"
-            disabled
+            href="/admin/routes"
+            icon={<Route className="size-5 text-secondary-foreground" />}
+            label="მარშრუტების მართვა"
           />
           <QuickAction
-            href="#"
-            icon={<Cloud className="size-5 text-muted-foreground" />}
-            label="სისტემის განახლება"
-            disabled
+            href="/marshrutebi"
+            icon={<MapPin className="size-5 text-muted-foreground" />}
+            label="საჯარო მარშრუტები"
           />
           <div className="pt-2">
             <div className="rounded-xl border border-primary/20 bg-primary-container/20 p-4">
@@ -190,7 +180,9 @@ export function AdminDashboardOverview() {
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {pendingCount > 0
                   ? `${pendingCount} ინსტრუქტორი ელოდება წვდომის გახსნას. გადადი მომხმარებლების გვერდზე.`
-                  : "ოპტიმიზაცია რეკომენდებულია ბათუმის კვანძისთვის, სადაც ლატენტურობა გაიზარდა 15%-ით ბოლო 1 საათში."}
+                  : stats.routes.total === 0
+                    ? "მარშრუტები ჯერ არ არის. დაამატე საგამოცდო მარშრუტი ან გააკეთე იმპორტი."
+                    : `${stats.routes.published} გამოქვეყნებული მარშრუტი ხელმისაწვდომია საიტზე.`}
               </p>
             </div>
           </div>
@@ -198,15 +190,18 @@ export function AdminDashboardOverview() {
 
         <div className="glass-panel glow-border overflow-hidden rounded-2xl lg:col-span-2">
           <div className="flex items-center justify-between border-b border-white/5 bg-white/5 p-6">
-            <h3 className="text-xl font-semibold">სიმულატორების სტატუსი</h3>
+            <h3 className="text-xl font-semibold">მარშრუტები</h3>
             <div className="flex gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-400">
                 <span className="size-1.5 rounded-full bg-green-500" />
-                12 Online
+                {publishedRoutes} გამოქვეყნებული
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-medium text-red-400">
-                <span className="size-1.5 rounded-full bg-red-500" />1 Offline
-              </span>
+              {draftRoutes > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                  <span className="size-1.5 rounded-full bg-amber-500" />
+                  {draftRoutes} დრაფტი
+                </span>
+              ) : null}
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -214,54 +209,68 @@ export function AdminDashboardOverview() {
               <thead>
                 <tr className="border-b border-white/5 text-muted-foreground">
                   <th className="px-6 py-4 text-[10px] font-medium tracking-wider uppercase">
-                    Node ID
+                    სახელი
                   </th>
                   <th className="px-6 py-4 text-[10px] font-medium tracking-wider uppercase">
-                    Location
+                    ქალაქი
                   </th>
                   <th className="px-6 py-4 text-[10px] font-medium tracking-wider uppercase">
-                    Status
+                    სტატუსი
                   </th>
                   <th className="px-6 py-4 text-[10px] font-medium tracking-wider uppercase">
-                    Latency
+                    ბრძანებები
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {simulatorRows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="transition-colors hover:bg-white/5"
-                  >
-                    <td className="px-6 py-4 font-mono text-primary">
-                      {row.id}
-                    </td>
-                    <td className="px-6 py-4">{row.location}</td>
-                    <td className="px-6 py-4">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            "size-2 rounded-full",
-                            row.status === "online"
-                              ? "bg-green-500"
-                              : "animate-pulse bg-red-500",
-                          )}
-                        />
-                        {row.status === "online" ? "Online" : "Offline"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {row.latency}
+                {stats.routesList.length > 0 ? (
+                  stats.routesList.map((route) => (
+                    <tr
+                      key={route.id}
+                      className="transition-colors hover:bg-white/5"
+                    >
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/admin/routes/${route.id}`}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {route.title}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">{route.city ?? "—"}</td>
+                      <td className="px-6 py-4">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "size-2 rounded-full",
+                              route.isPublished ? "bg-green-500" : "bg-amber-500",
+                            )}
+                          />
+                          {route.isPublished ? "გამოქვეყნებული" : "დრაფტი"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {route.stepsCount} ბრძანება · {route.pathPoints} წერტილი
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-8 text-center text-muted-foreground"
+                    >
+                      მარშრუტები ჯერ არ არის
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
         <div className="glass-panel glow-border flex h-full flex-col rounded-2xl p-6">
-          <h3 className="mb-6 text-xl font-semibold">ადმინისტრაციული ლოგები</h3>
+          <h3 className="mb-6 text-xl font-semibold">ბოლო რეგისტრაციები</h3>
           <div className="admin-scrollbar flex-1 space-y-6 overflow-y-auto pr-2">
             {recentUsers.length > 0 ? (
               recentUsers.map((user) => (
@@ -274,33 +283,9 @@ export function AdminDashboardOverview() {
                 />
               ))
             ) : (
-              <>
-                <LogItem
-                  icon={<UserPlus className="size-4 text-primary" />}
-                  iconClassName="bg-primary/10"
-                  title="ახალი ინსტრუქტორის დამატება"
-                  meta="2 წუთის წინ • გიორგი მ."
-                />
-                <LogItem
-                  icon={<RefreshCw className="size-4 text-blue-400" />}
-                  iconClassName="bg-blue-500/10"
-                  title="სისტემის განახლება v2.4.0"
-                  meta="1 საათის წინ • Auto System"
-                />
-                <LogItem
-                  icon={<AlertTriangle className="size-4 text-red-400" />}
-                  iconClassName="bg-red-500/10"
-                  title="კრიტიკული შეცდომა"
-                  titleClassName="text-red-400"
-                  meta="3 საათის წინ • ქუთაისის კვანძი"
-                />
-                <LogItem
-                  icon={<BadgeCheck className="size-4 text-green-400" />}
-                  iconClassName="bg-green-500/10"
-                  title="ახალი ლიცენზიის აქტივაცია"
-                  meta="5 საათის წინ • დავით კ."
-                />
-              </>
+              <p className="text-sm text-muted-foreground">
+                ინსტრუქტორები ჯერ არ არის დარეგისტრირებული.
+              </p>
             )}
             {blockedCount > 0 ? (
               <LogItem

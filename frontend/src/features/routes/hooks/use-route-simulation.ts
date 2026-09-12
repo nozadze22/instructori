@@ -142,7 +142,16 @@ const MOVING_SPEED_THRESHOLD_KMH = 3;
 const VOICE_CATCH_UP_M = 160;
 /** Speak at the pin; this small buffer covers GPS jitter. */
 const PIN_VOICE_APPROACH_M = 25;
+/** Ignore pins farther ahead on the route (covers 300 m warning cues). */
+const VOICE_LOOKAHEAD_M = 350;
 const VOICE_PREFETCH_AHEAD_M = 80;
+
+function isInAlongRouteSpeakWindow(remainingMeters: number) {
+  return (
+    remainingMeters >= -VOICE_CATCH_UP_M &&
+    remainingMeters <= VOICE_LOOKAHEAD_M
+  );
+}
 
 function isVoiceCueDueAtPin(options: {
   distanceToPinMeters: number;
@@ -151,6 +160,10 @@ function isVoiceCueDueAtPin(options: {
 }) {
   const { distanceToPinMeters: dist, alongRemainingMeters: remaining, previousAlongRemainingMeters: previous } = options;
 
+  if (!isInAlongRouteSpeakWindow(remaining)) {
+    return false;
+  }
+
   if (dist <= PIN_VOICE_APPROACH_M) {
     return true;
   }
@@ -158,7 +171,8 @@ function isVoiceCueDueAtPin(options: {
   if (
     previous != null &&
     previous > PIN_VOICE_APPROACH_M &&
-    remaining < -VOICE_CATCH_UP_M &&
+    remaining < 0 &&
+    remaining >= -VOICE_CATCH_UP_M &&
     dist <= VOICE_CATCH_UP_M
   ) {
     return true;
@@ -510,37 +524,22 @@ export function useRouteSimulation(options: {
       setActiveCommandIndex(null);
     }
 
-    if (nearRouteForVoice) {
-      const due = commandsRef.current
-        .map((command) => {
-          const pinPoint = { lat: command.lat, lng: command.lng };
-          const distanceToPin = haversineMeters(point, pinPoint);
-          const snapped = closestOnPath(pathRef.current, pinPoint);
-          const alongRemaining = snapped.alongMeters - along.alongMeters;
-          const previousAlongRemaining =
-            lastAlong == null ? null : snapped.alongMeters - lastAlong;
+    if (nearRouteForVoice && upcoming) {
+      const snapped = closestOnPath(pathRef.current, upcoming.command);
+      const previousAlongRemaining =
+        lastAlong == null ? null : snapped.alongMeters - lastAlong;
 
-          return {
-            command,
-            distanceToPin,
-            alongRemaining,
-            previousAlongRemaining,
-          };
+      if (
+        Boolean(upcoming.command.voiceText.trim()) &&
+        !spokenRef.current.has(upcoming.command.id) &&
+        !pendingSpeakRef.current.has(upcoming.command.id) &&
+        isVoiceCueDueAtPin({
+          distanceToPinMeters: upcoming.distanceToPin,
+          alongRemainingMeters: upcoming.remaining,
+          previousAlongRemainingMeters: previousAlongRemaining,
         })
-        .filter(
-          ({ command, distanceToPin, alongRemaining, previousAlongRemaining }) =>
-            Boolean(command.voiceText.trim()) &&
-            !spokenRef.current.has(command.id) &&
-            !pendingSpeakRef.current.has(command.id) &&
-            isVoiceCueDueAtPin({
-              distanceToPinMeters: distanceToPin,
-              alongRemainingMeters: alongRemaining,
-              previousAlongRemainingMeters: previousAlongRemaining,
-            }),
-        )
-        .sort((a, b) => a.distanceToPin - b.distanceToPin);
-
-      for (const { command } of due) {
+      ) {
+        const { command } = upcoming;
         pendingSpeakRef.current.add(command.id);
         setCurrentVoice(command.voiceText);
         void speakPrompt({
