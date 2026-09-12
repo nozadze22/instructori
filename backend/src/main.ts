@@ -31,9 +31,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.FLY_APP_NAME
-    ? 8080
-    : Number(process.env.PORT ?? 4000);
+  const port = Number(process.env.PORT ?? 4000);
   await app.listen(port, '0.0.0.0');
 }
 void bootstrap();

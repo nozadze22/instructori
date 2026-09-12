@@ -31,6 +31,28 @@ type RouteMapViewProps = {
 
 const TBILISI = { lat: 41.7151, lng: 44.7833 };
 
+/** Hide POI / road labels during live nav — they flicker when the camera jitters. */
+const NAVIGATION_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative.locality", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ visibility: "simplified" }] },
+];
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function lerpAngle(from: number, to: number, t: number) {
+  const diff = ((to - from + 540) % 360) - 180;
+  return (from + diff * t + 360) % 360;
+}
+
+function lerpPoint(a: PathPoint, b: PathPoint, t: number): PathPoint {
+  return { lat: lerp(a.lat, b.lat, t), lng: lerp(a.lng, b.lng, t) };
+}
+
 function ResizeMap() {
   const map = useMap();
 
@@ -77,57 +99,70 @@ function FitBounds({
   return null;
 }
 
-function NavCamera({
+function applyNavCamera(
+  map: google.maps.Map,
+  center: PathPoint,
+  heading: number,
+) {
+  const camera = {
+    center,
+    zoom: 18,
+    tilt: 47,
+    heading,
+  };
+
+  const googleMap = map as google.maps.Map & {
+    moveCamera?: (cam: typeof camera) => void;
+  };
+
+  if (typeof googleMap.moveCamera === "function") {
+    googleMap.moveCamera(camera);
+    return;
+  }
+
+  map.setCenter(center);
+  map.setZoom(18);
+  if (typeof map.setTilt === "function") map.setTilt(47);
+  if (typeof map.setHeading === "function") map.setHeading(heading);
+}
+
+function NavigationFollow({
   position,
   headingDeg,
   enabled,
+  showVehicle,
 }: {
   position?: PathPoint | null;
   headingDeg: number;
   enabled: boolean;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!map || !enabled || !position) return;
-
-    const camera = {
-      center: position,
-      zoom: 18,
-      tilt: 47,
-      heading: headingDeg,
-    };
-
-    const googleMap = map as google.maps.Map & {
-      moveCamera?: (cam: typeof camera) => void;
-    };
-
-    if (typeof googleMap.moveCamera === "function") {
-      googleMap.moveCamera(camera);
-      return;
-    }
-
-    map.setCenter(position);
-    map.setZoom(18);
-    if (typeof map.setTilt === "function") map.setTilt(47);
-    if (typeof map.setHeading === "function") map.setHeading(headingDeg);
-  }, [map, enabled, position, headingDeg]);
-
-  return null;
-}
-
-function VehicleArrow({
-  position,
-  headingDeg,
-}: {
-  position: PathPoint;
-  headingDeg: number;
+  showVehicle: boolean;
 }) {
   const map = useMap();
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const smoothedRef = useRef<{ center: PathPoint; heading: number } | null>(
+    null,
+  );
+  const targetRef = useRef<{ center: PathPoint; heading: number } | null>(null);
+  const enabledRef = useRef(enabled);
+
+  enabledRef.current = enabled;
 
   useEffect(() => {
-    if (!map || typeof google === "undefined") return;
+    if (!position) return;
+    targetRef.current = { center: position, heading: headingDeg };
+    if (!smoothedRef.current) {
+      smoothedRef.current = { center: position, heading: headingDeg };
+    }
+  }, [position, headingDeg]);
+
+  useEffect(() => {
+    if (!enabled) {
+      smoothedRef.current = null;
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!map || !showVehicle || typeof google === "undefined") return;
 
     const marker = new google.maps.Marker({
       map,
@@ -140,23 +175,57 @@ function VehicleArrow({
       marker.setMap(null);
       markerRef.current = null;
     };
-  }, [map]);
+  }, [map, showVehicle]);
 
   useEffect(() => {
-    const marker = markerRef.current;
-    if (!marker || typeof google === "undefined") return;
-    marker.setPosition(position);
-    marker.setIcon({
-      path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-      scale: 7,
-      fillColor: "#1a73e8",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeWeight: 2.5,
-      rotation: headingDeg,
-      anchor: new google.maps.Point(0, 2.6),
-    });
-  }, [position, headingDeg]);
+    if (!map) return;
+
+    let raf = 0;
+
+    const tick = () => {
+      if (enabledRef.current && targetRef.current) {
+        const target = targetRef.current;
+
+        if (!smoothedRef.current) {
+          smoothedRef.current = { ...target };
+        }
+
+        const smooth = smoothedRef.current;
+        const latDelta = Math.abs(target.center.lat - smooth.center.lat);
+        const lngDelta = Math.abs(target.center.lng - smooth.center.lng);
+        const snap = latDelta > 0.0008 || lngDelta > 0.0008;
+
+        smooth.center = snap
+          ? target.center
+          : lerpPoint(smooth.center, target.center, 0.16);
+        smooth.heading = snap
+          ? target.heading
+          : lerpAngle(smooth.heading, target.heading, 0.1);
+
+        applyNavCamera(map, smooth.center, smooth.heading);
+
+        const marker = markerRef.current;
+        if (marker && typeof google !== "undefined") {
+          marker.setPosition(smooth.center);
+          marker.setIcon({
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 7,
+            fillColor: "#1a73e8",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2.5,
+            rotation: smooth.heading,
+            anchor: new google.maps.Point(0, 2.6),
+          });
+        }
+      }
+
+      raf = window.requestAnimationFrame(tick);
+    };
+
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [map]);
 
   return null;
 }
@@ -192,13 +261,15 @@ function RouteMapViewInner({
       style={{ width: "100%", height: "100%", display: "block" }}
       clickableIcons={false}
       colorScheme="DARK"
+      styles={navigationMode ? NAVIGATION_MAP_STYLES : undefined}
     >
       <ResizeMap />
       <FitBounds path={path} enabled={!navigationMode} />
-      <NavCamera
+      <NavigationFollow
         position={vehiclePosition}
         headingDeg={headingDeg ?? 0}
         enabled={Boolean(navigationMode && followVehicle)}
+        showVehicle={Boolean(showVehicleMarker && navigationMode && vehiclePosition)}
       />
 
       {traveled.length >= 2 ? (
@@ -259,10 +330,6 @@ function RouteMapViewInner({
           position={{ lat: nextCommand.lat, lng: nextCommand.lng }}
           title={nextCommand.label ?? actionLabel(nextCommand.action)}
         />
-      ) : null}
-
-      {showVehicleMarker && vehiclePosition && navigationMode ? (
-        <VehicleArrow position={vehiclePosition} headingDeg={headingDeg ?? 0} />
       ) : null}
 
       {showVehicleMarker && vehiclePosition && !navigationMode ? (
