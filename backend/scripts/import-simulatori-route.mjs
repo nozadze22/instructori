@@ -19,6 +19,7 @@ import { readFileSync } from 'fs';
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { createRequire } from 'module';
 import { OFFICIAL_EXAM_ROUTE_DESCRIPTION } from './exam-route-description.mjs';
+import { voiceFromKind } from './simulatori-voice-text.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -97,44 +98,6 @@ function inferActionFromKind(kind) {
   if (k.includes('turn-left') || k.includes('roundabout-left')) return 'TURN_LEFT';
   if (k.includes('turn-right') || k.includes('roundabout-right')) return 'TURN_RIGHT';
   return 'CUSTOM';
-}
-
-function voiceFromKind(kind) {
-  const k = String(kind ?? '');
-  if (!k) return null;
-
-  const prefix = k.includes('300m')
-    ? '300 მეტრში '
-    : k.includes('soon')
-      ? 'მალე '
-      : '';
-
-  if (k.includes('move-straight')) {
-    return 'შემდეგ მინიშნებამდე გთხოვთ იმოძრაოთ პირდაპირ';
-  }
-  if (k.includes('roundabout-straight')) {
-    return `${prefix}წრიულ გზაჯვარედინზე გაიარეთ პირდაპირ.`;
-  }
-  if (k.includes('roundabout-left-left')) {
-    return `${prefix}წრიულ გზაჯვარედინზე მოუხვიეთ მარცხნივ და კიდევ მარცხნივ.`;
-  }
-  if (k.includes('roundabout-left')) {
-    return `${prefix}წრიულ გზაჯვარედინზე მოუხვიეთ მარცხნივ.`;
-  }
-  if (k.includes('roundabout-right')) {
-    return `${prefix}წრიულ გზაჯვარედინზე მოუხვიეთ მარჯვნივ.`;
-  }
-  if (k.includes('turn-left-left')) {
-    return `${prefix}მოუხვიეთ მარცხნივ და კიდევ მარცხნივ.`;
-  }
-  if (k.includes('turn-left')) {
-    return `${prefix}მოუხვიეთ მარცხნივ.`;
-  }
-  if (k.includes('turn-right')) {
-    return `${prefix}მოუხვიეთ მარჯვნივ.`;
-  }
-
-  return null;
 }
 
 function normalizePoint(raw) {

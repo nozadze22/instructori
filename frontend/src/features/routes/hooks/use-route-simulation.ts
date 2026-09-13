@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { postNavigationTick } from "@/features/routes/api/routes";
 import { requestWakeLock, releaseWakeLock } from "@/hooks/use-wake-lock";
@@ -15,7 +15,14 @@ type SimCommand = {
   action: RouteAction;
   voiceText: string;
   distanceBeforeVoice: number;
+  alongRouteMeters?: number | null;
 };
+
+type ResolvedSimCommand = SimCommand & {
+  alongRouteMeters: number;
+};
+
+const STEP_ALONG_MATCH_M = 30;
 
 type GeoErrorKind = "unsupported" | "denied" | "unavailable" | "timeout" | null;
 
@@ -192,18 +199,88 @@ function isVoiceCueDueAtPin(options: {
   return false;
 }
 
-function pickUpcomingCommand(
+/** Loop-safe: walk the path forward so geographically reused pins stay ordered. */
+function resolveCommandsAlongRoute(
   path: PathPoint[],
   commands: SimCommand[],
+): ResolvedSimCommand[] {
+  if (!path.length || !commands.length) return [];
+
+  let floorMeters = 0;
+
+  return commands.map((command) => {
+    if (
+      command.alongRouteMeters != null &&
+      Number.isFinite(command.alongRouteMeters)
+    ) {
+      floorMeters = Math.max(floorMeters, command.alongRouteMeters);
+      return { ...command, alongRouteMeters: command.alongRouteMeters };
+    }
+
+    let walked = 0;
+    let matchedAlong: number | null = null;
+    let inMatchWindow = false;
+    let windowBestDist = Number.POSITIVE_INFINITY;
+    let windowBestAlong = floorMeters;
+
+    for (let i = 0; i < path.length - 1; i += 1) {
+      const segmentStart = path[i];
+      const segmentEnd = path[i + 1];
+      const segmentLen = haversineMeters(segmentStart, segmentEnd);
+      const samples = Math.max(1, Math.ceil(segmentLen / 5));
+
+      for (let s = 0; s <= samples; s += 1) {
+        const t = s / samples;
+        const along = walked + segmentLen * t;
+        if (along < floorMeters - 5) continue;
+
+        const candidate = {
+          lat: segmentStart.lat + (segmentEnd.lat - segmentStart.lat) * t,
+          lng: segmentStart.lng + (segmentEnd.lng - segmentStart.lng) * t,
+        };
+        const distToCommand = haversineMeters(candidate, command);
+
+        if (distToCommand <= STEP_ALONG_MATCH_M) {
+          inMatchWindow = true;
+          if (distToCommand < windowBestDist) {
+            windowBestDist = distToCommand;
+            windowBestAlong = along;
+          }
+          continue;
+        }
+
+        if (inMatchWindow && distToCommand > windowBestDist + 5) {
+          matchedAlong = windowBestAlong;
+          break;
+        }
+      }
+
+      if (matchedAlong != null) break;
+      walked += segmentLen;
+    }
+
+    const alongRouteMeters =
+      matchedAlong ??
+      (inMatchWindow
+        ? windowBestAlong
+        : Math.max(floorMeters, closestOnPath(path, command).alongMeters));
+    floorMeters = alongRouteMeters;
+
+    return { ...command, alongRouteMeters };
+  });
+}
+
+function pickUpcomingCommand(
+  path: PathPoint[],
+  resolvedCommands: ResolvedSimCommand[],
   alongMeters: number,
   currentPoint: PathPoint,
 ) {
   let bestIndex = -1;
   let bestRemaining = Infinity;
 
-  for (let i = 0; i < commands.length; i += 1) {
-    const snapped = closestOnPath(path, commands[i]);
-    const remaining = snapped.alongMeters - alongMeters;
+  for (let i = 0; i < resolvedCommands.length; i += 1) {
+    const remaining = resolvedCommands[i].alongRouteMeters - alongMeters;
     if (remaining < -PASSED_STEP_BUFFER_M) continue;
     if (remaining < bestRemaining) {
       bestRemaining = remaining;
@@ -213,7 +290,7 @@ function pickUpcomingCommand(
 
   if (bestIndex < 0) return null;
 
-  const command = commands[bestIndex];
+  const command = resolvedCommands[bestIndex];
   const distanceToPin = haversineMeters(currentPoint, {
     lat: command.lat,
     lng: command.lng,
@@ -654,13 +731,18 @@ export function useRouteSimulation(options: {
   const [traveledPath, setTraveledPath] = useState<PathPoint[]>([]);
   const [audioBlocked, setAudioBlocked] = useState(false);
 
+  const resolvedCommands = useMemo(
+    () => resolveCommandsAlongRoute(path, commands),
+    [path, commands],
+  );
+
   const spokenRef = useRef<Set<string>>(new Set());
   const pendingSpeakRef = useRef<Set<string>>(new Set());
   const lastAlongRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const runningRef = useRef(false);
   const pathRef = useRef(path);
-  const commandsRef = useRef(commands);
+  const commandsRef = useRef(resolvedCommands);
   const routeIdRef = useRef(routeId);
   const navTickInFlightRef = useRef(false);
   const lastNavTickTsRef = useRef(0);
@@ -669,9 +751,9 @@ export function useRouteSimulation(options: {
 
   useEffect(() => {
     pathRef.current = path;
-    commandsRef.current = commands;
+    commandsRef.current = resolvedCommands;
     routeIdRef.current = routeId;
-  }, [path, commands, routeId]);
+  }, [path, resolvedCommands, routeId]);
 
   const cumulative = buildCumulative(path);
   const totalLength = cumulative[cumulative.length - 1] ?? 0;
@@ -817,9 +899,10 @@ export function useRouteSimulation(options: {
     }
 
     if (nearRouteForVoice && upcoming) {
-      const snapped = closestOnPath(pathRef.current, upcoming.command);
       const previousAlongRemaining =
-        lastAlong == null ? null : snapped.alongMeters - lastAlong;
+        lastAlong == null
+          ? null
+          : upcoming.command.alongRouteMeters - lastAlong;
 
       if (
         Boolean(upcoming.command.voiceText.trim()) &&

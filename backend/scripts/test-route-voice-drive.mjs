@@ -6,6 +6,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { voiceFromKind } from './simulatori-voice-text.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -119,21 +120,6 @@ function pickUpcomingCommand(path, commands, alongMeters, currentPoint) {
     remaining: bestRemaining,
     distanceToPin,
   };
-}
-
-function voiceFromKind(kind) {
-  const k = String(kind ?? '');
-  if (!k) return null;
-  const prefix = k.includes('300m') ? '300 მეტრში ' : k.includes('soon') ? 'მალე ' : '';
-  if (k.includes('move-straight')) return 'შემდეგ მინიშნებამდე გთხოვთ იმოძრაოთ პირდაპირ';
-  if (k.includes('roundabout-straight')) return `${prefix}წრიულ გზაჯვარედინზე გაიარეთ პირდაპირ.`;
-  if (k.includes('roundabout-left-left')) return `${prefix}წრიულ გზაჯვარედინზე მოუხვიეთ მარცხნივ და კიდევ მარცხნივ.`;
-  if (k.includes('roundabout-left')) return `${prefix}წრიულ გზაჯვარედინზე მოუხვიეთ მარცხნივ.`;
-  if (k.includes('roundabout-right')) return `${prefix}წრიულ გზაჯვარედინზე მოუხვიეთ მარჯვნივ.`;
-  if (k.includes('turn-left-left')) return `${prefix}მოუხვიეთ მარცხნივ და კიდევ მარცხნივ.`;
-  if (k.includes('turn-left')) return `${prefix}მოუხვიეთ მარცხნივ.`;
-  if (k.includes('turn-right')) return `${prefix}მოუხვიეთ მარჯვნივ.`;
-  return null;
 }
 
 function classifyKind(kind) {

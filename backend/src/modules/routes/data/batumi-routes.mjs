@@ -1,6 +1,6 @@
 /**
  * Batumi official exam routes (B category).
- * Route 1 geometry comes from prod digitization; routes 2–3 use
+ * Route 1 geometry comes from prod digitization; route 2 from simulatori.ge; route 3 uses
  * PDF map waypoints interpolated along driving segments.
  * Refine paths in Route Builder with «მარშრუტის აგება» when Directions API billing is on.
  */
@@ -59,22 +59,6 @@ function step(order, point, action, voiceText) {
   };
 }
 
-/** Route 2 — coastal loop via Abashidze & Khimshiashvili (PDF page 25). */
-const route2Waypoints = [
-  { lat: 41.63132, lng: 41.63506, label: 'start' },
-  { lat: 41.6324, lng: 41.6338, label: 'orbeliani' },
-  { lat: 41.6342, lng: 41.6325, label: 'abashidze' },
-  { lat: 41.6375, lng: 41.6318, label: 'abashidze-n' },
-  { lat: 41.6428, lng: 41.6362, label: 'khimshiashvili' },
-  { lat: 41.6442, lng: 41.6315, label: 'coast-mid' },
-  { lat: 41.6415, lng: 41.6248, label: 'kaczynski' },
-  { lat: 41.6388, lng: 41.6225, label: 'coast-turn' },
-  { lat: 41.6442, lng: 41.6315, label: 'coast-return' },
-  { lat: 41.6428, lng: 41.6362, label: 'khimshiashvili-back' },
-  { lat: 41.6342, lng: 41.6325, label: 'abashidze-back' },
-  { lat: 41.63132, lng: 41.63506, label: 'finish' },
-];
-
 /** Route 3 — Lermontov / Griboedov loop (PDF page 26). */
 const route3Waypoints = [
   { lat: 41.62995, lng: 41.63175, label: 'start' },
@@ -104,23 +88,12 @@ export const BATUMI_ROUTES = [
   },
   {
     sourceKey: 'batumi-2',
+    existingRouteId: '0c4aac82-4483-4221-b386-80dc5a8a9b5c',
     title: 'ბათუმი — საგამოცდო მარშრუტი №2',
     city: 'ბათუმი',
     description: OFFICIAL_EXAM_ROUTE_DESCRIPTION,
     sourceUrl: SA_SOURCE_URL,
-    path: toPathJson(interpolatePath(route2Waypoints)),
-    steps: [
-      step(0, route2Waypoints[1], 'CUSTOM', 'შემდეგ მინიშნებამდე გთხოვთ იმოძრაოთ პირდაპირ'),
-      step(1, route2Waypoints[2], 'TURN_RIGHT', '300 მეტრში მოუხვიეთ მარჯვნივ.'),
-      step(2, route2Waypoints[3], 'CUSTOM', 'შემდეგ მინიშნებამდე გთხოვთ იმოძრაოთ პირდაპირ'),
-      step(3, route2Waypoints[4], 'TURN_LEFT', '300 მეტრში მოუხვიეთ მარცხნივ.'),
-      step(4, route2Waypoints[5], 'CUSTOM', 'შემდეგ მინიშნებამდე გთხოვთ იმოძრაოთ პირდაპირ'),
-      step(5, route2Waypoints[6], 'TURN_RIGHT', '300 მეტრში მოუხვიეთ მარჯვნივ.'),
-      step(6, route2Waypoints[7], 'U_TURN', '90 მეტრში შეაბრუნეთ.'),
-      step(7, route2Waypoints[9], 'TURN_RIGHT', 'მალე მოუხვიეთ მარჯვნივ'),
-      step(8, route2Waypoints[10], 'TURN_LEFT', '300 მეტრში მოუხვიეთ მარცხნივ.'),
-      step(9, route2Waypoints[11], 'PARKING', 'მოახლოვდით საწყის წერტილს. დაიწყეთ დაპარკინგება.'),
-    ],
+    updateOnly: true,
   },
   {
     sourceKey: 'batumi-3',
