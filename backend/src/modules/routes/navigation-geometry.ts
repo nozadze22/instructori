@@ -7,6 +7,12 @@ export type RouteStepLike = {
   action: string;
   voiceText: string | null;
   distanceBeforeVoice: number;
+  /** Meters from route start when known (e.g. simulatori import). */
+  alongRouteMeters?: number | null;
+};
+
+export type ResolvedRouteStep = RouteStepLike & {
+  alongRouteMeters: number;
 };
 
 export type UpcomingStep = {
@@ -170,6 +176,90 @@ export function closestOnPath(
   return { alongMeters: bestAlong, distMeters: bestDist };
 }
 
+/** Pin match radius when walking the path forward (loop-safe). */
+const STEP_ALONG_MATCH_METERS = 30;
+
+/**
+ * Assign each command a fixed along-route position. Loop routes revisit the
+ * same geography — geographic closestOnPath alone snaps to the wrong lap.
+ */
+export function resolveStepsAlongRoute(
+  path: PathPoint[],
+  steps: RouteStepLike[],
+): ResolvedRouteStep[] {
+  if (!path.length || !steps.length) return [];
+
+  let floorMeters = 0;
+
+  return steps.map((step) => {
+    if (
+      step.alongRouteMeters != null &&
+      Number.isFinite(step.alongRouteMeters)
+    ) {
+      floorMeters = Math.max(floorMeters, step.alongRouteMeters);
+      return { ...step, alongRouteMeters: step.alongRouteMeters };
+    }
+
+    let walked = 0;
+    let matchedAlong: number | null = null;
+    let inMatchWindow = false;
+    let windowBestDist = Number.POSITIVE_INFINITY;
+    let windowBestAlong = floorMeters;
+
+    for (let i = 0; i < path.length - 1; i += 1) {
+      const segmentStart = path[i];
+      const segmentEnd = path[i + 1];
+      const segmentLen = distanceMeters(segmentStart, segmentEnd);
+      const samples = Math.max(1, Math.ceil(segmentLen / 5));
+
+      for (let s = 0; s <= samples; s += 1) {
+        const t = s / samples;
+        const along = walked + segmentLen * t;
+        if (along < floorMeters - 5) continue;
+
+        const candidate = {
+          lat: segmentStart.lat + (segmentEnd.lat - segmentStart.lat) * t,
+          lng: segmentStart.lng + (segmentEnd.lng - segmentStart.lng) * t,
+        };
+        const distToStep = distanceMeters(candidate, {
+          lat: step.lat,
+          lng: step.lng,
+        });
+
+        if (distToStep <= STEP_ALONG_MATCH_METERS) {
+          inMatchWindow = true;
+          if (distToStep < windowBestDist) {
+            windowBestDist = distToStep;
+            windowBestAlong = along;
+          }
+          continue;
+        }
+
+        if (inMatchWindow && distToStep > windowBestDist + 5) {
+          matchedAlong = windowBestAlong;
+          break;
+        }
+      }
+
+      if (matchedAlong != null) break;
+      walked += segmentLen;
+    }
+
+    const alongRouteMeters =
+      matchedAlong ??
+      (inMatchWindow
+        ? windowBestAlong
+        : Math.max(
+            floorMeters,
+            closestOnPath(path, { lat: step.lat, lng: step.lng }).alongMeters,
+          ));
+    floorMeters = alongRouteMeters;
+
+    return { ...step, alongRouteMeters };
+  });
+}
+
+/** First command in route order that is not too far behind the car. */
 export function findUpcomingStep(
   currentPoint: PathPoint,
   path: PathPoint[],
@@ -178,27 +268,24 @@ export function findUpcomingStep(
   if (!path.length || !steps.length) return null;
 
   const current = closestOnPath(path, currentPoint);
-  let best: UpcomingStep | null = null;
+  const resolved = resolveStepsAlongRoute(path, steps);
 
-  for (const step of steps) {
-    const along = closestOnPath(path, { lat: step.lat, lng: step.lng });
-    const remainingMeters = along.alongMeters - current.alongMeters;
+  for (const step of resolved) {
+    const remainingMeters = step.alongRouteMeters - current.alongMeters;
     if (remainingMeters < -PASSED_STEP_BUFFER_METERS) continue;
 
-    if (!best || remainingMeters < best.remainingMeters) {
-      const distanceToPinMeters = distanceMeters(currentPoint, {
-        lat: step.lat,
-        lng: step.lng,
-      });
-      best = {
-        step,
-        remainingMeters,
-        inVoiceRange:
-          isInAlongRouteSpeakWindow(remainingMeters) &&
-          distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
-      };
-    }
+    const distanceToPinMeters = distanceMeters(currentPoint, {
+      lat: step.lat,
+      lng: step.lng,
+    });
+    return {
+      step,
+      remainingMeters,
+      inVoiceRange:
+        isInAlongRouteSpeakWindow(remainingMeters) &&
+        distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
+    };
   }
 
-  return best;
+  return null;
 }
