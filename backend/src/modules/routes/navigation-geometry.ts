@@ -259,6 +259,7 @@ export function resolveStepsAlongRoute(
   });
 }
 
+/** First command in route order that is not too far behind the car. */
 export function findUpcomingStep(
   currentPoint: PathPoint,
   path: PathPoint[],
@@ -268,26 +269,23 @@ export function findUpcomingStep(
 
   const current = closestOnPath(path, currentPoint);
   const resolved = resolveStepsAlongRoute(path, steps);
-  let best: UpcomingStep | null = null;
 
   for (const step of resolved) {
     const remainingMeters = step.alongRouteMeters - current.alongMeters;
     if (remainingMeters < -PASSED_STEP_BUFFER_METERS) continue;
 
-    if (!best || remainingMeters < best.remainingMeters) {
-      const distanceToPinMeters = distanceMeters(currentPoint, {
-        lat: step.lat,
-        lng: step.lng,
-      });
-      best = {
-        step,
-        remainingMeters,
-        inVoiceRange:
-          isInAlongRouteSpeakWindow(remainingMeters) &&
-          distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
-      };
-    }
+    const distanceToPinMeters = distanceMeters(currentPoint, {
+      lat: step.lat,
+      lng: step.lng,
+    });
+    return {
+      step,
+      remainingMeters,
+      inVoiceRange:
+        isInAlongRouteSpeakWindow(remainingMeters) &&
+        distanceToPinMeters <= PIN_VOICE_APPROACH_METERS,
+    };
   }
 
-  return best;
+  return null;
 }
