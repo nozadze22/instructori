@@ -231,12 +231,18 @@ let activeAudio: HTMLAudioElement | null = null;
 let speakEpoch = 0;
 let speakChain: Promise<void> = Promise.resolve();
 let audioUnlocked = false;
+let keepAliveActive = false;
+let navigationAudioActive = false;
 const ttsUrlCache = new Map<string, string>();
 let sharedAudioContext: AudioContext | null = null;
-let unlockAudioElement: HTMLAudioElement | null = null;
+/** Dedicated silent loop — never reused for TTS (iOS requires separation). */
+let keepAliveAudioElement: HTMLAudioElement | null = null;
+/** TTS / voice playback only. */
+let playbackAudioElement: HTMLAudioElement | null = null;
 
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+const MIN_PLAYED_RATIO = 0.75;
 
 export class AudioBlockedError extends Error {
   constructor() {
@@ -252,38 +258,148 @@ function isAutoplayBlocked(error: unknown) {
   );
 }
 
-function prepareUnlockAudioElement() {
-  if (typeof window === "undefined") return null;
-  if (!unlockAudioElement) {
-    unlockAudioElement = new Audio();
-    unlockAudioElement.setAttribute("playsinline", "true");
-    unlockAudioElement.preload = "auto";
-  }
-  return unlockAudioElement;
-}
-
-function configurePlaybackAudio(audio: HTMLAudioElement) {
+function configureIosAudioElement(audio: HTMLAudioElement) {
   audio.setAttribute("playsinline", "true");
   audio.preload = "auto";
+  (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+}
+
+function getKeepAliveAudioElement() {
+  if (typeof window === "undefined") return null;
+  if (!keepAliveAudioElement) {
+    keepAliveAudioElement = new Audio();
+    configureIosAudioElement(keepAliveAudioElement);
+  }
+  return keepAliveAudioElement;
+}
+
+function getPlaybackAudioElement() {
+  if (typeof window === "undefined") return null;
+  if (!playbackAudioElement) {
+    playbackAudioElement = new Audio();
+    configureIosAudioElement(playbackAudioElement);
+  }
+  return playbackAudioElement;
+}
+
+async function primeAudioElement(audio: HTMLAudioElement) {
+  audio.loop = false;
+  audio.src = SILENT_WAV;
+  audio.volume = 0.01;
+  audio.muted = false;
+  audio.currentTime = 0;
+  await audio.play();
+  audio.pause();
+  audio.currentTime = 0;
+}
+
+/** Call synchronously from a user gesture (e.g. Start click) — required on iOS. */
+function unlockAudioFromUserGesture(): void {
+  if (typeof window === "undefined") return;
+
+  const playback = getPlaybackAudioElement();
+  const keepAlive = getKeepAliveAudioElement();
+  if (!playback) return;
+
+  playback.loop = false;
+  playback.src = SILENT_WAV;
+  playback.volume = 0.01;
+  playback.muted = false;
+  playback.currentTime = 0;
+
+  void playback
+    .play()
+    .then(() => {
+      playback.pause();
+      playback.currentTime = 0;
+      audioUnlocked = true;
+      if (keepAlive) {
+        keepAlive.loop = false;
+        keepAlive.src = SILENT_WAV;
+        keepAlive.volume = 0.01;
+        keepAlive.muted = false;
+        keepAlive.currentTime = 0;
+        void keepAlive
+          .play()
+          .then(() => {
+            keepAlive.pause();
+            keepAlive.currentTime = 0;
+          })
+          .catch(() => undefined);
+      }
+      if (navigationAudioActive) {
+        void startAudioKeepAlive();
+      }
+    })
+    .catch(() => {
+      audioUnlocked = false;
+    });
+}
+
+async function resumeSharedAudioContext() {
+  if (!sharedAudioContext || sharedAudioContext.state !== "suspended") return;
+  try {
+    await sharedAudioContext.resume();
+  } catch {
+    // Retry on next visibility change.
+  }
+}
+
+async function startAudioKeepAlive() {
+  if (!navigationAudioActive || !audioUnlocked || keepAliveActive) return;
+
+  const audio = getKeepAliveAudioElement();
+  if (!audio) return;
+
+  audio.loop = true;
+  audio.volume = 0.001;
+  audio.muted = false;
+  audio.src = SILENT_WAV;
+
+  try {
+    await audio.play();
+    keepAliveActive = true;
+  } catch {
+    keepAliveActive = false;
+  }
+}
+
+function stopAudioKeepAlive() {
+  keepAliveActive = false;
+  const audio = keepAliveAudioElement;
+  if (!audio) return;
+  audio.pause();
+  audio.loop = false;
+  audio.currentTime = 0;
+  audio.removeAttribute("src");
+  audio.load();
 }
 
 export async function unlockAudioPlayback(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  if (audioUnlocked) return true;
+  if (audioUnlocked) {
+    await resumeSharedAudioContext();
+    if (navigationAudioActive) {
+      await startAudioKeepAlive();
+    }
+    return true;
+  }
 
   let unlocked = false;
 
   try {
-    const audio = prepareUnlockAudioElement();
-    if (audio) {
-      audio.src = SILENT_WAV;
-      audio.volume = 0.01;
-      audio.muted = false;
-      audio.currentTime = 0;
-      await audio.play();
-      audio.pause();
-      audio.currentTime = 0;
+    const playback = getPlaybackAudioElement();
+    const keepAlive = getKeepAliveAudioElement();
+    if (playback) {
+      await primeAudioElement(playback);
       unlocked = true;
+    }
+    if (keepAlive) {
+      try {
+        await primeAudioElement(keepAlive);
+      } catch {
+        // Playback unlock is enough; keepalive retries later.
+      }
     }
   } catch {
     // Fall through to Web Audio unlock.
@@ -315,14 +431,19 @@ export async function unlockAudioPlayback(): Promise<boolean> {
 
   if (unlocked) {
     audioUnlocked = true;
+    if (navigationAudioActive) {
+      await startAudioKeepAlive();
+    }
   }
   return unlocked;
 }
 
 function stopAudio() {
   speakEpoch += 1;
+  stopAudioKeepAlive();
   if (activeAudio) {
     activeAudio.pause();
+    activeAudio.loop = false;
     activeAudio.src = "";
     activeAudio = null;
   }
@@ -340,6 +461,7 @@ function speakBrowser(text: string) {
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = synth.getVoices();
   const preferred =
+    voices.find((voice) => voice.lang.toLowerCase().startsWith("ka")) ??
     voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) ??
     voices[0];
 
@@ -347,10 +469,11 @@ function speakBrowser(text: string) {
     utterance.voice = preferred;
     utterance.lang = preferred.lang;
   } else {
-    utterance.lang = "en-US";
+    utterance.lang = "ka-GE";
   }
 
-  utterance.rate = 0.95;
+  utterance.rate = 0.92;
+  utterance.pitch = 0.95;
   utterance.volume = 1;
   window.setTimeout(() => synth.speak(utterance), 80);
   return true;
@@ -394,37 +517,76 @@ async function speakGeorgianMp3(text: string) {
     ttsUrlCache.set(text, url);
   }
 
-  const audio = new Audio(url);
-  configurePlaybackAudio(audio);
+  const audio = getPlaybackAudioElement();
+  if (!audio) {
+    throw new Error("Audio playback unavailable");
+  }
+
+  audio.loop = false;
+  audio.volume = 1;
+  audio.muted = false;
+  audio.src = url;
   activeAudio = audio;
 
   await new Promise<void>((resolve, reject) => {
-    audio.onended = () => {
+    let settled = false;
+    const finish = (handler: () => void) => {
+      if (settled) return;
+      settled = true;
       if (activeAudio === audio) activeAudio = null;
-      resolve();
+      handler();
+    };
+
+    audio.onended = () => {
+      const duration = audio.duration;
+      const playedRatio =
+        duration > 0 && Number.isFinite(duration)
+          ? audio.currentTime / duration
+          : 1;
+      if (playedRatio < MIN_PLAYED_RATIO) {
+        finish(() => reject(new Error("Audio interrupted")));
+        return;
+      }
+      finish(resolve);
     };
     audio.onerror = () => {
-      if (activeAudio === audio) activeAudio = null;
-      reject(new Error("Audio playback failed"));
+      finish(() => reject(new Error("Audio playback failed")));
     };
 
     const tryPlay = (attempt: number) => {
-      void audio.play().catch((error: unknown) => {
-        if (isAutoplayBlocked(error)) {
-          audioUnlocked = false;
-          reject(new AudioBlockedError());
-          return;
-        }
-        if (attempt < 2) {
-          window.setTimeout(() => tryPlay(attempt + 1), 120);
-          return;
-        }
-        reject(error instanceof Error ? error : new Error("Audio playback failed"));
-      });
+      void audio
+        .play()
+        .then(() => {
+          if (audio.paused) {
+            throw new Error("Audio paused after play");
+          }
+        })
+        .catch((error: unknown) => {
+          if (isAutoplayBlocked(error)) {
+            audioUnlocked = false;
+            finish(() => reject(new AudioBlockedError()));
+            return;
+          }
+          if (attempt < 2) {
+            window.setTimeout(() => tryPlay(attempt + 1), 120);
+            return;
+          }
+          finish(() =>
+            reject(
+              error instanceof Error
+                ? error
+                : new Error("Audio playback failed"),
+            ),
+          );
+        });
     };
 
     tryPlay(0);
   });
+
+  if (navigationAudioActive && audioUnlocked) {
+    await startAudioKeepAlive();
+  }
 }
 
 async function speakPrompt(options: {
@@ -445,9 +607,11 @@ async function speakPrompt(options: {
       } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
         if (error instanceof AudioBlockedError) throw error;
-        const fallback =
-          action != null ? englishVoiceText(action) : "Navigation cue.";
-        if (!speakBrowser(fallback)) throw new Error("voice failed");
+        if (!speakBrowser(voiceText)) {
+          const fallback =
+            action != null ? englishVoiceText(action) : "Navigation cue.";
+          if (!speakBrowser(fallback)) throw new Error("voice failed");
+        }
       }
     });
 
@@ -528,9 +692,11 @@ export function useRouteSimulation(options: {
 
   const stop = useCallback(() => {
     runningRef.current = false;
+    navigationAudioActive = false;
     setRunning(false);
     setFollowCamera(false);
     stopWatch();
+    stopAudioKeepAlive();
     void releaseWakeLock();
   }, [stopWatch]);
 
@@ -554,7 +720,8 @@ export function useRouteSimulation(options: {
   }, [stop]);
 
   const unlockAudio = useCallback(async () => {
-    const ok = await unlockAudioPlayback();
+    unlockAudioFromUserGesture();
+    const ok = audioUnlocked || (await unlockAudioPlayback());
     if (!unmountedRef.current) {
       setAudioBlocked(!ok);
     }
@@ -565,7 +732,8 @@ export function useRouteSimulation(options: {
     async (text: string, meta?: { action?: RouteAction }) => {
       if (!text.trim()) return;
 
-      const ok = await unlockAudioPlayback();
+      unlockAudioFromUserGesture();
+      const ok = audioUnlocked || (await unlockAudioPlayback());
       if (!unmountedRef.current) {
         setAudioBlocked(!ok);
       }
@@ -673,6 +841,9 @@ export function useRouteSimulation(options: {
           .then(() => {
             spokenRef.current.add(command.id);
             setPassedCount(spokenRef.current.size);
+            if (!unmountedRef.current) {
+              setAudioBlocked(false);
+            }
           })
           .catch((error) => {
             pendingSpeakRef.current.delete(command.id);
@@ -727,15 +898,13 @@ export function useRouteSimulation(options: {
     }
 
     runningRef.current = true;
+    navigationAudioActive = true;
     setRunning(true);
     setFollowCamera(true);
     setGeoError(null);
+    setAudioBlocked(false);
+    unlockAudioFromUserGesture();
     void requestWakeLock();
-    void unlockAudioPlayback().then((ok) => {
-      if (!unmountedRef.current) {
-        setAudioBlocked(!ok);
-      }
-    });
     spokenRef.current = new Set();
     pendingSpeakRef.current = new Set();
     lastAlongRef.current = null;
@@ -756,11 +925,42 @@ export function useRouteSimulation(options: {
         timeout: 15000,
       },
     );
+
+    window.setTimeout(() => {
+      if (!unmountedRef.current && runningRef.current) {
+        setAudioBlocked(!audioUnlocked);
+      }
+    }, 400);
   }, [applyFix, stopWatch]);
+
+  useEffect(() => {
+    if (!running) return;
+
+    const restoreAudioSession = () => {
+      if (document.visibilityState !== "visible" || !runningRef.current) return;
+
+      void resumeSharedAudioContext();
+      if (audioUnlocked) {
+        void startAudioKeepAlive();
+      }
+      void requestWakeLock();
+    };
+
+    document.addEventListener("visibilitychange", restoreAudioSession);
+    window.addEventListener("pageshow", restoreAudioSession);
+    window.addEventListener("focus", restoreAudioSession);
+
+    return () => {
+      document.removeEventListener("visibilitychange", restoreAudioSession);
+      window.removeEventListener("pageshow", restoreAudioSession);
+      window.removeEventListener("focus", restoreAudioSession);
+    };
+  }, [running]);
 
   useEffect(
     () => () => {
       unmountedRef.current = true;
+      navigationAudioActive = false;
       stop();
       stopAudio();
     },
