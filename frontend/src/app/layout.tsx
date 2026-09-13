@@ -55,7 +55,10 @@ export default function RootLayout({
       className={`${notoSansGeorgian.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col font-sans">
+      <body
+        className="flex min-h-full flex-col font-sans"
+        suppressHydrationWarning
+      >
         <AppSerwistProvider>
           <Providers>
             <AppChrome>{children}</AppChrome>

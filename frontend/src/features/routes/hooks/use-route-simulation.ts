@@ -340,6 +340,7 @@ function speakBrowser(text: string) {
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = synth.getVoices();
   const preferred =
+    voices.find((voice) => voice.lang.toLowerCase().startsWith("ka")) ??
     voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) ??
     voices[0];
 
@@ -347,10 +348,11 @@ function speakBrowser(text: string) {
     utterance.voice = preferred;
     utterance.lang = preferred.lang;
   } else {
-    utterance.lang = "en-US";
+    utterance.lang = "ka-GE";
   }
 
-  utterance.rate = 0.95;
+  utterance.rate = 0.92;
+  utterance.pitch = 0.95;
   utterance.volume = 1;
   window.setTimeout(() => synth.speak(utterance), 80);
   return true;
@@ -445,9 +447,11 @@ async function speakPrompt(options: {
       } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
         if (error instanceof AudioBlockedError) throw error;
-        const fallback =
-          action != null ? englishVoiceText(action) : "Navigation cue.";
-        if (!speakBrowser(fallback)) throw new Error("voice failed");
+        if (!speakBrowser(voiceText)) {
+          const fallback =
+            action != null ? englishVoiceText(action) : "Navigation cue.";
+          if (!speakBrowser(fallback)) throw new Error("voice failed");
+        }
       }
     });
 

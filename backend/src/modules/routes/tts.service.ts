@@ -7,6 +7,16 @@ const MAX_TEXT_LENGTH = 500;
 const TTS_TIMEOUT_MS = 20_000;
 const CACHE_LIMIT = 80;
 const GEORGIAN_VOICE = 'ka-GE-EkaNeural';
+/** Bump when voice/format/prosody changes so cached audio is regenerated. */
+const TTS_PROFILE = 'v2-soft-96k';
+const TTS_OUTPUT_FORMAT = OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3;
+const TTS_PROSODY = {
+  /** Slightly slower — clearer, softer instructor-style delivery. */
+  rate: 0.92,
+  /** Slightly lower pitch — fuller, warmer tone. */
+  pitch: '-2Hz',
+  volume: 100,
+} as const;
 
 @Injectable()
 export class TtsService {
@@ -22,18 +32,17 @@ export class TtsService {
       throw new BadRequestException('ტექსტი ძალიან გრძელია');
     }
 
-    const key = createHash('sha1').update(normalized).digest('hex');
+    const key = createHash('sha1')
+      .update(`${TTS_PROFILE}:${normalized}`)
+      .digest('hex');
     const cached = this.cache.get(key);
     if (cached) return cached;
 
     const tts = new MsEdgeTTS();
     try {
-      await tts.setMetadata(
-        GEORGIAN_VOICE,
-        OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3,
-      );
+      await tts.setMetadata(GEORGIAN_VOICE, TTS_OUTPUT_FORMAT);
 
-      const { audioStream } = tts.toStream(normalized);
+      const { audioStream } = tts.toStream(normalized, TTS_PROSODY);
       const buffer = await this.readStream(audioStream);
 
       if (buffer.length < 64) {
