@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import {
   closestOnPath,
   distanceMeters,
@@ -149,6 +152,33 @@ describe('closestOnPath', () => {
     const snapped = closestOnPath(path, { lat: 42.151, lng: 41.6702 });
     expect(snapped.alongMeters).toBeGreaterThan(0);
     expect(snapped.distMeters).toBeLessThan(30);
+  });
+
+  it('prefers the earliest lap on loop routes when GPS is near the start', () => {
+    const raw = JSON.parse(
+      readFileSync(
+        join(__dirname, '../../../data/simulatori/batumi-2.json'),
+        'utf8',
+      ),
+    ) as { points: Array<{ lat: number; lng: number }> };
+    const loopPath = raw.points.map((point) => ({
+      lat: point.lat,
+      lng: point.lng,
+    }));
+    const gpsNearStart = {
+      lat: loopPath[0].lat + 0.00015,
+      lng: loopPath[0].lng + 0.00015,
+    };
+
+    const globalSnap = closestOnPath(loopPath, gpsNearStart);
+    const forwardSnap = closestOnPath(loopPath, gpsNearStart, {
+      floorMeters: 0,
+      onRouteThresholdMeters: 35,
+    });
+
+    expect(globalSnap.alongMeters).toBeGreaterThan(1000);
+    expect(forwardSnap.alongMeters).toBeLessThan(50);
+    expect(forwardSnap.distMeters).toBeLessThanOrEqual(35);
   });
 });
 

@@ -632,7 +632,11 @@ export class RoutesService {
       };
     }
 
-    const upcoming = findUpcomingStep(currentPoint, path, route.steps);
+    const floorMeters = dto.distanceAlongMeters ?? 0;
+    const upcoming = findUpcomingStep(currentPoint, path, route.steps, {
+      floorMeters,
+      onRouteThresholdMeters: onRouteThresholdMeters,
+    });
     const nextStep =
       upcoming?.inVoiceRange === true ? upcoming.step : null;
 
