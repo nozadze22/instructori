@@ -280,6 +280,13 @@ export class NavigationTickDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
+  @Max(500_000)
+  distanceAlongMeters?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   @Min(1)
   @Max(30)
   onRouteThresholdMeters?: number;

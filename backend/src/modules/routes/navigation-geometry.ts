@@ -139,6 +139,10 @@ export function distanceToPolylineMeters(point: PathPoint, path: PathPoint[]) {
 export function closestOnPath(
   path: PathPoint[],
   point: PathPoint,
+  options?: {
+    floorMeters?: number;
+    onRouteThresholdMeters?: number;
+  },
 ): { alongMeters: number; distMeters: number } {
   if (!path.length) {
     return { alongMeters: 0, distMeters: Number.POSITIVE_INFINITY };
@@ -147,8 +151,13 @@ export function closestOnPath(
     return { alongMeters: 0, distMeters: distanceMeters(point, path[0]) };
   }
 
-  let bestDist = Number.POSITIVE_INFINITY;
-  let bestAlong = 0;
+  const floorMeters = options?.floorMeters ?? 0;
+  const onRouteThresholdMeters = options?.onRouteThresholdMeters;
+
+  let globalBestDist = Number.POSITIVE_INFINITY;
+  let globalBestAlong = floorMeters;
+  let thresholdBestAlong: number | null = null;
+  let thresholdBestDist = Number.POSITIVE_INFINITY;
   let walked = 0;
 
   for (let i = 0; i < path.length - 1; i += 1) {
@@ -163,17 +172,35 @@ export function closestOnPath(
       lengthSq === 0
         ? 0
         : Math.max(0, Math.min(1, (p.x * end.x + p.y * end.y) / lengthSq));
+    const along = walked + segmentLen * t;
     const dist = Math.hypot(p.x - t * end.x, p.y - t * end.y);
 
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestAlong = walked + segmentLen * t;
+    if (along >= floorMeters - 1) {
+      if (
+        onRouteThresholdMeters != null &&
+        dist <= onRouteThresholdMeters &&
+        (thresholdBestAlong == null ||
+          along < thresholdBestAlong ||
+          (Math.abs(along - thresholdBestAlong) < 1 && dist < thresholdBestDist))
+      ) {
+        thresholdBestAlong = along;
+        thresholdBestDist = dist;
+      }
+
+      if (dist < globalBestDist) {
+        globalBestDist = dist;
+        globalBestAlong = along;
+      }
     }
 
     walked += segmentLen;
   }
 
-  return { alongMeters: bestAlong, distMeters: bestDist };
+  if (thresholdBestAlong != null) {
+    return { alongMeters: thresholdBestAlong, distMeters: thresholdBestDist };
+  }
+
+  return { alongMeters: globalBestAlong, distMeters: globalBestDist };
 }
 
 /** Pin match radius when walking the path forward (loop-safe). */
@@ -264,10 +291,14 @@ export function findUpcomingStep(
   currentPoint: PathPoint,
   path: PathPoint[],
   steps: RouteStepLike[],
+  options?: {
+    floorMeters?: number;
+    onRouteThresholdMeters?: number;
+  },
 ): UpcomingStep | null {
   if (!path.length || !steps.length) return null;
 
-  const current = closestOnPath(path, currentPoint);
+  const current = closestOnPath(path, currentPoint, options);
   const resolved = resolveStepsAlongRoute(path, steps);
 
   for (const step of resolved) {

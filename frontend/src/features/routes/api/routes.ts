@@ -84,6 +84,7 @@ export type NavigationTickInput = {
   lat: number;
   lng: number;
   speedKmh: number;
+  distanceAlongMeters?: number;
   onRouteThresholdMeters?: number;
   movingSpeedThresholdKmh?: number;
 };

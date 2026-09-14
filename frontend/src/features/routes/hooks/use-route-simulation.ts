@@ -47,6 +47,7 @@ function buildCumulative(path: PathPoint[]) {
   return distances;
 }
 
+/** Global closest point — used for static pin matching only. */
 function closestOnPath(path: PathPoint[], point: PathPoint) {
   if (path.length === 0) {
     return { closest: point, alongMeters: 0, distMeters: Infinity };
@@ -86,6 +87,87 @@ function closestOnPath(path: PathPoint[], point: PathPoint) {
   }
 
   return { closest: bestPoint, alongMeters: bestAlong, distMeters: bestDist };
+}
+
+/**
+ * Loop-safe GPS snap: among on-route matches ahead of the car, pick the earliest
+ * along-route position (exam routes revisit the same streets).
+ */
+function closestOnPathForward(
+  path: PathPoint[],
+  point: PathPoint,
+  floorMeters: number,
+  onRouteThresholdMeters: number,
+) {
+  if (path.length === 0) {
+    return { closest: point, alongMeters: floorMeters, distMeters: Infinity };
+  }
+  if (path.length === 1) {
+    return {
+      closest: path[0],
+      alongMeters: 0,
+      distMeters: haversineMeters(point, path[0]),
+    };
+  }
+
+  let globalBestDist = Infinity;
+  let globalBestAlong = floorMeters;
+  let globalBestPoint = path[0];
+  let thresholdBestAlong: number | null = null;
+  let thresholdBestDist = Infinity;
+  let thresholdBestPoint = path[0];
+  let walked = 0;
+
+  for (let i = 1; i < path.length; i += 1) {
+    const a = path[i - 1];
+    const b = path[i];
+    const ab = haversineMeters(a, b);
+    const steps = Math.max(8, Math.ceil(ab / 8));
+    for (let s = 0; s <= steps; s += 1) {
+      const t = s / steps;
+      const along = walked + ab * t;
+      if (along < floorMeters - 1) continue;
+
+      const candidate = {
+        lat: a.lat + (b.lat - a.lat) * t,
+        lng: a.lng + (b.lng - a.lng) * t,
+      };
+      const dist = haversineMeters(point, candidate);
+
+      if (dist <= onRouteThresholdMeters) {
+        if (
+          thresholdBestAlong == null ||
+          along < thresholdBestAlong ||
+          (Math.abs(along - thresholdBestAlong) < 1 && dist < thresholdBestDist)
+        ) {
+          thresholdBestAlong = along;
+          thresholdBestDist = dist;
+          thresholdBestPoint = candidate;
+        }
+      }
+
+      if (dist < globalBestDist) {
+        globalBestDist = dist;
+        globalBestAlong = along;
+        globalBestPoint = candidate;
+      }
+    }
+    walked += ab;
+  }
+
+  if (thresholdBestAlong != null) {
+    return {
+      closest: thresholdBestPoint,
+      alongMeters: thresholdBestAlong,
+      distMeters: thresholdBestDist,
+    };
+  }
+
+  return {
+    closest: globalBestPoint,
+    alongMeters: globalBestAlong,
+    distMeters: globalBestDist,
+  };
 }
 
 function bearingDeg(from: PathPoint, to: PathPoint) {
@@ -877,8 +959,14 @@ export function useRouteSimulation(options: {
     lastFixRef.current = { point, ts };
     setSpeedKmh(speed);
 
-    const rawAlong = closestOnPath(pathRef.current, point);
-    const alongMeters = Math.max(lastAlongRef.current ?? 0, rawAlong.alongMeters);
+    const floorMeters = lastAlongRef.current ?? 0;
+    const rawAlong = closestOnPathForward(
+      pathRef.current,
+      point,
+      floorMeters,
+      ON_ROUTE_THRESHOLD_M,
+    );
+    const alongMeters = Math.max(floorMeters, rawAlong.alongMeters);
     const along = { ...rawAlong, alongMeters };
     setDistanceAlong(along.alongMeters);
     const sliced = slicePath(pathRef.current, along.alongMeters);
@@ -985,6 +1073,7 @@ export function useRouteSimulation(options: {
       lat: point.lat,
       lng: point.lng,
       speedKmh: speed,
+      distanceAlongMeters: along.alongMeters,
       onRouteThresholdMeters: ON_ROUTE_THRESHOLD_M,
       movingSpeedThresholdKmh: MOVING_SPEED_THRESHOLD_KMH,
     })
@@ -1021,7 +1110,7 @@ export function useRouteSimulation(options: {
     void requestWakeLock();
     spokenRef.current = new Set();
     pendingSpeakRef.current = new Set();
-    lastAlongRef.current = null;
+    lastAlongRef.current = 0;
 
     stopWatch();
     watchIdRef.current = navigator.geolocation.watchPosition(
