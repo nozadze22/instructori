@@ -280,6 +280,9 @@ async function main() {
     throw new Error('Could not find command steps in simulatori JSON');
   }
 
+  const { assertNotProductionDatabase } = await import('./lib/db-environment.mjs');
+  assertNotProductionDatabase(process.env.DATABASE_URL, 'import-simulatori-route');
+
   const { PrismaClient } = await loadPrisma();
   const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
   const prisma = new PrismaClient({ adapter });

@@ -13,6 +13,7 @@
 
 import 'dotenv/config';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { resolveProductionDatabaseUrl } from './lib/db-environment.mjs';
 
 function parseArgs(argv) {
   return {
@@ -156,17 +157,24 @@ async function copyRoutes(source, target, dryRun) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  const sourceUrl = process.env.SOURCE_DATABASE_URL?.trim();
-  const targetUrl = process.env.DATABASE_URL?.trim();
+  const sourceUrl =
+    process.env.SOURCE_DATABASE_URL?.trim() || process.env.DATABASE_URL?.trim();
+  const targetUrl = resolveProductionDatabaseUrl();
 
   if (!sourceUrl) {
-    throw new Error('SOURCE_DATABASE_URL is missing in .env (dev database).');
+    throw new Error(
+      'SOURCE_DATABASE_URL or DATABASE_URL is missing in .env (dev database).',
+    );
   }
   if (!targetUrl) {
-    throw new Error('DATABASE_URL is missing in .env (production database).');
+    throw new Error(
+      'PRODUCTION_DATABASE_URL is missing in .env (production target for sync).',
+    );
   }
   if (sourceUrl === targetUrl) {
-    throw new Error('SOURCE_DATABASE_URL and DATABASE_URL must be different.');
+    throw new Error(
+      'Dev and production URLs must differ (DATABASE_URL vs PRODUCTION_DATABASE_URL).',
+    );
   }
 
   const source = await loadPrisma(sourceUrl);

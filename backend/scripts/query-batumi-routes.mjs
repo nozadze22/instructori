@@ -1,21 +1,7 @@
-import 'dotenv/config';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-
-async function loadPrisma() {
-  try {
-    return require('../dist/src/generated/prisma/client.js');
-  } catch {
-    return require('../src/generated/prisma/client.js');
-  }
-}
+import { createDevPrisma } from './lib/load-dev-prisma.mjs';
 
 async function main() {
-  const { PrismaClient } = await loadPrisma();
-  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
-  const prisma = new PrismaClient({ adapter });
+  const prisma = await createDevPrisma('query-batumi-routes');
 
   const routes = await prisma.route.findMany({
     where: {

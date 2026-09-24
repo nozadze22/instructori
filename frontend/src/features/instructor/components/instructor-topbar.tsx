@@ -20,7 +20,7 @@ export function InstructorTopbar() {
           {me?.fullName ? `გამარჯობა, ${me.fullName.split(" ")[0]}` : "ინსტრუქტორი"}
         </p>
         <p className="truncate text-xs text-muted-foreground">
-          SimDrive Pro · Instructor
+          SimDrive Pro · ინსტრუქტორი
         </p>
       </div>
 

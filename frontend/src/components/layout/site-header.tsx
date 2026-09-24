@@ -20,7 +20,7 @@ export function SiteHeader() {
           href="/"
           className="text-xl font-semibold tracking-tight text-primary"
         >
-          SimDrive Pro
+          ინსტრუქტორი
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">

@@ -46,6 +46,8 @@ export type Route = {
   createdAt: string;
   updatedAt: string;
   steps: RouteStep[];
+  /** Present on catalog list responses (full steps omitted for speed). */
+  stepsCount?: number;
   createdBy: RouteCreatedBy;
   isSaved: boolean;
 };
@@ -158,8 +160,8 @@ export async function getPublicRoutes(
   const search = new URLSearchParams();
   if (params.q?.trim()) search.set("q", params.q.trim());
   if (params.city?.trim()) search.set("city", params.city.trim());
-  if (params.page && params.page > 1) search.set("page", String(params.page));
-  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  search.set("page", String(Math.max(1, params.page ?? 1)));
+  search.set("pageSize", String(Math.max(1, params.pageSize ?? 15)));
   const qs = search.toString();
   return apiRequest<PublicRoutesResponse>(
     `/public/routes${qs ? `?${qs}` : ""}`,

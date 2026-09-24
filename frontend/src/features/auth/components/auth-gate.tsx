@@ -36,20 +36,13 @@ export function AuthGate({
   useEffect(() => {
     if (isLoading) return;
     if (isError || !me) {
-      const replaced =
-        error instanceof SessionReplacedError ||
-        (error instanceof Error &&
-          /logged in on another device|invalid refresh token/i.test(
-            error.message,
-          ));
+      const replaced = error instanceof SessionReplacedError;
       router.replace(
         replaced
           ? `${loginRedirect}?reason=session_replaced`
           : loginRedirect,
       );
-      return;
-    }
-    if (!allowed) {
+    } else if (!allowed) {
       router.replace(redirectTo);
     }
   }, [allowed, error, isError, isLoading, loginRedirect, me, redirectTo, router]);

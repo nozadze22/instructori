@@ -39,7 +39,7 @@ export function Navbar({ className }: NavbarProps) {
             href={me ? appHomeForUser(me) : "/"}
             className="text-xl font-semibold tracking-tight text-primary"
           >
-            SimDrive Pro
+            ინსტრუქტორი
           </Link>
         </div>
 

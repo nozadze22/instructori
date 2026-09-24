@@ -93,9 +93,8 @@ const DEMO = {
 };
 
 async function main() {
-  const { PrismaClient } = await loadPrisma();
-  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
-  const prisma = new PrismaClient({ adapter });
+  const { createDevPrisma } = await import('./lib/load-dev-prisma.mjs');
+  const prisma = await createDevPrisma('seed-demo-route');
 
   const admin = await prisma.user.findFirst({
     where: { role: 'ADMIN' },

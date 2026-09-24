@@ -53,10 +53,10 @@ export function InstructorSidebar() {
           href="/dashboard"
           className="text-xl font-semibold tracking-tight text-primary"
         >
-          SimDrive Pro
+          ინსტრუქტორი
         </Link>
         <p className="mt-1 text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase opacity-70">
-          Instructor
+          SimDrive Pro
         </p>
       </div>
 
