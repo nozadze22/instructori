@@ -28,6 +28,7 @@ import {
   findUpcomingStep,
   type PathPoint,
 } from './navigation-geometry';
+import { RedisService } from '../../redis/redis.service';
 
 const routeInclude = {
   steps: {
@@ -62,12 +63,15 @@ function mapStepCreate(step: CreateRouteStepDto | CreateStepDto, index: number) 
 
 const DEFAULT_ON_ROUTE_THRESHOLD_METERS = 20;
 const DEFAULT_MOVING_SPEED_THRESHOLD_KMH = 3;
+/** Public catalog/detail cache TTL (Upstash). */
+const PUBLIC_ROUTES_CACHE_TTL_SEC = 120;
 
 @Injectable()
 export class RoutesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly examRegionsService: ExamRegionsService,
+    private readonly redis: RedisService,
   ) {}
 
   findCities() {
@@ -89,7 +93,54 @@ export class RoutesService {
     const search = query.q?.trim();
     const city = query.city?.trim();
 
-    const where: Prisma.RouteWhereInput = {
+    type CatalogPayload = {
+      items: Array<Record<string, unknown> & { id: string; isSaved?: boolean }>;
+      total: number;
+      page: number;
+      pageSize: number;
+      cities: string[];
+    };
+
+    const cacheKey = await this.redis.catalogKey({
+      q: search,
+      city,
+      page,
+      pageSize,
+    });
+    const cached = await this.redis.getJson<CatalogPayload>(cacheKey);
+
+    let payload: CatalogPayload;
+    if (cached) {
+      payload = cached;
+    } else {
+      payload = await this.buildPublicCatalog({
+        search,
+        city,
+        page,
+        pageSize,
+        skip,
+      });
+      await this.redis.setJson(cacheKey, payload, PUBLIC_ROUTES_CACHE_TTL_SEC);
+    }
+
+    if (!userId || !payload.items.length) {
+      return payload;
+    }
+
+    const withSaved = await this.withSavedFlags(userId, payload.items);
+    return { ...payload, items: withSaved };
+  }
+
+  private async buildPublicCatalog(options: {
+    search?: string;
+    city?: string;
+    page: number;
+    pageSize: number;
+    skip: number;
+  }) {
+    const { search, city, page, pageSize, skip } = options;
+
+    const baseWhere: Prisma.RouteWhereInput = {
       visibility: 'SYSTEM',
       isPublished: true,
       ...(city ? { city } : {}),
@@ -109,80 +160,147 @@ export class RoutesService {
         : {}),
     };
 
-    const matchedRoutes = await this.prisma.route.findMany({
-      where,
-      include: routeInclude,
-    });
-
-    const visibleRoutes = await this.examRegionsService.filterPublicRoutes(
-      matchedRoutes,
-    );
-
     const compareKa = (a: string, b: string) =>
       a.localeCompare(b, 'ka', { sensitivity: 'base', numeric: true });
 
-    const sortedRoutes = [...visibleRoutes].sort((left, right) => {
+    const [indexRows, cityRows] = await Promise.all([
+      this.prisma.route.findMany({
+        where: baseWhere,
+        select: {
+          id: true,
+          title: true,
+          city: true,
+          sourceKey: true,
+        },
+        orderBy: [{ city: 'asc' }, { title: 'asc' }],
+      }),
+      this.prisma.route.findMany({
+        where: { visibility: 'SYSTEM', isPublished: true },
+        select: { city: true, sourceKey: true },
+      }),
+    ]);
+
+    const visibleIndex = await this.examRegionsService.filterPublicRoutes(
+      indexRows,
+    );
+    const visibleCities = await this.examRegionsService.filterPublicRoutes(
+      cityRows,
+    );
+
+    const cities = [
+      ...new Set(
+        visibleCities
+          .map((route) => route.city?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ].sort(compareKa);
+
+    const sortedIndex = [...visibleIndex].sort((left, right) => {
       const cityCompare = compareKa(left.city ?? '\uFFFF', right.city ?? '\uFFFF');
       if (cityCompare !== 0) return cityCompare;
       return compareKa(left.title, right.title);
     });
 
-    const total = sortedRoutes.length;
-    const pageItems = sortedRoutes.slice(skip, skip + pageSize);
-    const itemsWithSaved = userId
-      ? await this.withSavedFlags(userId, pageItems)
-      : pageItems.map((route) => ({
-          ...route,
-          isSaved: false,
-          createdBy: {
-            ...route.createdBy,
-            email: '',
+    const total = sortedIndex.length;
+    const pageIds = sortedIndex.slice(skip, skip + pageSize).map((row) => row.id);
+
+    if (pageIds.length === 0) {
+      return { items: [], total, page, pageSize, cities };
+    }
+
+    const pageRoutes = await this.prisma.route.findMany({
+      where: { id: { in: pageIds } },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        city: true,
+        sourceKey: true,
+        sourceUrl: true,
+        visibility: true,
+        isPublished: true,
+        createdById: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
           },
-        }));
+        },
+        _count: { select: { steps: true } },
+      },
+    });
+
+    const byId = new Map(pageRoutes.map((route) => [route.id, route]));
+    const orderedPage = pageIds
+      .map((id) => byId.get(id))
+      .filter((route): route is (typeof pageRoutes)[number] => Boolean(route));
 
     return {
-      items: itemsWithSaved.map((route) => ({
-        ...route,
-        createdBy: {
-          ...route.createdBy,
-          email: '',
-        },
-      })),
+      items: orderedPage.map((route) => {
+        const { _count, createdBy, ...rest } = route;
+        return {
+          ...rest,
+          path: [],
+          steps: [],
+          stepsCount: _count.steps,
+          isSaved: false,
+          createdBy: {
+            ...createdBy,
+            email: '',
+          },
+        };
+      }),
       total,
       page,
       pageSize,
-      cities: [...new Set(sortedRoutes.map((route) => route.city).filter(Boolean))]
-        .filter((value): value is string => Boolean(value))
-        .sort(compareKa),
+      cities,
     };
   }
 
   async findPublicRoute(routeId: string, userId?: string) {
-    const route = await this.prisma.route.findUnique({
-      where: { id: routeId },
-      include: routeInclude,
-    });
-
-    if (!route || route.visibility !== 'SYSTEM' || !route.isPublished) {
-      throw new NotFoundException('Route not found');
-    }
-
-    const isVisible = await this.examRegionsService.isRoutePubliclyVisible(route);
-    if (!isVisible) {
-      throw new NotFoundException('Route not found');
-    }
-
-    const [withSaved] = userId
-      ? await this.withSavedFlags(userId, [route])
-      : [{ ...route, isSaved: false }];
-
-    return {
-      ...withSaved,
-      createdBy: {
-        ...withSaved.createdBy,
-        email: '',
-      },
+    const cacheKey = await this.redis.detailKey(routeId);
+    type DetailPayload = Record<string, unknown> & {
+      id: string;
+      createdBy: { email?: string; [key: string]: unknown };
+      isSaved?: boolean;
     };
+
+    let payload = await this.redis.getJson<DetailPayload>(cacheKey);
+    if (!payload) {
+      const route = await this.prisma.route.findUnique({
+        where: { id: routeId },
+        include: routeInclude,
+      });
+
+      if (!route || route.visibility !== 'SYSTEM' || !route.isPublished) {
+        throw new NotFoundException('Route not found');
+      }
+
+      const isVisible =
+        await this.examRegionsService.isRoutePubliclyVisible(route);
+      if (!isVisible) {
+        throw new NotFoundException('Route not found');
+      }
+
+      payload = {
+        ...route,
+        isSaved: false,
+        createdBy: {
+          ...route.createdBy,
+          email: '',
+        },
+      };
+      await this.redis.setJson(cacheKey, payload, PUBLIC_ROUTES_CACHE_TTL_SEC);
+    }
+
+    if (!userId) return payload;
+
+    const [withSaved] = await this.withSavedFlags(userId, [payload]);
+    return withSaved;
   }
 
   /**
@@ -236,6 +354,7 @@ export class RoutesService {
       created += 1;
     }
 
+    await this.redis.invalidatePublicRoutes();
     return {
       ok: true,
       total: catalog.length,
@@ -252,7 +371,7 @@ export class RoutesService {
 
     const visibility = this.resolveVisibility(user, dto.visibility);
 
-    return this.prisma.route.create({
+    const created = await this.prisma.route.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -269,6 +388,8 @@ export class RoutesService {
       },
       include: routeInclude,
     });
+    await this.redis.invalidatePublicRoutes();
+    return created;
   }
 
   async findAll(
@@ -442,7 +563,7 @@ export class RoutesService {
       this.resolveVisibility(user, dto.visibility);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.steps) {
         await tx.routeStep.deleteMany({ where: { routeId } });
         if (dto.steps.length) {
@@ -468,6 +589,8 @@ export class RoutesService {
         include: routeInclude,
       });
     });
+    await this.redis.invalidatePublicRoutes();
+    return updated;
   }
 
   async remove(user: AuthUser, routeId: string) {
@@ -475,6 +598,7 @@ export class RoutesService {
     this.assertCanManage(user, route);
 
     await this.prisma.route.delete({ where: { id: routeId } });
+    await this.redis.invalidatePublicRoutes();
     return { ok: true };
   }
 
@@ -491,13 +615,15 @@ export class RoutesService {
         })
       )._max.order ?? -1) + 1;
 
-    return this.prisma.routeStep.create({
+    const step = await this.prisma.routeStep.create({
       data: {
         routeId,
         ...mapStepCreate(dto, order),
         order,
       },
     });
+    await this.redis.invalidatePublicRoutes();
+    return step;
   }
 
   async updateStep(
@@ -514,7 +640,7 @@ export class RoutesService {
     });
     if (!step) throw new NotFoundException('Step not found');
 
-    return this.prisma.routeStep.update({
+    const updated = await this.prisma.routeStep.update({
       where: { id: stepId },
       data: {
         lat: dto.lat,
@@ -526,6 +652,8 @@ export class RoutesService {
         order: dto.order,
       },
     });
+    await this.redis.invalidatePublicRoutes();
+    return updated;
   }
 
   async removeStep(user: AuthUser, routeId: string, stepId: string) {
@@ -538,6 +666,7 @@ export class RoutesService {
     if (!step) throw new NotFoundException('Step not found');
 
     await this.prisma.routeStep.delete({ where: { id: stepId } });
+    await this.redis.invalidatePublicRoutes();
     return { ok: true };
   }
 
@@ -569,6 +698,7 @@ export class RoutesService {
       ),
     );
 
+    await this.redis.invalidatePublicRoutes();
     return this.findOne(user, routeId);
   }
 

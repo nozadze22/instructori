@@ -9,13 +9,16 @@ import { MistakeNotesModule } from './modules/mistake-notes/mistake-notes.module
 import { ProfileModule } from './modules/profile/profile.module';
 import { RoutesModule } from './modules/routes/routes.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env'],
     }),
     PrismaModule,
+    RedisModule,
     ContactModule,
     AuthModule,
     DashboardModule,

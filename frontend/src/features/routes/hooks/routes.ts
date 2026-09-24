@@ -43,6 +43,7 @@ export function usePublicRoutes(params: PublicRoutesQuery = {}) {
     queryKey: ["routes", "public", params],
     queryFn: () => getPublicRoutes(params),
     placeholderData: keepPreviousData,
+    staleTime: 60_000,
   });
 }
 
@@ -51,6 +52,7 @@ export function usePublicRoute(id: string, options?: { enabled?: boolean }) {
     queryKey: ["routes", "public", "detail", id],
     queryFn: () => getPublicRoute(id),
     enabled: (options?.enabled ?? true) && Boolean(id),
+    staleTime: 60_000,
   });
 }
 

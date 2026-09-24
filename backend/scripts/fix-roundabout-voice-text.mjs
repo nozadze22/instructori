@@ -10,12 +10,11 @@
  *   npx tsx scripts/fix-roundabout-voice-text.mjs
  */
 
-import 'dotenv/config';
-import { PrismaNeon } from '@prisma/adapter-neon';
 import {
   SOON_ROUNDABOUT_VOICE_FROM,
   SOON_ROUNDABOUT_VOICE_TO,
 } from './simulatori-voice-text.mjs';
+import { createDevPrisma } from './lib/load-dev-prisma.mjs';
 
 function parseArgs(argv) {
   return { dryRun: argv.includes('--dry-run') };
@@ -23,14 +22,7 @@ function parseArgs(argv) {
 
 async function main() {
   const { dryRun } = parseArgs(process.argv);
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set');
-  }
-
-  const { PrismaClient } = await import('../src/generated/prisma/client.ts');
-  const prisma = new PrismaClient({
-    adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
-  });
+  const prisma = await createDevPrisma('fix-roundabout-voice-text');
 
   const steps = await prisma.routeStep.findMany({
     where: { voiceText: { startsWith: SOON_ROUNDABOUT_VOICE_FROM } },

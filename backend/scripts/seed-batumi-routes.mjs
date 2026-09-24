@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { assertNotProductionDatabase } from './lib/db-environment.mjs';
 import { createRequire } from 'module';
 import { BATUMI_ROUTES } from '../src/modules/routes/data/batumi-routes.mjs';
 
@@ -71,6 +72,7 @@ async function upsertRoute(prisma, adminId, route) {
 }
 
 async function main() {
+  assertNotProductionDatabase(process.env.DATABASE_URL, 'seed-batumi-routes');
   const { PrismaClient } = await loadPrisma();
   const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
   const prisma = new PrismaClient({ adapter });

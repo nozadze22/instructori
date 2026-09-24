@@ -16,6 +16,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { useAdminStats } from "@/features/admin/hooks/stats";
 import { useAdminUsers } from "@/features/admin/hooks/users";
+import { resolveRouteCity } from "@/features/routes/lib/resolve-route-city";
 import { cn } from "@/lib/utils";
 
 const dayLabels = ["ორშ", "სამ", "ოთხ", "ხუთ", "პარ", "შაბ", "კვ"];
@@ -240,7 +241,12 @@ export function AdminDashboardOverview() {
                           {route.title}
                         </Link>
                       </td>
-                      <td className="px-6 py-4">{route.city ?? "—"}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+                          <MapPin className="size-3.5 shrink-0" />
+                          {resolveRouteCity(route) ?? "—"}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <span className="flex items-center gap-2">
                           <span

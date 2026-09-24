@@ -4,33 +4,11 @@
  * Usage: node scripts/fix-route-descriptions.mjs
  */
 
-import 'dotenv/config';
-import { PrismaNeon } from '@prisma/adapter-neon';
 import { OFFICIAL_EXAM_ROUTE_DESCRIPTION } from './exam-route-description.mjs';
-
-async function loadPrisma() {
-  const candidates = [
-    new URL('../dist/src/generated/prisma/client.js', import.meta.url).href,
-    new URL('../src/generated/prisma/client.ts', import.meta.url).href,
-  ];
-
-  for (const href of candidates) {
-    try {
-      return await import(href);
-    } catch {
-      // try next
-    }
-  }
-
-  throw new Error(
-    'Prisma client not found. Run: pnpm prisma:generate (and use tsx to run import scripts)',
-  );
-}
+import { createDevPrisma } from './lib/load-dev-prisma.mjs';
 
 async function main() {
-  const { PrismaClient } = await loadPrisma();
-  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
-  const prisma = new PrismaClient({ adapter });
+  const prisma = await createDevPrisma('fix-route-descriptions');
 
   const result = await prisma.route.updateMany({
     where: {

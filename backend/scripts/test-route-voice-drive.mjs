@@ -436,9 +436,11 @@ function discoverFileRoutes() {
 
 async function discoverDbRoutes() {
   await import('dotenv/config');
+  const { assertNotProductionDatabase } = await import('./lib/db-environment.mjs');
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set');
   }
+  assertNotProductionDatabase(process.env.DATABASE_URL, 'test-route-voice-drive --db');
   const { PrismaClient } = await import('../src/generated/prisma/client.ts');
   const { PrismaNeon } = await import('@prisma/adapter-neon');
   const prisma = new PrismaClient({

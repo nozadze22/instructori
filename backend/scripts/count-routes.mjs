@@ -1,11 +1,7 @@
-import 'dotenv/config';
-import { PrismaNeon } from '@prisma/adapter-neon';
+import { createDevPrisma } from './lib/load-dev-prisma.mjs';
 
 async function main() {
-  const { PrismaClient } = await import('../src/generated/prisma/client.ts');
-  const prisma = new PrismaClient({
-    adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
-  });
+  const prisma = await createDevPrisma('count-routes');
 
   const total = await prisma.route.count();
   const system = await prisma.route.count({ where: { visibility: 'SYSTEM' } });

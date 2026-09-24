@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import type { ExamRegion } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import { DEFAULT_EXAM_REGIONS } from './exam-regions.defaults';
 
 type RouteRegionFields = {
@@ -18,7 +14,10 @@ export class ExamRegionsService implements OnModuleInit {
   private readonly logger = new Logger(ExamRegionsService.name);
   private regionsCache: ExamRegion[] | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   onModuleInit() {
     void this.ensureDefaults().catch((error: unknown) => {
@@ -144,6 +143,7 @@ export class ExamRegionsService implements OnModuleInit {
         data: { isActive },
       });
       this.invalidateCache();
+      await this.redis.invalidatePublicRoutes();
       return region;
     } catch {
       throw new NotFoundException('Region not found');

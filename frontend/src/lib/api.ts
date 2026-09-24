@@ -15,7 +15,7 @@ export class SessionReplacedError extends Error {
   }
 }
 
-const SESSION_REPLACED_PATTERN = /logged in on another device|invalid refresh token/i;
+const SESSION_REPLACED_PATTERN = /logged in on another device/i;
 
 const AUTH_SKIP_REFRESH = new Set([
   "/auth/login",
@@ -50,6 +50,10 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 
   return text;
+}
+
+function isSessionReplacedMessage(message: string): boolean {
+  return SESSION_REPLACED_PATTERN.test(message);
 }
 
 function requestInit(init: RequestInit = {}): RequestInit {
@@ -94,6 +98,12 @@ export async function apiRequest<T>(
   }
 
   if (response.status === 401 && !AUTH_SKIP_REFRESH.has(path)) {
+    const unauthorizedMessage = await parseErrorMessage(response.clone());
+
+    if (isSessionReplacedMessage(unauthorizedMessage)) {
+      throw new SessionReplacedError();
+    }
+
     const refreshed = await refreshSession();
     if (refreshed) {
       try {
@@ -103,7 +113,8 @@ export async function apiRequest<T>(
         throw new Error(humanizeApiError(error));
       }
     }
-    throw new SessionReplacedError();
+
+    throw new Error(humanizeApiError(unauthorizedMessage || "Unauthorized"));
   }
 
   return readResponse<T>(response);
@@ -112,7 +123,7 @@ export async function apiRequest<T>(
 async function readResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const message = await parseErrorMessage(response);
-    if (response.status === 401 && SESSION_REPLACED_PATTERN.test(message)) {
+    if (response.status === 401 && isSessionReplacedMessage(message)) {
       throw new SessionReplacedError();
     }
     throw new Error(humanizeApiError(message));

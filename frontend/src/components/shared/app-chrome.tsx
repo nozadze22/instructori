@@ -44,7 +44,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
     return (
       <>
         <Navbar />
-        <main className="mt-16 flex-1">{children}</main>
+        <main className="mt-16 flex min-h-0 flex-1 flex-col">{children}</main>
       </>
     );
   }
@@ -52,8 +52,8 @@ export function AppChrome({ children }: { children: ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="mt-16 flex-1">
-        <Wrapper>{children}</Wrapper>
+      <main className="mt-16 flex min-h-0 flex-1 flex-col">
+        <Wrapper className="flex flex-1 flex-col">{children}</Wrapper>
       </main>
     </>
   );

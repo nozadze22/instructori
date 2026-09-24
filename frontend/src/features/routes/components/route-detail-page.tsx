@@ -50,6 +50,7 @@ import {
   defaultVoiceText,
   parseRoutePath,
 } from "@/features/routes/lib/route-actions";
+import { resolveRouteCity } from "@/features/routes/lib/resolve-route-city";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { humanizeApiError } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
@@ -368,6 +369,7 @@ function RouteDetailContent({
     route?.visibility === "SYSTEM" &&
     route.isPublished &&
     route.createdById !== me.userId;
+  const cityLabel = route ? resolveRouteCity(route) : null;
 
   if (isLoading) {
     return (
@@ -434,14 +436,14 @@ function RouteDetailContent({
             </p>
           ) : null}
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            {route.city ? (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPinned className="size-4 text-primary" />
-                {route.city}
+            {cityLabel ? (
+              <span className="inline-flex items-center gap-2 rounded-xl border border-primary/35 bg-primary/15 px-3 py-1.5 text-base font-bold text-primary">
+                <MapPinned className="size-4 sm:size-5" />
+                {cityLabel}
               </span>
             ) : null}
-            <span>{path.length} წერტილი</span>
-            <span>{route.steps.length} ბრძანება</span>
+            <span className="inline-flex items-center">{path.length} წერტილი</span>
+            <span className="inline-flex items-center">{route.steps.length} ბრძანება</span>
             {!publicView ? <span>{route.createdBy.fullName}</span> : null}
           </div>
         </div>
