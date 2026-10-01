@@ -51,6 +51,7 @@ type RouteMapEditorProps = {
   mapCenter?: PathPoint | null;
   onPathChange: (path: PathPoint[]) => void;
   onAddCommand: (point: PathPoint) => void;
+  onMoveCommand: (index: number, point: PathPoint) => void;
   className?: string;
 };
 
@@ -104,6 +105,7 @@ function RouteMapEditorInner({
   mapCenter,
   onPathChange,
   onAddCommand,
+  onMoveCommand,
 }: Omit<RouteMapEditorProps, "className">) {
   const [waypoints, setWaypoints] = useState<BuilderWaypoint[]>([]);
   const [building, setBuilding] = useState(false);
@@ -230,6 +232,19 @@ function RouteMapEditorInner({
     }
   };
 
+  const handleCommandDragEnd = (
+    index: number,
+    event: { latLng: { lat: () => number; lng: () => number } | null },
+  ) => {
+    draggingRef.current = false;
+    skipNextClickRef.current = true;
+
+    const latLng = event.latLng;
+    if (!latLng) return;
+
+    onMoveCommand(index, { lat: latLng.lat(), lng: latLng.lng() });
+  };
+
   const handleUndo = () => {
     setError(null);
     clearBuiltPath();
@@ -319,9 +334,10 @@ function RouteMapEditorInner({
 
         {commands.map((command, index) => (
           <Marker
-            key={`cmd-${index}-${command.lat}-${command.lng}`}
+            key={`cmd-${index}`}
             position={{ lat: command.lat, lng: command.lng }}
-            clickable={false}
+            draggable={mode === "command"}
+            clickable={mode === "command"}
             label={{
               text: String(index + 1),
               color: "white",
@@ -329,6 +345,12 @@ function RouteMapEditorInner({
               fontWeight: "700",
             }}
             title={command.voiceText?.trim() || actionLabel(command.action)}
+            onDragStart={() => {
+              draggingRef.current = true;
+            }}
+            onDragEnd={(event) => {
+              handleCommandDragEnd(index, event);
+            }}
           />
         ))}
       </Map>
@@ -349,7 +371,7 @@ function RouteMapEditorInner({
                   {mode === "waypoints"
                     ? "Click → drag → Calculate"
                     : pendingVoiceText.trim()
-                      ? `ბრძანება: ${pendingVoiceText.trim()}`
+                      ? `ბრძანება: ${pendingVoiceText.trim()} · გადაათრიე პინი`
                       : "დაწერე ტექსტი და დააწკაპუნე რუკაზე"}
                 </p>
               </div>
@@ -398,7 +420,7 @@ function RouteMapEditorInner({
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-white/12 bg-white/3 px-3 py-2.5 text-xs text-muted-foreground">
-                დააწკაპუნე რუკაზე ბრძანების დასამატებლად.
+                დააწკაპუნე რუკაზე ახალი ბრძანებისთვის. არსებული პინი გადაათრიე ახალ ადგილზე.
               </div>
             )}
 

@@ -149,6 +149,7 @@ function RouteFormContent({
   });
 
   const path = useWatch({ control: form.control, name: "path" });
+  const steps = useWatch({ control: form.control, name: "steps" });
   const selectedCityName = useWatch({ control: form.control, name: "city" });
   const isPublished = useWatch({
     control: form.control,
@@ -570,7 +571,7 @@ function RouteFormContent({
 
             <RouteMapEditor
               path={path}
-              commands={fields}
+              commands={steps ?? []}
               mode={mapMode}
               pendingVoiceText={pendingVoiceText}
               mapCenter={mapCenter}
@@ -587,6 +588,16 @@ function RouteFormContent({
                   distanceBeforeVoice: 0,
                   voiceText,
                   audioUrl: "",
+                });
+              }}
+              onMoveCommand={(index, point) => {
+                form.setValue(`steps.${index}.lat`, point.lat, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                form.setValue(`steps.${index}.lng`, point.lng, {
+                  shouldDirty: true,
+                  shouldValidate: true,
                 });
               }}
             />
