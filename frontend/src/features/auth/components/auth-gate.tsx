@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import type {
@@ -9,6 +9,7 @@ import type {
 } from "@/features/auth/login/api/login";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { SessionReplacedError } from "@/lib/api";
+import { FORBIDDEN_PATH, forbiddenPath } from "@/lib/route-access";
 
 type AuthGateProps = {
   children: ReactNode;
@@ -26,6 +27,7 @@ export function AuthGate({
   loginRedirect = "/login",
 }: AuthGateProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: me, isLoading, isError, error } = useGetMe();
 
   const allowed =
@@ -43,9 +45,21 @@ export function AuthGate({
           : loginRedirect,
       );
     } else if (!allowed) {
-      router.replace(redirectTo);
+      router.replace(
+        redirectTo === FORBIDDEN_PATH ? forbiddenPath(pathname) : redirectTo,
+      );
     }
-  }, [allowed, error, isError, isLoading, loginRedirect, me, redirectTo, router]);
+  }, [
+    allowed,
+    error,
+    isError,
+    isLoading,
+    loginRedirect,
+    me,
+    pathname,
+    redirectTo,
+    router,
+  ]);
 
   if (isLoading || !allowed) {
     return (

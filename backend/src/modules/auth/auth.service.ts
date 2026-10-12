@@ -72,6 +72,7 @@ export class AuthService {
         role: 'INSTRUCTOR',
         accessStatus: 'PENDING',
         instructorCode: await this.generateUniqueInstructorCode(),
+        profile: { create: {} },
       },
       select: {
         id: true,
@@ -94,21 +95,25 @@ export class AuthService {
     }
 
     const email = dto.email.trim().toLowerCase();
-    const instructorCode = dto.instructorCode.trim().toUpperCase();
+    const instructorCode = dto.instructorCode?.trim().toUpperCase();
 
     const exists = await this.prisma.user.findUnique({ where: { email } });
     if (exists) throw new ConflictException('Email already registered');
 
-    const instructor = await this.prisma.user.findFirst({
-      where: {
-        instructorCode,
-        role: 'INSTRUCTOR',
-        accessStatus: 'ACTIVE',
-      },
-      select: { id: true },
-    });
-    if (!instructor) {
-      throw new BadRequestException('Invalid instructor code');
+    let instructorId: string | undefined;
+    if (instructorCode) {
+      const instructor = await this.prisma.user.findFirst({
+        where: {
+          instructorCode,
+          role: 'INSTRUCTOR',
+          accessStatus: 'ACTIVE',
+        },
+        select: { id: true },
+      });
+      if (!instructor) {
+        throw new BadRequestException('Invalid instructor code');
+      }
+      instructorId = instructor.id;
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -120,7 +125,8 @@ export class AuthService {
         passwordHash,
         role: 'USER',
         accessStatus: 'ACTIVE',
-        linkedInstructorId: instructor.id,
+        ...(instructorId ? { linkedInstructorId: instructorId } : {}),
+        profile: { create: {} },
       },
       select: {
         id: true,

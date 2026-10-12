@@ -1,7 +1,7 @@
 import { apiRequest } from "@/lib/api";
 import type { LoginSchema } from "../schema/login.schema";
 
-export type Role = "ADMIN" | "INSTRUCTOR";
+export type Role = "ADMIN" | "INSTRUCTOR" | "USER";
 
 export type AccessStatus = "PENDING" | "ACTIVE" | "BLOCKED";
 

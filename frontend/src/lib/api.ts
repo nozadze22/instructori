@@ -20,6 +20,7 @@ const SESSION_REPLACED_PATTERN = /logged in on another device/i;
 const AUTH_SKIP_REFRESH = new Set([
   "/auth/login",
   "/auth/register",
+  "/auth/register/student",
   "/auth/refresh",
   "/auth/logout",
   "/admin/login",

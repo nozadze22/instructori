@@ -8,16 +8,19 @@ import {
   Eye,
   EyeOff,
   HardHat,
+  KeyRound,
   Lock,
   Mail,
   User,
 } from "lucide-react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import {
-  registerSchema,
-  type RegisterSchema,
-} from "@/features/auth/register/schema/register.schema";
+  defaultUserRegistrationValues,
+  userRegistrationSchema,
+  type UserRegistrationSchema,
+} from "@/features/auth/user/schema/user-schema";
+import { useUserRegistration } from "@/features/auth/user/hooks/user";
 import {
   Avatar,
   AvatarFallback,
@@ -41,8 +44,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { useRegister } from "../hooks/register";
-
 const INSTRUCTOR_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDI2vAHWB_6JA1CAE5lQnbW7wdui35EmjgBxEupcWnjvXNUknAGiAtYuPT3mxMG3EOumIoP_HzEz87dqSS84_jCdBYHL_82eP23M2YFWS8gv4asMDsZBxSPxmq4kGthQo5wSuO84dsY6SUSQ11OnwhbEMIIO-a5ezUXUXbhqqkaLNAG_aEs-18qJ-abigXi96PF73aiGD-0HFjYxE4VNy5KBj0z2emBFFgVIVaMD6r3wX1jV3Ft-A11G5dH8vIj-ua3VfF7YfcOqMay";
 
@@ -52,31 +53,34 @@ const SOCIAL_PROOF_IMAGES = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCsYCw7bquOjIy6-rIcNHuMRfL_mIg2aO3iLkjkBlhJKbrRlNL4d8Pz5ZvwG4An84MPK-DYEzUnW56r4dugkx_0CkzIO2HT4rVlvhSEmjlKwlY1uQmQ-txWCuEPIdORKEaXE9wbJ4t-IoMptEcwAjkouW96JP-9-K4GIIpbSZK7FR0u8-7qmGiPVcPOPatqNLejUSuJjRKcBkEel75pfzCDhYZ1cjir9NH1En2bnwv7FPt6fe2XV_dk8JOpIIE45CQbDN5oSTAGLTqc",
 ] as const;
 
-const defaultValues: RegisterSchema = {
-  fullName: "",
-  email: "",
-  password: "",
-  repeatPassword: "",
-  terms: false,
-};
-
 const inputGroupClassName =
   "h-12 rounded-xl border-white/10 bg-surface-low shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255_/_15%)] dark:bg-surface-low";
 
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
-  const { mutate: register, isPending } = useRegister();
+  const { mutate: registerUser, isPending } = useUserRegistration();
 
-  const form = useForm<RegisterSchema>({
-    resolver: zodResolver(registerSchema),
-    defaultValues,
+  const form = useForm<UserRegistrationSchema>({
+    resolver: zodResolver(userRegistrationSchema),
+    defaultValues: defaultUserRegistrationValues,
     mode: "onSubmit",
   });
 
-  const onSubmit = async () => {
-    register(form.getValues())
-    form.reset()
+  const registrationRole = useWatch({
+    control: form.control,
+    name: "registrationRole",
+    defaultValue: "instructor",
+  });
+  const hasInstructorCode = useWatch({
+    control: form.control,
+    name: "hasInstructorCode",
+    defaultValue: false,
+  });
+  const isStudentRegistration = registrationRole === "student";
+
+  const onSubmit = (data: UserRegistrationSchema) => {
+    registerUser(data);
   };
 
   return (
@@ -95,12 +99,12 @@ export function RegisterForm() {
               </h1>
             </div>
             <h2 className="mt-8 text-5xl leading-none font-extrabold tracking-tight text-foreground">
-              Master the road <br />
-              <span className="text-primary-container">before you hit it.</span>
+              გზაზე გასვლამდე, <br />
+              <span className="text-primary-container">დაიმშვიდე გზაზე.</span>
             </h2>
             <p className="max-w-md text-lg text-muted-foreground">
-              Join over 10,000 students using our enterprise-grade simulator to
-              achieve a 98% first-time pass rate.
+              შეუერთდი 10,000+ მომხმარებელს — ჩვენი სიმულატორი პირველ ცდაზე 98%-იან
+              წარმატებას გეხმარება.
             </p>
           </div>
 
@@ -112,28 +116,37 @@ export function RegisterForm() {
               </Avatar>
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Captain Marcus Vance
+                  მარკუს ვენსი
                 </p>
                 <p className="text-xs font-semibold text-muted-foreground">
-                  Chief Flight &amp; Sim Instructor
+                  მთავარი ინსტრუქტორი
                 </p>
               </div>
             </div>
             <p className="text-muted-foreground italic">
-              &ldquo;Our simulation environment is identical to the testing
-              vehicles. Precision starts here.&rdquo;
+              &ldquo;სიმულაცია იგივე გარემოა, რაც გამოცდის ტექნიკაზე. სიზუსტე აქ
+              იწყება.&rdquo;
             </p>
           </div>
         </section>
 
         <section className="flex items-center justify-center lg:col-span-7">
           <div className="glass w-full max-w-xl rounded-xl p-4 shadow-2xl md:p-12">
+            <div className="mb-8 lg:hidden">
+              <div className="mb-6 flex items-center gap-2">
+                <HardHat className="size-8 fill-primary text-primary" />
+                <span className="text-xl font-bold text-primary">SimDrive Pro</span>
+              </div>
+            </div>
+
             <div className="mb-8">
               <h3 className="text-3xl font-bold text-foreground">
-                Create your account
+                ანგარიშის შექმნა
               </h3>
-              <p className="text-muted-foreground">
-                Start your journey to becoming a pro driver.
+              <p className="mt-1 text-muted-foreground">
+                {isStudentRegistration
+                  ? "მომხმარებლის ანგარიში — საჭიროა ინსტრუქტორის კოდი."
+                  : "ინსტრუქტორის ანგარიში — დაიწყე მოსწავლეების მართვა."}
               </p>
             </div>
 
@@ -143,13 +156,61 @@ export function RegisterForm() {
                 className="space-y-6"
                 noValidate
               >
+                <Controller
+                  control={form.control}
+                  name="registrationRole"
+                  render={({ field }) => (
+                    <Field>
+                      <FieldLabel className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        რეგისტრაციის ტიპი
+                      </FieldLabel>
+                      <FieldContent>
+                        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-surface-lowest p-1 dark:bg-surface-lowest">
+                          <button
+                            type="button"
+                            className={`h-11 rounded-lg px-3 text-sm font-semibold transition-colors ${
+                              field.value === "instructor"
+                                ? "bg-primary text-on-primary-container shadow-sm"
+                                : "text-muted-foreground hover:bg-white/5"
+                            }`}
+                            onClick={() => {
+                              field.onChange("instructor");
+                              form.setValue("hasInstructorCode", false);
+                              form.setValue("instructorCode", "");
+                              form.clearErrors("instructorCode");
+                            }}
+                          >
+                            ინსტრუქტორი
+                          </button>
+                          <button
+                            type="button"
+                            className={`h-11 rounded-lg px-3 text-sm font-semibold transition-colors ${
+                              field.value === "student"
+                                ? "bg-primary text-on-primary-container shadow-sm"
+                                : "text-muted-foreground hover:bg-white/5"
+                            }`}
+                            onClick={() => field.onChange("student")}
+                          >
+                            მომხმარებელი
+                          </button>
+                        </div>
+                        <p className="mt-2 px-1 text-xs text-muted-foreground">
+                          {field.value === "student"
+                            ? "თუ კოდი გაქვს, შეგიძლია ანგარიში მაშინვე ინსტრუქტორს დაუკავშირო."
+                            : "ინსტრუქტორს კოდი არ სჭირდება — სისტემა გიგენერირებს."}
+                        </p>
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+
                 <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <Field data-invalid={!!form.formState.errors.fullName}>
                     <FieldLabel
                       htmlFor="fullName"
                       className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                     >
-                      Full name
+                      სრული სახელი
                     </FieldLabel>
                     <FieldContent>
                       <InputGroup className={inputGroupClassName}>
@@ -158,7 +219,7 @@ export function RegisterForm() {
                         </InputGroupAddon>
                         <InputGroupInput
                           id="fullName"
-                          placeholder="John Doe"
+                          placeholder="გიორგი ბერიძე"
                           autoComplete="name"
                           {...form.register("fullName")}
                         />
@@ -172,7 +233,7 @@ export function RegisterForm() {
                       htmlFor="email"
                       className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                     >
-                      Email address
+                      ელ-ფოსტა
                     </FieldLabel>
                     <FieldContent>
                       <InputGroup className={inputGroupClassName}>
@@ -182,7 +243,7 @@ export function RegisterForm() {
                         <InputGroupInput
                           id="email"
                           type="email"
-                          placeholder="john@example.com"
+                          placeholder="example@mail.com"
                           autoComplete="email"
                           {...form.register("email")}
                         />
@@ -192,12 +253,73 @@ export function RegisterForm() {
                   </Field>
                 </FieldGroup>
 
+                {isStudentRegistration ? (
+                  <Controller
+                    control={form.control}
+                    name="hasInstructorCode"
+                    render={({ field }) => (
+                      <Field orientation="horizontal" className="items-center gap-3 px-1">
+                        <Checkbox
+                          id="hasInstructorCode"
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            const hasCode = checked === true;
+                            field.onChange(hasCode);
+                            if (!hasCode) {
+                              form.setValue("instructorCode", "");
+                              form.clearErrors("instructorCode");
+                            }
+                          }}
+                        />
+                        <FieldLabel
+                          htmlFor="hasInstructorCode"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          გაქვს ინსტრუქტორის კოდი?
+                        </FieldLabel>
+                      </Field>
+                    )}
+                  />
+                ) : null}
+
+                {isStudentRegistration && hasInstructorCode ? (
+                  <Field data-invalid={!!form.formState.errors.instructorCode}>
+                    <FieldLabel
+                      htmlFor="instructorCode"
+                      className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                      ინსტრუქტორის კოდი
+                    </FieldLabel>
+                    <FieldContent>
+                      <InputGroup className={inputGroupClassName}>
+                        <InputGroupAddon>
+                          <KeyRound />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="instructorCode"
+                          placeholder="მაგ: A1B2C3D4"
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="uppercase"
+                          {...form.register("instructorCode", {
+                            setValueAs: (value) =>
+                              String(value).trim().toUpperCase(),
+                          })}
+                        />
+                      </InputGroup>
+                      <FieldError
+                        errors={[form.formState.errors.instructorCode]}
+                      />
+                    </FieldContent>
+                  </Field>
+                ) : null}
+
                 <Field data-invalid={!!form.formState.errors.password}>
                   <FieldLabel
                     htmlFor="password"
                     className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                   >
-                    Password
+                    პაროლი
                   </FieldLabel>
                   <FieldContent>
                     <InputGroup className={inputGroupClassName}>
@@ -215,7 +337,7 @@ export function RegisterForm() {
                         <InputGroupButton
                           size="icon-sm"
                           aria-label={
-                            showPassword ? "Hide password" : "Show password"
+                            showPassword ? "პაროლის დამალვა" : "პაროლის ჩვენება"
                           }
                           onClick={() => setShowPassword((prev) => !prev)}
                         >
@@ -232,7 +354,7 @@ export function RegisterForm() {
                     htmlFor="repeatPassword"
                     className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                   >
-                    Repeat password
+                    პაროლის გამეორება
                   </FieldLabel>
                   <FieldContent>
                     <InputGroup className={inputGroupClassName}>
@@ -251,8 +373,8 @@ export function RegisterForm() {
                           size="icon-sm"
                           aria-label={
                             showRepeatPassword
-                              ? "Hide password"
-                              : "Show password"
+                              ? "პაროლის დამალვა"
+                              : "პაროლის ჩვენება"
                           }
                           onClick={() =>
                             setShowRepeatPassword((prev) => !prev)
@@ -283,26 +405,26 @@ export function RegisterForm() {
                         onCheckedChange={(checked) =>
                           field.onChange(checked === true)
                         }
-                        className="mt-0.5"
+                        className="mt-0.5 shrink-0"
                       />
-                      <FieldContent>
+                      <FieldContent className="min-w-0">
                         <FieldLabel
                           htmlFor="terms"
-                          className="text-xs leading-tight font-semibold text-muted-foreground"
+                          className="flex-wrap items-center gap-x-1 gap-y-0.5 text-xs leading-relaxed font-semibold text-muted-foreground"
                         >
-                          I agree to the{" "}
+                          <span>ვეთანხმები</span>
                           <Link
-                            href="#"
-                            className="text-primary hover:underline"
+                            href="/terms"
+                            className="inline-block text-primary hover:underline"
                           >
-                            Terms of Service
-                          </Link>{" "}
-                          and{" "}
+                            წესებსა და პირობებს
+                          </Link>
+                          <span>და</span>
                           <Link
-                            href="#"
-                            className="text-primary hover:underline"
+                            href="/privacy"
+                            className="inline-block text-primary hover:underline"
                           >
-                            Privacy Policy
+                            კონფიდენციალურობის პოლიტიკას
                           </Link>
                           .
                         </FieldLabel>
@@ -317,17 +439,17 @@ export function RegisterForm() {
                   className="h-14 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]"
                   disabled={isPending}
                 >
-                  Create Account
+                  {isPending ? "იქმნება..." : "ანგარიშის შექმნა"}
                   <ArrowRight className="size-5" />
                 </Button>
 
                 <p className="text-center text-muted-foreground">
-                  Already have an account?{" "}
+                  უკვე გაქვს ანგარიში?{" "}
                   <Link
                     href="/login"
                     className="font-medium text-primary hover:underline"
                   >
-                    Sign In
+                    შესვლა
                   </Link>
                 </p>
               </form>
@@ -353,7 +475,7 @@ export function RegisterForm() {
             </AvatarGroupCount>
           </AvatarGroup>
           <p className="text-xs font-semibold text-muted-foreground">
-            Trusted by drivers worldwide
+            მძღოლების ნდობა მსოფლიო მასშტაბით
           </p>
         </div>
       </footer>

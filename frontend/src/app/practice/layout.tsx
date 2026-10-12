@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { SessionReplacedError } from "@/lib/api";
+import { forbiddenPath } from "@/lib/route-access";
 
 export default function PracticeLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -32,6 +33,10 @@ export default function PracticeLayout({ children }: { children: ReactNode }) {
     }
     if (me.accessStatus === "PENDING") {
       router.replace("/pending");
+      return;
+    }
+    if (me.role === "USER") {
+      router.replace(forbiddenPath(pathname));
       return;
     }
     if (me.role !== "INSTRUCTOR" || me.accessStatus !== "ACTIVE") {
