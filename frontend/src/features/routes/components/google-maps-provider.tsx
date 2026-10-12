@@ -1,7 +1,7 @@
 "use client";
 
 import { APIProvider, useApiLoadingStatus } from "@vis.gl/react-google-maps";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { AlertTriangle, ExternalLink, Map } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -96,6 +96,29 @@ function captureMapsConsoleError(args: unknown[]): string | null {
   return null;
 }
 
+function DefaultMapsFallback({ compact }: { compact?: boolean }) {
+  return (
+    <div
+      className={
+        compact
+          ? "flex h-full min-h-0 flex-col items-center justify-center gap-2 bg-surface-lowest px-4 py-6 text-center"
+          : "flex h-[min(72vh,720px)] min-h-[520px] flex-col items-center justify-center gap-2 bg-surface-lowest px-6 text-center"
+      }
+    >
+      <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Map className="size-5" />
+      </span>
+      <p className="text-sm font-medium text-foreground">
+        Google Maps ვერ ჩაიტვირთა
+      </p>
+      <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+        მარშრუტი სქემატურ რუკაზე ჩანს (fallback). სრული რუკისთვის API key-ის
+        referrers-ში დაამატე localhost.
+      </p>
+    </div>
+  );
+}
+
 function MapsLoadGuard({
   children,
   compact,
@@ -118,7 +141,10 @@ function MapsLoadGuard({
     const originalError = console.error;
     console.error = (...args: unknown[]) => {
       const captured = captureMapsConsoleError(args);
-      if (captured) setRuntimeError(captured);
+      if (captured) {
+        setRuntimeError(captured);
+        return;
+      }
       originalError.apply(console, args as Parameters<typeof console.error>);
     };
 
@@ -130,10 +156,28 @@ function MapsLoadGuard({
     };
   }, []);
 
-  if (status === "AUTH_FAILURE" || runtimeError) {
+  const mapsUnavailable =
+    status === "AUTH_FAILURE" ||
+    status === "FAILED" ||
+    runtimeError != null;
+
+  if (mapsUnavailable) {
     if (fallback) return <>{fallback}</>;
-    const info = explainMapsError(runtimeError ?? "AuthFailure");
-    return <MapsSetupPanel compact={compact} {...info} />;
+    return <DefaultMapsFallback compact={compact} />;
+  }
+
+  if (status !== "LOADED") {
+    return (
+      <div
+        className={
+          compact
+            ? "flex h-full min-h-0 items-center justify-center bg-surface-lowest text-sm text-muted-foreground"
+            : "flex h-[min(72vh,720px)] min-h-[520px] items-center justify-center bg-surface-lowest text-sm text-muted-foreground"
+        }
+      >
+        რუკა იტვირთება...
+      </div>
+    );
   }
 
   return children;
@@ -192,39 +236,48 @@ export function GoogleMapsProvider({
   children,
   compact = false,
   fallback,
+  showSetupHelp = false,
 }: {
   children: ReactNode;
   compact?: boolean;
   fallback?: ReactNode;
+  /** When true, show detailed setup panel instead of silent fallback. */
+  showSetupHelp?: boolean;
 }) {
   const [providerError, setProviderError] = useState<unknown>(null);
 
   if (!apiKey || apiKey === "your_google_maps_api_key") {
     if (fallback) return <>{fallback}</>;
-    return (
-      <MapsSetupPanel
-        compact={compact}
-        title="Google Maps API key აკლია"
-        body="ლოკალურად დაამატე NEXT_PUBLIC_GOOGLE_MAPS_API_KEY frontend/.env-ში და გადატვირთე pnpm dev."
-        steps={[
-          "frontend/.env → NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...",
-          "pnpm dev გადატვირთე",
-          "Vercel/production-ზე Environment Variables-შიც ჩაწერე",
-        ]}
-        docsUrl="https://console.cloud.google.com/google/maps-apis/credentials"
-        docsLabel="Google Cloud Credentials"
-      />
-    );
+    if (showSetupHelp) {
+      return (
+        <MapsSetupPanel
+          compact={compact}
+          title="Google Maps API key აკლია"
+          body="ლოკალურად დაამატე NEXT_PUBLIC_GOOGLE_MAPS_API_KEY frontend/.env-ში და გადატვირთე pnpm dev."
+          steps={[
+            "frontend/.env → NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...",
+            "pnpm dev გადატვირთე",
+            "Vercel/production-ზე Environment Variables-შიც ჩაწერე",
+          ]}
+          docsUrl="https://console.cloud.google.com/google/maps-apis/credentials"
+          docsLabel="Google Cloud Credentials"
+        />
+      );
+    }
+    return <DefaultMapsFallback compact={compact} />;
   }
 
   if (providerError) {
     if (fallback) return <>{fallback}</>;
-    return (
-      <MapsSetupPanel
-        compact={compact}
-        {...explainMapsError(providerError)}
-      />
-    );
+    if (showSetupHelp) {
+      return (
+        <MapsSetupPanel
+          compact={compact}
+          {...explainMapsError(providerError)}
+        />
+      );
+    }
+    return <DefaultMapsFallback compact={compact} />;
   }
 
   return (

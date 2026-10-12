@@ -104,14 +104,14 @@ export function DashboardPage() {
           secondaryLabel="ახალი"
         />
         <QuickLinkCard
-          eyebrow="Mistakes"
-          title="შეცდომები"
-          description="ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით."
+          eyebrow="Admin"
+          title="კატეგორიები"
+          description="შეცდომის კატეგორიების მართვა (მალე)."
           icon={<ClipboardList className="size-5" />}
-          primaryHref="/mistake-notes"
-          primaryLabel="შეცდომები"
-          secondaryHref="/mistake-notes/new"
-          secondaryLabel="ახალი"
+          primaryHref="/admin"
+          primaryLabel="ადმინ პანელი"
+          secondaryHref="/admin/routes"
+          secondaryLabel="მარშრუტები"
         />
       </section>
     </PageFrame>

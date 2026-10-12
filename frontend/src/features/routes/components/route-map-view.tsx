@@ -26,6 +26,12 @@ type RouteMapViewProps = {
   headingDeg?: number;
   traveledPath?: PathPoint[];
   aheadPath?: PathPoint[];
+  practiceMarkers?: Array<{
+    lat: number;
+    lng: number;
+    label: string;
+    title?: string;
+  }>;
   className?: string;
 };
 
@@ -244,6 +250,7 @@ function RouteMapViewInner({
   headingDeg,
   traveledPath,
   aheadPath,
+  practiceMarkers,
 }: Omit<RouteMapViewProps, "className">) {
   const traveled = traveledPath && traveledPath.length >= 2 ? traveledPath : [];
   const ahead = aheadPath && aheadPath.length >= 2 ? aheadPath : path;
@@ -346,6 +353,20 @@ function RouteMapViewInner({
           }}
         />
       ) : null}
+
+      {practiceMarkers?.map((marker, index) => (
+        <Marker
+          key={`practice-${marker.lat}-${marker.lng}-${index}`}
+          position={{ lat: marker.lat, lng: marker.lng }}
+          title={marker.title}
+          label={{
+            text: marker.label,
+            color: "white",
+            fontSize: "11px",
+            fontWeight: "700",
+          }}
+        />
+      ))}
     </Map>
   );
 }
@@ -362,6 +383,7 @@ export function RouteMapView({
   headingDeg = 0,
   traveledPath,
   aheadPath,
+  practiceMarkers,
   className,
 }: RouteMapViewProps) {
   return (
@@ -385,6 +407,7 @@ export function RouteMapView({
               showVehicleMarker={showVehicleMarker}
               traveledPath={traveledPath}
               aheadPath={aheadPath}
+              practiceMarkers={practiceMarkers}
             />
           }
         >
@@ -400,6 +423,7 @@ export function RouteMapView({
             headingDeg={headingDeg}
             traveledPath={traveledPath}
             aheadPath={aheadPath}
+            practiceMarkers={practiceMarkers}
           />
         </GoogleMapsProvider>
       </div>

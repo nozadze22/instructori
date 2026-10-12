@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { ContactModule } from './modules/conatct/contanct.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { DrivingSessionsModule } from './modules/driving-sessions/driving-sessions.module';
+import { MistakeCatalogModule } from './modules/mistake-catalog/mistake-catalog.module';
 import { MistakeNotesModule } from './modules/mistake-notes/mistake-notes.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RoutesModule } from './modules/routes/routes.module';
@@ -25,6 +27,8 @@ import { RedisModule } from './redis/redis.module';
     ProfileModule,
     RoutesModule,
     MistakeNotesModule,
+    DrivingSessionsModule,
+    MistakeCatalogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

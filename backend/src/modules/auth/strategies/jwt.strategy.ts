@@ -70,7 +70,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: user.role === 'USER' ? 'INSTRUCTOR' : user.role,
+      role: user.role,
       accessStatus: user.accessStatus,
       accessSource: user.accessSource,
     };

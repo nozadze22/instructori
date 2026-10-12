@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, LogIn, Map, Menu, UserPlus, UserRound } from "lucide-react";
+import {
+  ClipboardList,
+  LayoutDashboard,
+  LogIn,
+  Map,
+  Menu,
+  UserPlus,
+  UserRound,
+} from "lucide-react";
 
 import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { Button } from "@/components/ui/button";
@@ -83,6 +91,15 @@ export function BurgerMenu({
                     <Map className="size-4" />
                     <span>ჩემი მარშრუტები</span>
                   </Link>
+                  {!isAdmin ? (
+                    <Link
+                      href="/mistake-notes"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+                    >
+                      <ClipboardList className="size-4" />
+                      <span>შეცდომები</span>
+                    </Link>
+                  ) : null}
                   <Link
                     href="/profile"
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"

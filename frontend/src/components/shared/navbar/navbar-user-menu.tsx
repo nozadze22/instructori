@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Bookmark,
   ChevronRight,
+  ClipboardList,
   LogOut,
   Map,
   Shield,
@@ -145,6 +146,33 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                   </span>
                   <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
                 </DropdownMenuItem>
+              ) : null}
+
+              {!isAdmin && user.accessStatus === "ACTIVE" ? (
+                <>
+                  <DropdownMenuItem
+                    className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                    onClick={() => router.push("/practice")}
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                      <ClipboardList className="size-4" />
+                    </span>
+                    <span className="flex-1 text-sm font-medium">პრაქტიკა</span>
+                    <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                    onClick={() => router.push("/mistake-notes")}
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                      <ClipboardList className="size-4 opacity-70" />
+                    </span>
+                    <span className="flex-1 text-sm font-medium">
+                      ძველი ჩანაწერები
+                    </span>
+                    <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                  </DropdownMenuItem>
+                </>
               ) : null}
 
               <DropdownMenuItem

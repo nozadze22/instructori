@@ -1,9 +1,9 @@
 import type { Role as PrismaRole } from '../../../generated/prisma/enums';
 
-export type Role = 'ADMIN' | 'INSTRUCTOR';
+export type Role = 'ADMIN' | 'INSTRUCTOR' | 'USER';
 
 export function toAuthRole(role: PrismaRole): Role {
-  return role === 'USER' ? 'INSTRUCTOR' : role;
+  return role;
 }
 
 export type AccessStatus = 'PENDING' | 'ACTIVE' | 'BLOCKED';

@@ -8,6 +8,7 @@ import {
   Map,
   MapPinned,
   ShieldPlus,
+  TriangleAlert,
   Users,
 } from "lucide-react";
 
@@ -28,6 +29,11 @@ const navItems = [
   { href: "/admin/users", label: "ინსტრუქტორები", icon: Users },
   { href: "/admin/routes", label: "მარშრუტები", icon: Map },
   { href: "/admin/regions", label: "რეგიონები", icon: MapPinned },
+  {
+    href: "/admin/mistake-catalog",
+    label: "შეცდომები",
+    icon: TriangleAlert,
+  },
   { href: "/admin/create", label: "ადმინის შექმნა", icon: ShieldPlus },
 ] as const;
 

@@ -7,13 +7,19 @@ export type MistakeNoteRoute = {
   sourceKey: string | null;
 };
 
+export type MistakeNoteEntryInput = {
+  categoryId: string;
+  severityId?: string | null;
+  note?: string;
+};
+
 export type MistakeNote = {
   id: string;
   instructorId: string;
   studentName: string;
   routeId: string;
   city: string;
-  mistakes: string[];
+  mistakes: unknown[];
   practicedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +36,7 @@ export type CreateMistakeNoteInput = {
   studentName: string;
   routeId: string;
   city: string;
-  mistakes: string[];
+  mistakes: MistakeNoteEntryInput[];
   practicedAt?: string;
 };
 
@@ -38,7 +44,7 @@ export type UpdateMistakeNoteInput = {
   studentName?: string;
   routeId?: string;
   city?: string;
-  mistakes?: string[];
+  mistakes?: MistakeNoteEntryInput[];
   practicedAt?: string;
 };
 
