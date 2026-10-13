@@ -24,6 +24,7 @@ import {
   LoginDto,
   RegisterDto,
   RegisterStudentDto,
+  UpdateNameDto,
 } from './dto/auth.dto';
 import { AuthService } from './auth.service';
 
@@ -85,6 +86,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: AuthUser) {
     return this.auth.getMe(user.userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  updateName(@CurrentUser() user: AuthUser, @Body() dto: UpdateNameDto) {
+    return this.auth.updateName(user.userId, dto);
   }
 
   @Patch('change-password')

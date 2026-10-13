@@ -61,3 +61,9 @@ export class ChangePasswordDto {
   @MinLength(8)
   newPassword!: string;
 }
+
+export class UpdateNameDto {
+  @IsString()
+  @IsNotEmpty()
+  fullName!: string;
+}

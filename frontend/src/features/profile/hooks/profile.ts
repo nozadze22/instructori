@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import {
   createProfile,
   getProfile,
+  removeProfileAvatar,
   updateProfile,
+  uploadProfileAvatar,
   type ProfileInput,
 } from "@/features/profile/api/profile";
 
@@ -38,6 +40,38 @@ export function useCreateProfile() {
     onError: (error: Error) => {
       console.error("[useCreateProfile:onError]", error);
       toast.error(error.message || "პროფილი ვერ შეიქმნა");
+    },
+  });
+}
+
+export function useUploadProfileAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["profile", "avatar", "upload"],
+    mutationFn: (file: File) => uploadProfileAvatar(file),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["profile"], data);
+      toast.success("პროფილის სურათი აიტვირთა");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "სურათი ვერ აიტვირთა");
+    },
+  });
+}
+
+export function useRemoveProfileAvatar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["profile", "avatar", "remove"],
+    mutationFn: () => removeProfileAvatar(),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["profile"], data);
+      toast.success("პროფილის სურათი წაიშალა");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "სურათი ვერ წაიშალა");
     },
   });
 }

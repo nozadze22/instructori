@@ -14,6 +14,7 @@ import {
   LoginDto,
   RegisterDto,
   RegisterStudentDto,
+  UpdateNameDto,
 } from './dto/auth.dto';
 import type { Role as PrismaRole } from '../../generated/prisma/enums';
 import type {
@@ -172,6 +173,27 @@ export class AuthService {
 
   async getMe(userId: string): Promise<AuthUser> {
     const user = await this.requireActiveUser(userId);
+    return this.toAuthUser(user);
+  }
+
+  async updateName(userId: string, dto: UpdateNameDto): Promise<AuthUser> {
+    const fullName = dto.fullName.trim();
+    if (fullName.length < 2) {
+      throw new BadRequestException('Name must be at least 2 characters');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { fullName },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+      },
+    });
     return this.toAuthUser(user);
   }
 

@@ -39,3 +39,10 @@ export async function getUser(): Promise<AuthUser> {
     method: "GET",
   });
 }
+
+export async function updateUserName(fullName: string): Promise<AuthUser> {
+  return apiRequest<AuthUser>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify({ fullName }),
+  });
+}

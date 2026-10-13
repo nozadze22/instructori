@@ -12,6 +12,7 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { RoutesModule } from './modules/routes/routes.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { RedisModule } from './redis/redis.module';
     }),
     PrismaModule,
     RedisModule,
+    StorageModule,
     ContactModule,
     AuthModule,
     DashboardModule,

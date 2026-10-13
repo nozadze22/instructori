@@ -2,7 +2,9 @@
 
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
+import { useGetProfile } from "@/features/profile/hooks/profile";
 import { PageFrame } from "@/features/instructor/components/page-frame";
+import { isAppUser } from "@/lib/auth-paths";
 import {
   Card,
   CardContent,
@@ -10,12 +12,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { UserProfileView } from "@/features/profile/components/user-profile-view";
 
 type ProfilePageProps = {
   variant?: "instructor" | "public";
 };
 
-function ProfileMeView({
+function InstructorProfileMeView({
   fullName,
   email,
 }: {
@@ -48,6 +51,7 @@ function ProfileMeView({
 
 function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   const { data: me, isLoading } = useGetMe();
+  const { data: profile } = useGetProfile();
 
   if (isLoading) {
     return (
@@ -59,8 +63,14 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
 
   if (!me) return null;
 
-  const body = (
-    <ProfileMeView fullName={me.fullName} email={me.email} />
+  const body = isAppUser(me) ? (
+    <UserProfileView
+      fullName={me.fullName}
+      email={me.email}
+      avatarUrl={profile?.avatarUrl}
+    />
+  ) : (
+    <InstructorProfileMeView fullName={me.fullName} email={me.email} />
   );
 
   if (variant === "public") {

@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { defaultPathForUser } from "@/lib/post-auth-path";
-import { getUser, registerUser } from "../api/user";
+import { getUser, registerUser, updateUserName } from "../api/user";
 import type { UserRegistrationSchema } from "../schema/user-schema";
 
 export function useUserRegistration() {
@@ -35,5 +35,21 @@ export function useUser() {
     queryKey: ["me"],
     queryFn: () => getUser(),
     retry: false,
+  });
+}
+
+export function useUpdateUserName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["user", "update-name"],
+    mutationFn: (fullName: string) => updateUserName(fullName),
+    onSuccess: (user) => {
+      queryClient.setQueryData(["me"], user);
+      toast.success("სახელი განახლდა");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "სახელი ვერ განახლდა");
+    },
   });
 }
