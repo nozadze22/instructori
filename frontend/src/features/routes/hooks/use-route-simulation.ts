@@ -6,7 +6,6 @@ import { postNavigationTick } from "@/features/routes/api/routes";
 import { requestWakeLock, releaseWakeLock } from "@/hooks/use-wake-lock";
 import { getApiUrl } from "@/lib/api";
 import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
-import { englishVoiceText } from "@/features/routes/lib/route-actions";
 
 type SimCommand = {
   id: string;
@@ -630,31 +629,53 @@ function stopAudio() {
   }
 }
 
-function speakBrowser(text: string) {
+function invalidateTtsCache(text: string) {
+  const key = text.trim();
+  const url = ttsUrlCache.get(key);
+  if (!url) return;
+  URL.revokeObjectURL(url);
+  ttsUrlCache.delete(key);
+}
+
+async function loadSpeechVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (typeof window === "undefined" || !window.speechSynthesis) return [];
+  const synth = window.speechSynthesis;
+  const existing = synth.getVoices();
+  if (existing.length > 0) return existing;
+
+  return new Promise((resolve) => {
+    const finish = () => resolve(synth.getVoices());
+    synth.addEventListener("voiceschanged", finish, { once: true });
+    window.setTimeout(finish, 600);
+  });
+}
+
+async function speakBrowser(text: string): Promise<boolean> {
   if (typeof window === "undefined" || !window.speechSynthesis) return false;
 
   const synth = window.speechSynthesis;
   synth.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  const voices = synth.getVoices();
-  const preferred =
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("ka")) ??
-    voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) ??
-    voices[0];
+  const voices = await loadSpeechVoices();
+  // Never use an English/default voice for Georgian navigation text.
+  const preferred = voices.find((voice) =>
+    voice.lang.toLowerCase().startsWith("ka"),
+  );
+  if (!preferred) return false;
 
-  if (preferred) {
-    utterance.voice = preferred;
-    utterance.lang = preferred.lang;
-  } else {
-    utterance.lang = "ka-GE";
-  }
+  utterance.voice = preferred;
+  utterance.lang = preferred.lang;
 
   utterance.rate = 0.92;
   utterance.pitch = 0.95;
   utterance.volume = 1;
-  window.setTimeout(() => synth.speak(utterance), 80);
-  return true;
+
+  return new Promise((resolve) => {
+    utterance.onend = () => resolve(true);
+    utterance.onerror = () => resolve(false);
+    window.setTimeout(() => synth.speak(utterance), 80);
+  });
 }
 
 async function prefetchTts(text: string) {
@@ -669,6 +690,8 @@ async function prefetchTts(text: string) {
       body: JSON.stringify({ text: key }),
     });
     if (!response.ok) return;
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("audio")) return;
     const blob = await response.blob();
     ttsUrlCache.set(key, URL.createObjectURL(blob));
   } catch {
@@ -687,7 +710,14 @@ async function speakGeorgianMp3(text: string) {
     });
 
     if (!response.ok) {
+      invalidateTtsCache(text);
       throw new Error(`TTS failed: ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("audio")) {
+      invalidateTtsCache(text);
+      throw new Error("TTS returned non-audio response");
     }
 
     const blob = await response.blob();
@@ -728,6 +758,7 @@ async function speakGeorgianMp3(text: string) {
       finish(resolve);
     };
     audio.onerror = () => {
+      invalidateTtsCache(text);
       finish(() => reject(new Error("Audio playback failed")));
     };
 
@@ -771,7 +802,7 @@ async function speakPrompt(options: {
   voiceText: string;
   action?: RouteAction;
 }) {
-  const { voiceText, action } = options;
+  const { voiceText } = options;
   if (!voiceText.trim()) return;
 
   const epoch = speakEpoch;
@@ -785,10 +816,8 @@ async function speakPrompt(options: {
       } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
         if (error instanceof AudioBlockedError) throw error;
-        if (!speakBrowser(voiceText)) {
-          const fallback =
-            action != null ? englishVoiceText(action) : "Navigation cue.";
-          if (!speakBrowser(fallback)) throw new Error("voice failed");
+        if (!(await speakBrowser(voiceText))) {
+          throw new Error("Georgian voice failed");
         }
       }
     });
@@ -921,6 +950,8 @@ export function useRouteSimulation(options: {
         setAudioBlocked(!ok);
       }
       if (!ok) return;
+
+      stopAudio();
 
       try {
         await speakPrompt({
