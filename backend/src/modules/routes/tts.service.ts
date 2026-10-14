@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { createHash } from 'crypto';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 import type { Readable } from 'stream';
@@ -55,7 +60,9 @@ export class TtsService {
       this.logger.error(
         `TTS failed: ${error instanceof Error ? error.message : String(error)}`,
       );
-      throw error;
+      throw new ServiceUnavailableException(
+        'ხმის სინთეზი დროებით მიუწვდომელია',
+      );
     } finally {
       tts.close();
     }
