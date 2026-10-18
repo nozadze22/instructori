@@ -44,6 +44,47 @@ const routeInclude = {
   },
 };
 
+/** List/catalog: omit heavy `path` + step rows; use `stepsCount` instead. */
+const routeListSelect = {
+  id: true,
+  title: true,
+  description: true,
+  city: true,
+  sourceKey: true,
+  sourceUrl: true,
+  visibility: true,
+  isPublished: true,
+  createdById: true,
+  createdAt: true,
+  updatedAt: true,
+  createdBy: {
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+    },
+  },
+  _count: { select: { steps: true } },
+} satisfies Prisma.RouteSelect;
+
+type RouteListRow = Prisma.RouteGetPayload<{ select: typeof routeListSelect }>;
+
+function toRouteListItem(
+  route: RouteListRow,
+  isSaved: boolean,
+): Record<string, unknown> & { id: string; isSaved: boolean } {
+  const { _count, createdBy, ...rest } = route;
+  return {
+    ...rest,
+    path: [],
+    steps: [],
+    stepsCount: _count.steps,
+    isSaved,
+    createdBy,
+  };
+}
+
 function toPathJson(path?: RoutePathPointDto[]): Prisma.InputJsonValue {
   if (!path?.length) return [];
   return path.map((point) => [point.lng, point.lat]);
@@ -210,46 +251,21 @@ export class RoutesService {
 
     const pageRoutes = await this.prisma.route.findMany({
       where: { id: { in: pageIds } },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        city: true,
-        sourceKey: true,
-        sourceUrl: true,
-        visibility: true,
-        isPublished: true,
-        createdById: true,
-        createdAt: true,
-        updatedAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            role: true,
-          },
-        },
-        _count: { select: { steps: true } },
-      },
+      select: routeListSelect,
     });
 
     const byId = new Map(pageRoutes.map((route) => [route.id, route]));
     const orderedPage = pageIds
       .map((id) => byId.get(id))
-      .filter((route): route is (typeof pageRoutes)[number] => Boolean(route));
+      .filter((route): route is RouteListRow => Boolean(route));
 
     return {
       items: orderedPage.map((route) => {
-        const { _count, createdBy, ...rest } = route;
+        const item = toRouteListItem(route, false);
         return {
-          ...rest,
-          path: [],
-          steps: [],
-          stepsCount: _count.steps,
-          isSaved: false,
+          ...item,
           createdBy: {
-            ...createdBy,
+            ...(item.createdBy as RouteListRow['createdBy']),
             email: '',
           },
         };
@@ -409,10 +425,10 @@ export class RoutesService {
     const role = await this.resolveUserRole(user);
     const isAdmin = role === 'ADMIN';
 
-    const routes = isAdmin
+    const indexRows = isAdmin
       ? await this.prisma.route.findMany({
           orderBy: { updatedAt: 'desc' },
-          include: routeInclude,
+          select: routeListSelect,
         })
       : await this.prisma.route.findMany({
           where: {
@@ -422,14 +438,14 @@ export class RoutesService {
             ],
           },
           orderBy: { updatedAt: 'desc' },
-          include: routeInclude,
+          select: routeListSelect,
         });
 
-    const visibleRoutes = isAdmin
-      ? routes
-      : await this.filterSystemRoutesForNonAdmin(routes, user.userId);
+    const visibleIndex = isAdmin
+      ? indexRows
+      : await this.filterSystemRoutesForNonAdmin(indexRows, user.userId);
 
-    const withSaved = await this.withSavedFlags(user.userId, visibleRoutes);
+    const withSaved = await this.withSavedFlags(user.userId, visibleIndex);
 
     const counts = {
       all: withSaved.length,
@@ -468,7 +484,10 @@ export class RoutesService {
     }
 
     const total = filtered.length;
-    const items = filtered.slice(skip, skip + pageSize);
+    const pageRows = filtered.slice(skip, skip + pageSize);
+    const items = pageRows.map((route) =>
+      toRouteListItem(route, route.isSaved),
+    );
 
     return {
       items,
