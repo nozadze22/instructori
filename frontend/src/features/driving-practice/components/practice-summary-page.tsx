@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { useDrivingSession } from "@/features/driving-practice/hooks/driving-sessions";
 import { fallbackCategoryMeta } from "@/features/driving-practice/lib/mistake-types";
 import { parseRoutePath } from "@/features/routes/lib/route-actions";
@@ -132,17 +132,21 @@ export function PracticeSummaryPage({ sessionId }: PracticeSummaryPageProps) {
         />
 
         <div className="flex flex-wrap justify-center gap-3">
-          <Button type="button" className="rounded-xl" asChild>
-            <Link href="/practice">ახალი პრაქტიკა</Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl border-white/10"
-            asChild
+          <Link
+            href="/practice"
+            className={buttonVariants({ className: "rounded-xl" })}
           >
-            <Link href="/mistake-notes">ჩანაწერები</Link>
-          </Button>
+            ახალი პრაქტიკა
+          </Link>
+          <Link
+            href="/mistake-notes"
+            className={buttonVariants({
+              variant: "outline",
+              className: "rounded-xl border-white/10",
+            })}
+          >
+            ჩანაწერები
+          </Link>
         </div>
       </div>
     </div>

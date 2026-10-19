@@ -111,7 +111,9 @@ function MistakeNotesListContent() {
         note.studentName.toLowerCase().includes(q) ||
         note.city.toLowerCase().includes(q) ||
         note.route.title.toLowerCase().includes(q) ||
-        note.mistakes.some((item) => item.toLowerCase().includes(q)),
+        note.mistakes.some((item) =>
+          formatLegacyMistakeLine(item).toLowerCase().includes(q),
+        ),
     );
   }, [notes, query]);
 

@@ -44,7 +44,7 @@ export function PracticeStartPage() {
   const [routeId, setRouteId] = useState("");
   const createSession = useCreateDrivingSession();
   const { data, isLoading } = usePublicRoutes({ page: 1, pageSize: 100 });
-  const routes = data?.items ?? [];
+  const routes = useMemo(() => data?.items ?? [], [data?.items]);
 
   const canStart = studentName.trim().length >= 2 && routeId;
 

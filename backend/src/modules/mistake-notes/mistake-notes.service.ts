@@ -4,7 +4,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MistakeCatalogService } from '../mistake-catalog/mistake-catalog.service';
 import {
@@ -43,7 +42,7 @@ export class MistakeNotesService {
         studentName: dto.studentName.trim(),
         routeId: dto.routeId,
         city,
-        mistakes: mistakes as Prisma.InputJsonValue,
+        mistakes: mistakes,
         ...(practicedAt ? { practicedAt } : {}),
       },
       include: noteInclude,
@@ -113,7 +112,7 @@ export class MistakeNotesService {
           ? {
               mistakes: (await this.normalizeMistakes(
                 dto.mistakes,
-              )) as Prisma.InputJsonValue,
+              )),
             }
           : {}),
         ...(dto.practicedAt !== undefined

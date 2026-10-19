@@ -41,7 +41,7 @@ export function parseMistakeNoteEntries(
         (c) => text.includes(c.label) || text.startsWith(c.icon),
       );
       if (matched) {
-        let note = text
+        let note: string | undefined = text
           .replace(matched.icon, "")
           .replace(matched.label, "")
           .replace(/^[·\s-]+/, "")

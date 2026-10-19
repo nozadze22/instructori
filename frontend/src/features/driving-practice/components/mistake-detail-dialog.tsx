@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -51,8 +51,6 @@ function MistakeDetailBody({
   note: string;
   setNote: (value: string) => void;
 }) {
-  const category = mistake.category;
-
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
@@ -84,14 +82,10 @@ export function MistakeDetailDialog({
   saving,
 }: MistakeDetailDialogProps) {
   const isMobile = useIsMobile();
-  const [severityId, setSeverityId] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    if (!mistake) return;
-    setSeverityId(mistake.severityId ?? null);
-    setNote(mistake.note ?? "");
-  }, [mistake]);
+  const [severityId, setSeverityId] = useState<string | null>(
+    mistake?.severityId ?? null,
+  );
+  const [note, setNote] = useState(mistake?.note ?? "");
 
   if (!mistake) return null;
   const category = mistake.category;

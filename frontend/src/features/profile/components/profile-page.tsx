@@ -65,9 +65,14 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
 
   const body = isAppUser(me) ? (
     <UserProfileView
+      key={profile?.updatedAt ?? "profile"}
       fullName={me.fullName}
       email={me.email}
       avatarUrl={profile?.avatarUrl}
+      bio={profile?.bio}
+      phone={profile?.phone}
+      city={profile?.city}
+      country={profile?.country}
     />
   ) : (
     <InstructorProfileMeView fullName={me.fullName} email={me.email} />

@@ -42,7 +42,7 @@ export default function MistakeNotesLayout({ children }: { children: ReactNode }
     if (me.role !== "INSTRUCTOR" || me.accessStatus !== "ACTIVE") {
       router.replace("/marshrutebi");
     }
-  }, [error, isError, isLoading, loginRedirect, me, router]);
+  }, [error, isError, isLoading, loginRedirect, me, pathname, router]);
 
   if (isLoading || !allowed) {
     return (

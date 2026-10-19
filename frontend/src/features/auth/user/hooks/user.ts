@@ -3,7 +3,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { defaultPathForUser } from "@/lib/post-auth-path";
-import { getUser, registerUser, updateUserName } from "../api/user";
+import {
+  changePassword,
+  getUser,
+  registerUser,
+  updateUserName,
+  type ChangePasswordInput,
+} from "../api/user";
 import type { UserRegistrationSchema } from "../schema/user-schema";
 
 export function useUserRegistration() {
@@ -50,6 +56,19 @@ export function useUpdateUserName() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "სახელი ვერ განახლდა");
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationKey: ["user", "change-password"],
+    mutationFn: (data: ChangePasswordInput) => changePassword(data),
+    onSuccess: () => {
+      toast.success("პაროლი წარმატებით შეიცვალა");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "პაროლი ვერ შეიცვალა");
     },
   });
 }

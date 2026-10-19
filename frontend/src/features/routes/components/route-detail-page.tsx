@@ -49,7 +49,6 @@ import {
   useMistakeCategories,
   useMistakeSeverities,
 } from "@/features/driving-practice/hooks/mistake-catalog";
-import { getCurrentGeoPoint } from "@/features/driving-practice/lib/geolocation";
 import {
   useDeleteRoute,
   usePublicRoute,
@@ -649,6 +648,7 @@ function RouteDetailContent({
       />
 
       <MistakeDetailDialog
+        key={activeMistake?.id ?? "empty"}
         mistake={activeMistake}
         severities={mistakeSeverities}
         open={mistakeDetailOpen}

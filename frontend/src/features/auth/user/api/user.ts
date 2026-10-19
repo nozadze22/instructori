@@ -46,3 +46,17 @@ export async function updateUserName(fullName: string): Promise<AuthUser> {
     body: JSON.stringify({ fullName }),
   });
 }
+
+export type ChangePasswordInput = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export async function changePassword(
+  data: ChangePasswordInput,
+): Promise<{ ok: true }> {
+  return apiRequest<{ ok: true }>("/auth/change-password", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
