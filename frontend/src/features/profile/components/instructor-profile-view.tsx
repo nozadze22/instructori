@@ -63,7 +63,7 @@ export function InstructorProfileView({
   const displayName = userDisplayName(user);
   const initials = userInitials(user);
 
-  const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
+  const location = profile?.city ?? "";
   const bio =
     profile?.bio?.trim() ||
     "შეავსე პროფილი — დაამატე ბიოგრაფია, ქალაქი და საკონტაქტო ინფორმაცია, რომ სტუდენტებმა უკეთ გაგიცნონ.";

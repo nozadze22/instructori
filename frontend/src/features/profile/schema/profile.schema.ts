@@ -19,7 +19,6 @@ export const profileSchema = z.object({
     .union([z.url("სწორი URL მიუთითე."), z.literal("")])
     .optional(),
   city: z.string().max(100).optional().or(z.literal("")),
-  country: z.string().max(100).optional().or(z.literal("")),
 });
 
 export type ProfileSchema = z.infer<typeof profileSchema>;
@@ -30,7 +29,6 @@ export const defaultProfileValues: ProfileSchema = {
   phone: "",
   avatarUrl: "",
   city: "",
-  country: "",
 };
 
 export function toProfilePayload(values: ProfileSchema) {
@@ -45,6 +43,5 @@ export function toProfilePayload(values: ProfileSchema) {
     phone: clean(values.phone),
     avatarUrl: clean(values.avatarUrl),
     city: clean(values.city),
-    country: clean(values.country),
   };
 }

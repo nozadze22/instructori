@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Globe2,
   ImageIcon,
   MapPin,
   Phone,
@@ -72,7 +71,6 @@ export function ProfileForm({
       phone: profile?.phone ?? "",
       avatarUrl: profile?.avatarUrl ?? "",
       city: profile?.city ?? "",
-      country: profile?.country ?? "",
     });
   }, [form, me?.fullName, profile]);
 
@@ -193,27 +191,6 @@ export function ProfileForm({
             </FieldContent>
           </Field>
 
-          <Field data-invalid={!!form.formState.errors.country}>
-            <FieldLabel
-              htmlFor="country"
-              className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
-              ქვეყანა
-            </FieldLabel>
-            <FieldContent>
-              <InputGroup className={inputGroupClassName}>
-                <InputGroupAddon>
-                  <Globe2 />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="country"
-                  placeholder="საქართველო"
-                  {...form.register("country")}
-                />
-              </InputGroup>
-              <FieldError errors={[form.formState.errors.country]} />
-            </FieldContent>
-          </Field>
         </FieldGroup>
 
         <Field data-invalid={!!form.formState.errors.bio}>

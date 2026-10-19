@@ -24,6 +24,10 @@ function isInstructorAppPath(pathname: string) {
   return pathname.startsWith("/dashboard") || pathname.startsWith("/routes");
 }
 
+function isUserAppPath(pathname: string) {
+  return pathname.startsWith("/instructors");
+}
+
 /** Always edge-to-edge (no Wrapper at any breakpoint). */
 function isAlwaysFullBleedPath(pathname: string) {
   return (
@@ -67,7 +71,11 @@ export function AppChrome({ children }: { children: ReactNode }) {
     isAlwaysFullBleedPath(pathname) ||
     (isMobile && isMobileFullBleedPath(pathname));
 
-  if (isAdminPanelPath(pathname) || isInstructorAppPath(pathname)) {
+  if (
+    isAdminPanelPath(pathname) ||
+    isInstructorAppPath(pathname) ||
+    isUserAppPath(pathname)
+  ) {
     return <>{children}</>;
   }
 

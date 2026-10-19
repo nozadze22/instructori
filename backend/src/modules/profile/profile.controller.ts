@@ -14,7 +14,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
-import { CreateProfileDto, UpdateProfileDto } from './dto/profile.dto';
+import {
+  CreateProfileDto,
+  JoinInstructorDto,
+  UpdateProfileDto,
+} from './dto/profile.dto';
 import type { UploadedImageFile } from '../../storage/uploaded-image.type';
 import { ProfileService } from './profile.service';
 
@@ -42,6 +46,19 @@ export class ProfileController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.profileService.updateProfile(user.userId, dto);
+  }
+
+  @Get('instructor-group')
+  getInstructorGroup(@CurrentUser() user: AuthUser) {
+    return this.profileService.getInstructorGroup(user.userId);
+  }
+
+  @Post('instructor-group')
+  joinInstructorGroup(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: JoinInstructorDto,
+  ) {
+    return this.profileService.joinInstructorGroup(user.userId, dto);
   }
 
   @Post('avatar')

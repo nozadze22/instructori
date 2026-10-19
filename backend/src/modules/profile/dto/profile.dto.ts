@@ -33,10 +33,6 @@ export class CreateProfileDto {
   @MaxLength(100)
   city?: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  country?: string;
 }
 
 export class UpdateProfileDto {
@@ -66,8 +62,11 @@ export class UpdateProfileDto {
   @MaxLength(100)
   city?: string;
 
-  @IsOptional()
+}
+
+export class JoinInstructorDto {
   @IsString()
-  @MaxLength(100)
-  country?: string;
+  @IsNotEmpty()
+  @MaxLength(32)
+  instructorCode!: string;
 }

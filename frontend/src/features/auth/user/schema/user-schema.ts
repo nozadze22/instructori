@@ -5,6 +5,12 @@ export const userRegistrationSchema = z
     registrationRole: z.enum(["instructor", "student"]),
     fullName: z.string().min(2, "გთხოვთ მიუთითოთ სრული სახელი."),
     email: z.email("გთხოვთ მიუთითოთ სწორი ელ-ფოსტა."),
+    phone: z
+      .string()
+      .trim()
+      .min(7, "გთხოვთ მიუთითოთ სწორი მობილურის ნომერი.")
+      .max(30, "მობილურის ნომერი ძალიან გრძელია."),
+    city: z.string().trim(),
     password: z.string().min(8, "პაროლი უნდა იყოს მინიმუმ 8 სიმბოლო."),
     repeatPassword: z.string().min(1, "გთხოვთ დაადასტუროთ პაროლი."),
     hasInstructorCode: z.boolean(),
@@ -18,6 +24,14 @@ export const userRegistrationSchema = z
     path: ["repeatPassword"],
   })
   .superRefine((data, ctx) => {
+    if (data.registrationRole === "instructor" && data.city.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "გთხოვთ აირჩიოთ ქალაქი.",
+        path: ["city"],
+      });
+    }
+
     if (data.registrationRole !== "student" || !data.hasInstructorCode) return;
 
     const code = data.instructorCode.trim();
@@ -45,6 +59,8 @@ export const defaultUserRegistrationValues: UserRegistrationSchema = {
   registrationRole: "instructor",
   fullName: "",
   email: "",
+  phone: "",
+  city: "",
   password: "",
   repeatPassword: "",
   hasInstructorCode: false,

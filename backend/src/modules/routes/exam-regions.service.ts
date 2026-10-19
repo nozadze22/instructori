@@ -112,6 +112,16 @@ export class ExamRegionsService implements OnModuleInit {
       }));
   }
 
+  async getAllExamCities() {
+    const regions = await this.loadRegions();
+    return regions.map((region) => ({
+      id: region.id,
+      name: region.name,
+      lat: region.lat,
+      lng: region.lng,
+    }));
+  }
+
   async findAllForAdmin() {
     await this.ensureDefaults();
     const regions = await this.loadRegions();

@@ -206,7 +206,7 @@ export function ImageUpload({
             alt=""
             fill
             unoptimized
-            className="object-cover"
+            className={isAvatar ? "object-contain bg-surface-container" : "object-cover"}
             sizes={isAvatar ? "160px" : "100vw"}
           />
         ) : emptyState !== undefined ? (

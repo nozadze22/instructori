@@ -173,7 +173,7 @@ export async function getPublicRoute(id: string): Promise<Route> {
 }
 
 export async function getExamCities(): Promise<ExamCity[]> {
-  return apiRequest<ExamCity[]>("/routes/cities");
+  return apiRequest<ExamCity[]>("/public/routes/cities");
 }
 
 export async function syncExamCatalog(): Promise<{

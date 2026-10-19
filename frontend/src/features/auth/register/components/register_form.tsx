@@ -11,6 +11,9 @@ import {
   KeyRound,
   Lock,
   Mail,
+  MapPin,
+  Phone,
+  Search,
   User,
 } from "lucide-react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -31,6 +34,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Field,
   FieldContent,
   FieldError,
@@ -44,6 +52,8 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { useExamCities } from "@/features/routes/hooks/routes";
+import { cn } from "@/lib/utils";
 const INSTRUCTOR_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDI2vAHWB_6JA1CAE5lQnbW7wdui35EmjgBxEupcWnjvXNUknAGiAtYuPT3mxMG3EOumIoP_HzEz87dqSS84_jCdBYHL_82eP23M2YFWS8gv4asMDsZBxSPxmq4kGthQo5wSuO84dsY6SUSQ11OnwhbEMIIO-a5ezUXUXbhqqkaLNAG_aEs-18qJ-abigXi96PF73aiGD-0HFjYxE4VNy5KBj0z2emBFFgVIVaMD6r3wX1jV3Ft-A11G5dH8vIj-ua3VfF7YfcOqMay";
 
@@ -59,7 +69,10 @@ const inputGroupClassName =
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
   const { mutate: registerUser, isPending } = useUserRegistration();
+  const { data: examCities, isLoading: citiesLoading } = useExamCities();
 
   const form = useForm<UserRegistrationSchema>({
     resolver: zodResolver(userRegistrationSchema),
@@ -78,6 +91,14 @@ export function RegisterForm() {
     defaultValue: false,
   });
   const isStudentRegistration = registrationRole === "student";
+  const selectedCity = useWatch({
+    control: form.control,
+    name: "city",
+  });
+  const availableCities = examCities?.map((city) => city.name) ?? [];
+  const filteredCities = availableCities.filter((city) =>
+    city.toLowerCase().includes(citySearch.trim().toLowerCase()),
+  );
 
   const onSubmit = (data: UserRegistrationSchema) => {
     registerUser(data);
@@ -252,6 +273,126 @@ export function RegisterForm() {
                     </FieldContent>
                   </Field>
                 </FieldGroup>
+
+                <Field data-invalid={!!form.formState.errors.phone}>
+                  <FieldLabel
+                    htmlFor="phone"
+                    className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                  >
+                    მობილურის ნომერი
+                  </FieldLabel>
+                  <FieldContent>
+                    <InputGroup className={inputGroupClassName}>
+                      <InputGroupAddon>
+                        <Phone />
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        id="phone"
+                        type="tel"
+                        placeholder="+995 5XX XX XX XX"
+                        autoComplete="tel"
+                        {...form.register("phone")}
+                      />
+                    </InputGroup>
+                    <FieldError errors={[form.formState.errors.phone]} />
+                  </FieldContent>
+                </Field>
+
+                {!isStudentRegistration ? (
+                  <Controller
+                    control={form.control}
+                    name="city"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={!!fieldState.error}>
+                        <FieldLabel
+                          htmlFor="registration-city"
+                          className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                        >
+                          ქალაქი
+                        </FieldLabel>
+                        <FieldContent>
+                          <Popover
+                            open={cityPopoverOpen}
+                            onOpenChange={setCityPopoverOpen}
+                          >
+                            <PopoverTrigger
+                              render={
+                                <Button
+                                  id="registration-city"
+                                  type="button"
+                                  variant="outline"
+                                  className={cn(
+                                    "h-12 w-full justify-between rounded-xl border-white/10 bg-surface-low text-left font-normal shadow-none",
+                                    field.value && "border-primary/30 text-primary",
+                                  )}
+                                />
+                              }
+                            >
+                              <span className="flex min-w-0 items-center gap-2">
+                                <MapPin className="size-4 shrink-0 opacity-70" />
+                                <span className="truncate">
+                                  {field.value || "აირჩიე ქალაქი"}
+                                </span>
+                              </span>
+                              <span className="text-muted-foreground">⌄</span>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              align="start"
+                              className="w-[min(100vw-2rem,28rem)] gap-0 overflow-hidden rounded-xl border-white/10 bg-surface-low p-0"
+                            >
+                              <div className="border-b border-white/8 p-2">
+                                <div className="relative">
+                                  <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                                  <input
+                                    aria-label="ქალაქის ძებნა"
+                                    value={citySearch}
+                                    onChange={(event) =>
+                                      setCitySearch(event.target.value)
+                                    }
+                                    placeholder="ქალაქის ძებნა..."
+                                    className="h-10 w-full rounded-lg border border-white/10 bg-surface-lowest pl-9 pr-3 text-sm outline-none focus:border-primary/50"
+                                  />
+                                </div>
+                              </div>
+                              <div className="max-h-64 overflow-y-auto p-1.5">
+                                {citiesLoading ? (
+                                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                                    ქალაქები იტვირთება...
+                                  </p>
+                                ) : filteredCities.length === 0 ? (
+                                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">
+                                    ქალაქი ვერ მოიძებნა
+                                  </p>
+                                ) : (
+                                  filteredCities.map((city) => (
+                                    <button
+                                      key={city}
+                                      type="button"
+                                      className={cn(
+                                        "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/5",
+                                        city === selectedCity &&
+                                          "bg-primary/12 text-primary",
+                                      )}
+                                      onClick={() => {
+                                        field.onChange(city);
+                                        setCityPopoverOpen(false);
+                                        setCitySearch("");
+                                      }}
+                                    >
+                                      <MapPin className="size-4 shrink-0 opacity-70" />
+                                      {city}
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <FieldError errors={[fieldState.error]} />
+                        </FieldContent>
+                      </Field>
+                    )}
+                  />
+                ) : null}
 
                 {isStudentRegistration ? (
                   <Controller

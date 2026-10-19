@@ -7,7 +7,6 @@ export type Profile = {
   phone: string | null;
   avatarUrl: string | null;
   city: string | null;
-  country: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -18,7 +17,15 @@ export type ProfileInput = {
   phone?: string;
   avatarUrl?: string;
   city?: string;
-  country?: string;
+};
+
+export type InstructorGroup = {
+  instructor: {
+    id: string;
+    fullName: string;
+    email: string;
+    instructorCode: string | null;
+  } | null;
 };
 
 function toError(error: unknown, fallback: string): Error {
@@ -75,6 +82,21 @@ export async function updateProfile(data: ProfileInput): Promise<Profile> {
     console.error("[updateProfile]", error);
     throw toError(error, "პროფილი ვერ განახლდა");
   }
+}
+
+export async function getInstructorGroup(): Promise<InstructorGroup> {
+  return apiRequest<InstructorGroup>("/profile/instructor-group", {
+    method: "GET",
+  });
+}
+
+export async function joinInstructorGroup(
+  instructorCode: string,
+): Promise<InstructorGroup> {
+  return apiRequest<InstructorGroup>("/profile/instructor-group", {
+    method: "POST",
+    body: JSON.stringify({ instructorCode }),
+  });
 }
 
 export async function uploadProfileAvatar(file: File): Promise<Profile> {

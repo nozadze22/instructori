@@ -7,6 +7,7 @@ import {
   finishDrivingSession,
   getDrivingSession,
   getDrivingSessions,
+  getStudentDrivingSessions,
   updateDrivingMistake,
   type CreateDrivingMistakeInput,
   type CreateDrivingSessionInput,
@@ -30,6 +31,14 @@ export function useDrivingSession(sessionId: string) {
     enabled: Boolean(sessionId),
     refetchInterval: (query) =>
       query.state.data?.endedAt ? false : 15_000,
+  });
+}
+
+export function useStudentDrivingSessions(studentUserId?: string) {
+  return useQuery({
+    queryKey: ["driving-sessions", "student", studentUserId],
+    queryFn: () => getStudentDrivingSessions(studentUserId!),
+    enabled: Boolean(studentUserId),
   });
 }
 

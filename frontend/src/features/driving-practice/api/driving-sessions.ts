@@ -77,6 +77,12 @@ export async function getDrivingSessions(params?: {
   );
 }
 
+export async function getStudentDrivingSessions(studentUserId: string) {
+  return apiRequest<DrivingSessionListItem[]>(
+    `/students/${studentUserId}/driving-sessions`,
+  );
+}
+
 export async function getDrivingSession(id: string) {
   return apiRequest<DrivingSession>(`/driving-sessions/${id}`);
 }

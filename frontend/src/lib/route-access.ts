@@ -4,6 +4,7 @@ const APP_USER_PUBLIC_PATHS = [
   /^\/contact$/,
   /^\/about$/,
   /^\/profile(\/.*)?$/,
+  /^\/instructors(\/.*)?$/,
   /^\/login$/,
   /^\/register$/,
   /^\/forbidden$/,
