@@ -53,13 +53,23 @@ model User {
   accessSource    AccessSource?
   accessGrantedAt DateTime?
   sessionVersion  Int              @default(0)
+  /// Shareable code for student self-registration (instructors only).
+  instructorCode     String?       @unique
+  /// Instructor this student registered under (USER role only).
+  linkedInstructorId String?
+  linkedInstructor   User?         @relation("InstructorStudents", fields: [linkedInstructorId], references: [id], onDelete: SetNull)
+  students           User[]        @relation("InstructorStudents")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   profile         Profile?
   routes          Route[]
   savedRoutes     SavedRoute[]
-  mistakeNotes    MistakeNote[]
-  refreshTokens   RefreshToken[]
+  mistakeNotes           MistakeNote[]
+  refreshTokens          RefreshToken[]
+  drivingSessionsLed     DrivingSession[] @relation("DrivingSessionsInstructor")
+  drivingSessionsAsStudent DrivingSession[] @relation("DrivingSessionsStudent")
+
+  @@index([linkedInstructorId])
 }
 
 model RefreshToken {
@@ -112,9 +122,10 @@ model Route {
   createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
   steps        RouteStep[]
   savedBy      SavedRoute[]
-  mistakeNotes MistakeNote[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  mistakeNotes    MistakeNote[]
+  drivingSessions DrivingSession[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([createdById])
   @@index([visibility, isPublished])
@@ -172,6 +183,72 @@ model MistakeNote {
   @@index([instructorId, studentName])
   @@index([routeId])
   @@index([city])
+}
+
+model DrivingSession {
+  id            String           @id @default(uuid())
+  instructorId  String
+  instructor    User             @relation("DrivingSessionsInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
+  studentName   String
+  studentUserId String?
+  studentUser   User?            @relation("DrivingSessionsStudent", fields: [studentUserId], references: [id], onDelete: SetNull)
+  routeId       String
+  route         Route            @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  startedAt     DateTime         @default(now())
+  endedAt       DateTime?
+  mistakes      DrivingMistake[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([instructorId])
+  @@index([studentUserId])
+  @@index([studentName])
+  @@index([routeId])
+}
+
+model MistakeCategory {
+  id        String           @id @default(uuid())
+  code      String           @unique
+  label     String
+  icon      String           @default("📝")
+  sortOrder Int              @default(0)
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  mistakes  DrivingMistake[]
+
+  @@index([isActive, sortOrder])
+}
+
+model MistakeSeverityLevel {
+  id        String           @id @default(uuid())
+  code      String           @unique
+  label     String
+  sortOrder Int              @default(0)
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  mistakes  DrivingMistake[]
+
+  @@index([isActive, sortOrder])
+}
+
+model DrivingMistake {
+  id         String                @id @default(uuid())
+  sessionId  String
+  session    DrivingSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   MistakeCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  latitude   Float
+  longitude  Float
+  severityId String?
+  severity   MistakeSeverityLevel? @relation(fields: [severityId], references: [id], onDelete: SetNull)
+  note       String?
+  timestamp  DateTime              @default(now())
+
+  @@index([sessionId])
+  @@index([sessionId, timestamp])
+  @@index([categoryId])
 }
 
 /// Official exam regions (cities). Admin can toggle visibility for public catalog.

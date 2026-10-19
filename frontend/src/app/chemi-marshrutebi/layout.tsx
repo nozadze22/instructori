@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AuthGate } from "@/features/auth/components/auth-gate";
+import { FORBIDDEN_PATH } from "@/lib/route-access";
 
 export default function MyRoutesLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -11,8 +12,9 @@ export default function MyRoutesLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthGate
+      roles={["INSTRUCTOR", "ADMIN"]}
       accessStatuses={["ACTIVE"]}
-      redirectTo="/pending"
+      redirectTo={FORBIDDEN_PATH}
       loginRedirect={loginRedirect}
     >
       {children}

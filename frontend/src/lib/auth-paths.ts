@@ -9,6 +9,15 @@ export function isRegisteredInstructor(user: AuthUser): boolean {
   return user.role === "INSTRUCTOR";
 }
 
+/** Student / app user — no instructor routes or tools. */
+export function isAppUser(user: AuthUser): boolean {
+  return user.role === "USER";
+}
+
+export function canAccessInstructorFeatures(user: AuthUser): boolean {
+  return user.role === "INSTRUCTOR" || user.role === "ADMIN";
+}
+
 export function canAccessInstructorDashboard(user: AuthUser): boolean {
   return isAdminUser(user);
 }
@@ -18,6 +27,7 @@ export function appHomeForUser(user: {
   accessStatus: string;
 }): string {
   if (user.role === "ADMIN") return "/admin";
+  if (user.role === "USER") return "/profile";
   if (user.role === "INSTRUCTOR" && user.accessStatus === "PENDING") {
     return "/pending";
   }

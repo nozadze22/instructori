@@ -76,3 +76,27 @@ export async function updateProfile(data: ProfileInput): Promise<Profile> {
     throw toError(error, "პროფილი ვერ განახლდა");
   }
 }
+
+export async function uploadProfileAvatar(file: File): Promise<Profile> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(getApiUrl("/profile/avatar"), {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = (await response.text()).trim();
+    throw new Error(text || "სურათი ვერ აიტვირთა");
+  }
+
+  return (await response.json()) as Profile;
+}
+
+export async function removeProfileAvatar(): Promise<Profile> {
+  return apiRequest<Profile>("/profile/avatar", {
+    method: "DELETE",
+  });
+}

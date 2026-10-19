@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { Contact, Home, Info, Map } from "lucide-react";
 
+import type { Role } from "@/features/auth/login/api/login";
+
 export type NavbarLink = {
   label: string;
   href: string;
@@ -15,7 +17,18 @@ export const navbarLinks: NavbarLink[] = [
   { label: "კონტაქტი", href: "/contact", icon: Contact, visibility: "always" },
 ];
 
-export function visibleNavbarLinks(isLoggedIn: boolean) {
+export function visibleNavbarLinks(
+  isLoggedIn: boolean,
+  role?: Role | null,
+) {
+  if (isLoggedIn && role === "USER") {
+    return navbarLinks.filter(
+      (link) =>
+        link.visibility === "always" ||
+        (link.visibility === "guest" && link.href === "/"),
+    );
+  }
+
   return navbarLinks.filter((link) => {
     if (link.visibility === "always") return true;
     if (link.visibility === "user") return isLoggedIn;

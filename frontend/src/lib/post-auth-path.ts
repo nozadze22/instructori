@@ -17,6 +17,8 @@ export function safeNextPath(value: string | null | undefined): string | null {
 export {
   appHomeForUser,
   canAccessInstructorDashboard,
+  canAccessInstructorFeatures,
   isAdminUser,
+  isAppUser,
   isRegisteredInstructor,
 } from "@/lib/auth-paths";

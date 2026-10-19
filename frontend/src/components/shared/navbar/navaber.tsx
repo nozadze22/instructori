@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { useGetMe } from "@/features/auth/login/hooks/login";
-import { appHomeForUser, isAdminUser } from "@/lib/auth-paths";
+import { appHomeForUser, isAdminUser, isAppUser } from "@/lib/auth-paths";
 import { cn } from "@/lib/utils";
 import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { BurgerMenu } from "./burger_menu";
@@ -32,11 +32,14 @@ export function Navbar({ className }: NavbarProps) {
           <BurgerMenu
             appHref={appHref}
             isAdmin={me?.role === "ADMIN"}
+            isAppUser={me?.role === "USER"}
             isInstructor={false}
             isLoggedIn={Boolean(me)}
           />
           <Link
-            href={me ? appHomeForUser(me) : "/"}
+            href={
+              me ? (isAppUser(me) ? "/" : appHomeForUser(me)) : "/"
+            }
             className="text-xl font-semibold tracking-tight text-primary"
           >
             ინსტრუქტორი
@@ -44,7 +47,7 @@ export function Navbar({ className }: NavbarProps) {
         </div>
 
         <div className="hidden items-center gap-6 md:flex">
-          {visibleNavbarLinks(Boolean(me)).map((link) => (
+          {visibleNavbarLinks(Boolean(me), me?.role).map((link) => (
             <Link
               key={link.href}
               href={link.href}

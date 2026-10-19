@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -9,8 +10,24 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { EXAM_CITY_NAMES } from '../../routes/exam-cities';
+
+export class MistakeNoteItemDto {
+  @IsString()
+  @IsNotEmpty()
+  categoryId!: string;
+
+  @IsOptional()
+  @IsString()
+  severityId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
 
 export class CreateMistakeNoteDto {
   @IsString()
@@ -28,10 +45,9 @@ export class CreateMistakeNoteDto {
 
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  @MaxLength(500, { each: true })
-  mistakes!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => MistakeNoteItemDto)
+  mistakes!: MistakeNoteItemDto[];
 
   @IsOptional()
   @IsDateString()
@@ -58,10 +74,9 @@ export class UpdateMistakeNoteDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  @MaxLength(500, { each: true })
-  mistakes?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => MistakeNoteItemDto)
+  mistakes?: MistakeNoteItemDto[];
 
   @IsOptional()
   @IsDateString()

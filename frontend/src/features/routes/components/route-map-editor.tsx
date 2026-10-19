@@ -21,6 +21,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { GoogleMapsProvider } from "@/features/routes/components/google-maps-provider";
+import { RouteMapSvgFallback } from "@/features/routes/components/route-map-svg-fallback";
 import { buildDrivingPath } from "@/features/routes/lib/build-driving-path";
 import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
 import { actionLabel } from "@/features/routes/lib/route-actions";
@@ -507,6 +508,8 @@ function RouteMapEditorInner({
 
 export function RouteMapEditor({
   className,
+  path,
+  commands,
   ...props
 }: RouteMapEditorProps) {
   return (
@@ -516,8 +519,26 @@ export function RouteMapEditor({
         className,
       )}
     >
-      <GoogleMapsProvider>
-        <RouteMapEditorInner {...props} />
+      <GoogleMapsProvider
+        compact
+        fallback={
+          <RouteMapSvgFallback
+            path={path}
+            commands={commands.map((command) => ({
+              lat: command.lat,
+              lng: command.lng,
+              action: command.action,
+              label: command.voiceText,
+            }))}
+            className="h-[min(58vh,560px)] min-h-[340px] sm:h-[min(72vh,720px)] sm:min-h-[520px]"
+          />
+        }
+      >
+        <RouteMapEditorInner
+          path={path}
+          commands={commands}
+          {...props}
+        />
       </GoogleMapsProvider>
     </div>
   );

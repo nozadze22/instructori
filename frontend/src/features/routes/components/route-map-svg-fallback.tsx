@@ -20,6 +20,12 @@ type RouteMapSvgFallbackProps = {
   showVehicleMarker?: boolean;
   traveledPath?: PathPoint[];
   aheadPath?: PathPoint[];
+  practiceMarkers?: Array<{
+    lat: number;
+    lng: number;
+    label: string;
+    title?: string;
+  }>;
   className?: string;
 };
 
@@ -78,6 +84,7 @@ export function RouteMapSvgFallback({
   showVehicleMarker = true,
   traveledPath,
   aheadPath,
+  practiceMarkers,
   className,
 }: RouteMapSvgFallbackProps) {
   const width = 960;
@@ -88,8 +95,11 @@ export function RouteMapSvgFallback({
     const points = [...path, ...(traveledPath ?? []), ...(aheadPath ?? [])];
     for (const command of commands) points.push({ lat: command.lat, lng: command.lng });
     if (vehiclePosition) points.push(vehiclePosition);
+    for (const marker of practiceMarkers ?? []) {
+      points.push({ lat: marker.lat, lng: marker.lng });
+    }
     return points;
-  }, [path, commands, vehiclePosition, traveledPath, aheadPath]);
+  }, [path, commands, vehiclePosition, traveledPath, aheadPath, practiceMarkers]);
 
   const projection = useMemo(
     () => createProjection(allPoints, width, height, padding),
@@ -249,6 +259,34 @@ export function RouteMapSvgFallback({
               );
             })
           : null}
+
+        {practiceMarkers?.map((marker, index) => {
+          const point = projection.project({
+            lat: marker.lat,
+            lng: marker.lng,
+          });
+          return (
+            <g key={`practice-${index}`}>
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={13}
+                fill="#ef4444"
+                stroke="#ffffff"
+                strokeWidth={2}
+              />
+              <text
+                x={point.x}
+                y={point.y + 4}
+                textAnchor="middle"
+                fontSize={11}
+              >
+                {marker.label}
+              </text>
+              {marker.title ? <title>{marker.title}</title> : null}
+            </g>
+          );
+        })}
 
         {showVehicleMarker && projectedVehicle ? (
           <g transform={`translate(${projectedVehicle.x} ${projectedVehicle.y})`}>
