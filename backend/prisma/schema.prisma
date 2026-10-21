@@ -43,6 +43,11 @@ enum RouteAction {
   CUSTOM
 }
 
+enum InstructorMessageStatus {
+  UNREAD
+  READ
+}
+
 model User {
   id              String           @id @default(uuid())
   email           String           @unique
@@ -62,12 +67,15 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   profile         Profile?
+  instructorCategories String[] @default([])
   routes          Route[]
   savedRoutes     SavedRoute[]
   mistakeNotes           MistakeNote[]
   refreshTokens          RefreshToken[]
   drivingSessionsLed     DrivingSession[] @relation("DrivingSessionsInstructor")
   drivingSessionsAsStudent DrivingSession[] @relation("DrivingSessionsStudent")
+  instructorMessagesSent     InstructorMessage[] @relation("InstructorMessagesSent")
+  instructorMessagesReceived InstructorMessage[] @relation("InstructorMessagesReceived")
 
   @@index([linkedInstructorId])
 }
@@ -89,9 +97,11 @@ model Profile {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio         String?
   phone       String?
-  avatarUrl   String?
-  city        String?
-  createdAt   DateTime @default(now())
+  avatarUrl     String?
+  city          String?
+  /// Display string e.g. "ყოველდღე: 08:30 - 20:30"
+  workingHours  String?
+  createdAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
@@ -102,6 +112,21 @@ model Contact {
   subject   String
   message   String
   createdAt DateTime @default(now())
+}
+
+model InstructorMessage {
+  id            String                   @id @default(uuid())
+  senderId      String
+  sender        User                     @relation("InstructorMessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  instructorId  String
+  instructor    User                     @relation("InstructorMessagesReceived", fields: [instructorId], references: [id], onDelete: Cascade)
+  message       String
+  status        InstructorMessageStatus  @default(UNREAD)
+  createdAt     DateTime                 @default(now())
+  readAt        DateTime?
+
+  @@index([instructorId, status, createdAt])
+  @@index([senderId, createdAt])
 }
 
 model Route {

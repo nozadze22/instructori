@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ContactModule } from './modules/conatct/contanct.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DrivingSessionsModule } from './modules/driving-sessions/driving-sessions.module';
+import { InstructorsModule } from './modules/instructors/instructors.module';
 import { MistakeCatalogModule } from './modules/mistake-catalog/mistake-catalog.module';
 import { MistakeNotesModule } from './modules/mistake-notes/mistake-notes.module';
 import { ProfileModule } from './modules/profile/profile.module';
@@ -26,6 +27,7 @@ import { StorageModule } from './storage/storage.module';
     ContactModule,
     AuthModule,
     DashboardModule,
+    InstructorsModule,
     ProfileModule,
     RoutesModule,
     MistakeNotesModule,

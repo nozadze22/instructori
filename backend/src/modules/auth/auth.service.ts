@@ -86,6 +86,7 @@ export class AuthService {
         role: 'INSTRUCTOR',
         accessStatus: 'PENDING',
         instructorCode: await this.generateUniqueInstructorCode(),
+        instructorCategories: dto.instructorCategories,
         profile: { create: { city, phone: dto.phone.trim() } },
       },
       select: {

@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import Image from "next/image";
-import { ImagePlus, Trash2, Upload } from "lucide-react";
+import { Camera, ImagePlus, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,9 @@ export type ImageUploadProps = {
   emptyState?: ReactNode;
   /** Compact square preview (e.g. profile avatar). */
   variant?: "default" | "avatar";
+  /** `profile` — hero avatar: initials, hover overlay, no cramped labels. */
+  avatarLayout?: "default" | "profile";
+  placeholderInitials?: string;
 };
 
 function isAcceptedType(file: File, accept: string): boolean {
@@ -71,6 +74,8 @@ export function ImageUpload({
   hint = "JPEG, PNG, WebP ან GIF · მაქს. 5 MB",
   emptyState,
   variant = "default",
+  avatarLayout = "default",
+  placeholderInitials,
 }: ImageUploadProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -149,6 +154,7 @@ export function ImageUpload({
   };
 
   const isAvatar = variant === "avatar";
+  const isProfileAvatar = isAvatar && avatarLayout === "profile";
   const hasPreview = Boolean(displayPreview);
   const isEmptyStateHidden = !hasPreview && emptyState === null;
 
@@ -191,11 +197,20 @@ export function ImageUpload({
         }}
         onDrop={handleDrop}
         className={cn(
-          "relative overflow-hidden rounded-xl border border-dashed border-white/15 bg-surface-container/40 transition-colors",
-          isAvatar ? "aspect-square max-w-40" : "min-h-36",
+          "group/avatar relative overflow-hidden rounded-xl border transition-all duration-200",
+          isProfileAvatar
+            ? "border-transparent bg-surface-container-highest"
+            : "border-dashed border-white/15 bg-surface-container/40",
+          isAvatar && !isProfileAvatar ? "aspect-square max-w-40" : "min-h-36",
           isEmptyStateHidden && "border-transparent bg-transparent",
-          isDragging && "border-primary bg-primary/5",
-          !disabled && "cursor-pointer hover:border-primary/40 hover:bg-surface-container/60",
+          isDragging &&
+            (isProfileAvatar
+              ? "ring-2 ring-primary ring-offset-2 ring-offset-surface-container-low"
+              : "border-primary bg-primary/5"),
+          !disabled &&
+            !isProfileAvatar &&
+            "cursor-pointer hover:border-primary/40 hover:bg-surface-container/60",
+          !disabled && isProfileAvatar && "cursor-pointer",
           disabled && "cursor-not-allowed opacity-60",
           previewClassName,
         )}
@@ -206,11 +221,29 @@ export function ImageUpload({
             alt=""
             fill
             unoptimized
-            className={isAvatar ? "object-contain bg-surface-container" : "object-cover"}
+            className={
+              isAvatar
+                ? isProfileAvatar
+                  ? "object-cover"
+                  : "object-contain bg-surface-container"
+                : "object-cover"
+            }
             sizes={isAvatar ? "160px" : "100vw"}
           />
         ) : emptyState !== undefined ? (
           emptyState
+        ) : isProfileAvatar ? (
+          <div className="flex size-full flex-col items-center justify-center bg-linear-to-br from-surface-container via-surface-container-high to-primary/15">
+            {placeholderInitials ? (
+              <span className="select-none text-4xl font-bold tracking-tight text-primary/75">
+                {placeholderInitials}
+              </span>
+            ) : (
+              <span className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Camera className="size-8" />
+              </span>
+            )}
+          </div>
         ) : (
           <div
             className={cn(
@@ -226,8 +259,37 @@ export function ImageUpload({
           </div>
         )}
 
+        {!disabled && isProfileAvatar ? (
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface-container-lowest/75 opacity-0 backdrop-blur-[2px] transition-opacity duration-200",
+              "group-hover/avatar:opacity-100 group-focus-visible/avatar:opacity-100",
+              isDragging && "opacity-100",
+              hasPreview ? "text-on-surface" : "text-primary",
+            )}
+          >
+            <span className="flex size-11 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg shadow-primary/30">
+              <Camera className="size-5" />
+            </span>
+            <span className="text-xs font-semibold tracking-wide">
+              {hasPreview ? "ფოტოს შეცვლა" : "ფოტოს ატვირთვა"}
+            </span>
+            {!hasPreview ? (
+              <span className="text-[10px] text-on-surface-variant">
+                დააჭირე ან ჩააგდე
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
         {hasPreview && !disabled ? (
-          <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-linear-to-t from-black/70 to-transparent p-3 pt-8">
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-linear-to-t from-black/70 to-transparent p-3 pt-8",
+              isProfileAvatar &&
+                "translate-y-1 opacity-0 transition-all duration-200 group-hover/avatar:translate-y-0 group-hover/avatar:opacity-100",
+            )}
+          >
             <Button
               type="button"
               size="icon"

@@ -20,6 +20,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 
 import {
   defaultUserRegistrationValues,
+  INSTRUCTOR_CATEGORY_OPTIONS,
   userRegistrationSchema,
   type UserRegistrationSchema,
 } from "@/features/auth/user/schema/user-schema";
@@ -387,6 +388,65 @@ export function RegisterForm() {
                               </div>
                             </PopoverContent>
                           </Popover>
+                          <FieldError errors={[fieldState.error]} />
+                        </FieldContent>
+                      </Field>
+                    )}
+                  />
+                ) : null}
+
+                {!isStudentRegistration ? (
+                  <Controller
+                    control={form.control}
+                    name="instructorCategories"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={!!fieldState.error}>
+                        <FieldLabel className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                          სწავლების კატეგორიები
+                        </FieldLabel>
+                        <FieldContent>
+                          <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-surface-lowest p-3 sm:grid-cols-3">
+                            {INSTRUCTOR_CATEGORY_OPTIONS.map((option) => {
+                              const checked = field.value.includes(option.value);
+                              return (
+                                <label
+                                  key={option.value}
+                                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                                    checked
+                                      ? "border-primary/40 bg-primary/10 text-primary"
+                                      : "border-transparent text-muted-foreground hover:bg-white/5"
+                                  }`}
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(nextChecked) => {
+                                      if (option.value === "ALL") {
+                                        field.onChange(
+                                          nextChecked === true ? ["ALL"] : [],
+                                        );
+                                        return;
+                                      }
+
+                                      const withoutAll = field.value.filter(
+                                        (value) => value !== "ALL",
+                                      );
+                                      field.onChange(
+                                        nextChecked === true
+                                          ? [...withoutAll, option.value]
+                                          : withoutAll.filter(
+                                              (value) => value !== option.value,
+                                            ),
+                                      );
+                                    }}
+                                  />
+                                  {option.label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-2 px-1 text-xs text-muted-foreground">
+                            აირჩიე ყველა კატეგორია, რომელსაც ასწავლი.
+                          </p>
                           <FieldError errors={[fieldState.error]} />
                         </FieldContent>
                       </Field>

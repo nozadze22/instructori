@@ -1,4 +1,6 @@
 import {
+  IsArray,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -6,6 +8,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { INSTRUCTOR_CATEGORIES } from '../../auth/dto/auth.dto';
 
 export class CreateProfileDto {
   @IsOptional()
@@ -32,6 +35,16 @@ export class CreateProfileDto {
   @IsString()
   @MaxLength(100)
   city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  workingHours?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(INSTRUCTOR_CATEGORIES, { each: true })
+  instructorCategories?: string[];
 
 }
 
@@ -61,6 +74,16 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(100)
   city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  workingHours?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(INSTRUCTOR_CATEGORIES, { each: true })
+  instructorCategories?: string[];
 
 }
 

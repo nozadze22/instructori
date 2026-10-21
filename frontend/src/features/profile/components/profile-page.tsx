@@ -3,51 +3,15 @@
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
-import { PageFrame } from "@/features/instructor/components/page-frame";
+import { InstructorProfileDetail } from "@/features/instructors/components/instructor-profile-detail";
+import { mapMeToInstructorDirectoryItem } from "@/features/instructors/lib/map-instructor-directory-item";
 import { isAppUser } from "@/lib/auth-paths";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { UserProfileView } from "@/features/profile/components/user-profile-view";
+import Wrapper from "@/components/shared/wrapper/wrapper";
 
 type ProfilePageProps = {
   variant?: "instructor" | "public";
 };
-
-function InstructorProfileMeView({
-  fullName,
-  email,
-}: {
-  fullName: string;
-  email: string;
-}) {
-  return (
-    <Card className="glass max-w-lg border-white/10">
-      <CardHeader>
-        <CardTitle>პროფილი</CardTitle>
-        <CardDescription>შენი ანგარიშის ძირითადი მონაცემები</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            სრული სახელი
-          </p>
-          <p className="mt-1 text-base font-medium text-foreground">{fullName}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            ელ-ფოსტა
-          </p>
-          <p className="mt-1 text-base font-medium text-foreground">{email}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   const { data: me, isLoading } = useGetMe();
@@ -76,14 +40,22 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
       createdAt={profile?.createdAt}
     />
   ) : (
-    <InstructorProfileMeView fullName={me.fullName} email={me.email} />
+    <InstructorProfileDetail
+      key={profile?.updatedAt ?? me.userId}
+      variant="owner"
+      instructor={mapMeToInstructorDirectoryItem(me, profile)}
+    />
   );
 
   if (variant === "public") {
-    return body;
+    return (
+      <div className="mx-auto w-full max-w-container px-4 sm:px-6 lg:px-8">
+        {body}
+      </div>
+    );
   }
 
-  return <PageFrame>{body}</PageFrame>;
+  return <Wrapper className="flex flex-1 flex-col">{body}</Wrapper>;
 }
 
 export function ProfilePage({ variant = "instructor" }: ProfilePageProps) {

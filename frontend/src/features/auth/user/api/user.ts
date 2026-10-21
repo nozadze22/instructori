@@ -33,6 +33,7 @@ export async function registerUser(
       phone: data.phone,
       password: data.password,
         city: data.city,
+        instructorCategories: data.instructorCategories,
     }),
   });
 }

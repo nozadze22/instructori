@@ -24,7 +24,7 @@ function isInstructorAppPath(pathname: string) {
   return pathname.startsWith("/dashboard") || pathname.startsWith("/routes");
 }
 
-function isUserAppPath(pathname: string) {
+function isUserInstructorsPath(pathname: string) {
   return pathname.startsWith("/instructors");
 }
 
@@ -74,7 +74,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
   if (
     isAdminPanelPath(pathname) ||
     isInstructorAppPath(pathname) ||
-    isUserAppPath(pathname)
+    isUserInstructorsPath(pathname)
   ) {
     return <>{children}</>;
   }
@@ -97,4 +97,4 @@ export function AppChrome({ children }: { children: ReactNode }) {
     </>
   );
 }
-
+

@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { INSTRUCTOR_CATEGORY_OPTIONS } from "@/features/auth/user/schema/user-schema";
+
+const instructorCategoryValues = INSTRUCTOR_CATEGORY_OPTIONS.map(
+  (option) => option.value,
+) as [string, ...string[]];
 
 export const profileSchema = z.object({
   fullName: z
@@ -19,6 +24,8 @@ export const profileSchema = z.object({
     .union([z.url("სწორი URL მიუთითე."), z.literal("")])
     .optional(),
   city: z.string().max(100).optional().or(z.literal("")),
+  workingHours: z.string().max(120).optional().or(z.literal("")),
+  instructorCategories: z.array(z.enum(instructorCategoryValues)).optional(),
 });
 
 export type ProfileSchema = z.infer<typeof profileSchema>;
@@ -29,6 +36,8 @@ export const defaultProfileValues: ProfileSchema = {
   phone: "",
   avatarUrl: "",
   city: "",
+  workingHours: "",
+  instructorCategories: [],
 };
 
 export function toProfilePayload(values: ProfileSchema) {
@@ -43,5 +52,7 @@ export function toProfilePayload(values: ProfileSchema) {
     phone: clean(values.phone),
     avatarUrl: clean(values.avatarUrl),
     city: clean(values.city),
+    workingHours: clean(values.workingHours),
+    instructorCategories: values.instructorCategories ?? [],
   };
 }

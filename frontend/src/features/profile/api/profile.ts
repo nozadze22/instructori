@@ -7,6 +7,8 @@ export type Profile = {
   phone: string | null;
   avatarUrl: string | null;
   city: string | null;
+  workingHours: string | null;
+  instructorCategories: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -17,6 +19,8 @@ export type ProfileInput = {
   phone?: string;
   avatarUrl?: string;
   city?: string;
+  workingHours?: string;
+  instructorCategories?: string[];
 };
 
 export type InstructorGroup = {

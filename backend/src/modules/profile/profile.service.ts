@@ -23,10 +23,15 @@ export class ProfileService {
   ) {}
 
   async createProfile(userId: string, dto: CreateProfileDto) {
-    if (dto.fullName?.trim()) {
+    if (dto.fullName?.trim() || dto.instructorCategories) {
       await this.prisma.user.update({
         where: { id: userId },
-        data: { fullName: dto.fullName.trim() },
+        data: {
+          ...(dto.fullName?.trim() ? { fullName: dto.fullName.trim() } : {}),
+          ...(dto.instructorCategories
+            ? { instructorCategories: dto.instructorCategories }
+            : {}),
+        },
       });
     }
 
@@ -37,6 +42,7 @@ export class ProfileService {
         phone: dto.phone,
         avatarUrl: dto.avatarUrl,
         city: dto.city,
+        workingHours: dto.workingHours,
       },
     });
   }
@@ -44,20 +50,34 @@ export class ProfileService {
   async getProfile(userId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
+      include: {
+        user: {
+          select: { instructorCategories: true },
+        },
+      },
     });
     if (!profile) {
       throw new NotFoundException('Profile not found');
     }
-    return profile;
+    const { user, ...profileData } = profile;
+    return {
+      ...profileData,
+      instructorCategories: user.instructorCategories,
+    };
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     await this.getProfile(userId);
 
-    if (dto.fullName?.trim()) {
+    if (dto.fullName?.trim() || dto.instructorCategories) {
       await this.prisma.user.update({
         where: { id: userId },
-        data: { fullName: dto.fullName.trim() },
+        data: {
+          ...(dto.fullName?.trim() ? { fullName: dto.fullName.trim() } : {}),
+          ...(dto.instructorCategories
+            ? { instructorCategories: dto.instructorCategories }
+            : {}),
+        },
       });
     }
 
@@ -68,6 +88,7 @@ export class ProfileService {
         phone: dto.phone,
         avatarUrl: dto.avatarUrl,
         city: dto.city,
+        workingHours: dto.workingHours,
       },
     });
   }
