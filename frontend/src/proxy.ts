@@ -53,6 +53,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (pathname.startsWith("/practice") && !isAuthenticated) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (pathname.startsWith("/my-practices") && !isAuthenticated) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   if (pathname.startsWith("/admin") && !isAuthenticated) {
     if (pathname.startsWith("/admin/setup")) {
       return NextResponse.next();
@@ -78,6 +90,8 @@ export const config = {
     "/routes/:path*",
     "/profile/:path*",
     "/mistake-notes/:path*",
+    "/practice/:path*",
+    "/my-practices/:path*",
     "/admin",
     "/admin/:path*",
   ],

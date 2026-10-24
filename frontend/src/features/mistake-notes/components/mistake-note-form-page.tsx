@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, UserRound } from "lucide-react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -25,22 +25,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { AuthGate } from "@/features/auth/components/auth-gate";
+import {
+  useMistakeCategories,
+  useMistakeSeverities,
+} from "@/features/driving-practice/hooks/mistake-catalog";
 import {
   ContentPanel,
   PageEyebrow,
   PageFrame,
   PageHeader,
 } from "@/features/instructor/components/page-frame";
+import { MistakeNoteEntriesEditor } from "@/features/mistake-notes/components/mistake-note-entries-editor";
 import {
   useCreateMistakeNote,
   useMistakeNote,
   useUpdateMistakeNote,
 } from "@/features/mistake-notes/hooks/mistake-notes";
 import {
-  defaultMistakeNoteValues,
+  getDefaultMistakeNoteValues,
   mistakeNoteSchema,
   mistakeNoteToFormValues,
   toMistakeNotePayload,
@@ -61,6 +64,10 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
   const { data: routesData, isLoading: routesLoading } = useRoutes({
     pageSize: 500,
   });
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useMistakeCategories();
+  const { data: severities = [] } = useMistakeSeverities();
+
   const routes = useMemo(
     () => routesData?.items ?? [],
     [routesData?.items],
@@ -70,7 +77,7 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
 
   const form = useForm<MistakeNoteSchema>({
     resolver: zodResolver(mistakeNoteSchema),
-    defaultValues: defaultMistakeNoteValues,
+    defaultValues: getDefaultMistakeNoteValues(),
     mode: "onSubmit",
   });
 
@@ -81,6 +88,8 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
 
   const selectedCity = useWatch({ control: form.control, name: "city" });
   const selectedRouteId = useWatch({ control: form.control, name: "routeId" });
+  const mistakeCount =
+    useWatch({ control: form.control, name: "mistakes" })?.length ?? 0;
 
   const cityRoutes = useMemo(() => {
     if (!selectedCity) return [];
@@ -88,13 +97,11 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
   }, [routes, selectedCity]);
 
   useEffect(() => {
-    if (isEdit && note) {
-      form.reset(mistakeNoteToFormValues(note));
-    }
-  }, [form, isEdit, note]);
+    if (!isEdit || !note || categories.length === 0) return;
+    form.reset(mistakeNoteToFormValues(note, categories));
+  }, [categories, form, isEdit, note]);
 
   useEffect(() => {
-    // Don't clear routeId while routes are still loading (edit form race).
     if (!selectedRouteId || routesLoading || !selectedCity) return;
     const stillValid = cityRoutes.some((route) => route.id === selectedRouteId);
     if (!stillValid) {
@@ -121,7 +128,7 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
     }
   };
 
-  if (isEdit && noteLoading) {
+  if (isEdit && (noteLoading || (categoriesLoading && !note))) {
     return (
       <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
         <Spinner className="size-4" />
@@ -139,7 +146,8 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
   }
 
   return (
-    <PageFrame>
+    <div className="overflow-x-hidden bg-surface-lowest pb-[max(4rem,env(safe-area-inset-bottom))] pt-4 md:pb-20 md:pt-8">
+      <PageFrame className="mx-auto w-full max-w-3xl px-4 sm:px-0">
       <div className="space-y-3">
         <Link
           href="/mistake-notes"
@@ -154,221 +162,181 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
         <PageHeader
           eyebrow={
             <PageEyebrow icon={<ClipboardList className="size-3.5" />}>
-              Mistakes
+              ჩანაწერები
             </PageEyebrow>
           }
           title={isEdit ? "ჩანაწერის რედაქტირება" : "ახალი ჩანაწერი"}
-          description="ჩაინიშნე საკუთარი სახელი, ქალაქი, მარშრუტი და შეცდომები."
+          description="მოსწავლე, მარშრუტი და შეცდომები — კატეგორიებით სწრაფად."
         />
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-          <ContentPanel bodyClassName="p-5 md:p-7">
-            <div className="space-y-6">
-              <FieldGroup className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <Field
-                  className="md:col-span-2"
-                  data-invalid={!!form.formState.errors.studentName}
-                >
-                  <FieldLabel htmlFor="studentName">საკუთარი სახელი</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="studentName"
-                      placeholder="მაგ. გიორგი"
-                      className="h-11 rounded-xl border-white/10 bg-surface-lowest"
-                      {...form.register("studentName")}
-                    />
-                    <FieldError errors={[form.formState.errors.studentName]} />
-                  </FieldContent>
-                </Field>
+          <ContentPanel bodyClassName="p-4 sm:p-5 md:p-7">
+            <div className="space-y-8">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  <UserRound className="size-4 text-primary/80" />
+                  ძირითადი ინფორმაცია
+                </div>
+                <FieldGroup className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <Field
+                    className="md:col-span-2"
+                    data-invalid={!!form.formState.errors.studentName}
+                  >
+                    <FieldLabel htmlFor="studentName">
+                      მოსწავლის სახელი
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="studentName"
+                        placeholder="მაგ. გიორგი"
+                        className="h-11 rounded-xl border-white/10 bg-surface-lowest"
+                        {...form.register("studentName")}
+                      />
+                      <FieldError
+                        errors={[form.formState.errors.studentName]}
+                      />
+                    </FieldContent>
+                  </Field>
 
-                <Field data-invalid={!!form.formState.errors.city}>
-                  <FieldLabel htmlFor="city">ქალაქი</FieldLabel>
-                  <FieldContent>
-                    <Select
-                      value={selectedCity || null}
+                  <Field data-invalid={!!form.formState.errors.city}>
+                    <FieldLabel htmlFor="city">ქალაქი</FieldLabel>
+                    <FieldContent>
+                      <Select
+                        value={selectedCity || null}
+                        onValueChange={(value) => {
+                          if (!value) return;
+                          form.setValue("city", value, {
+                            shouldValidate: true,
+                          });
+                          form.setValue("routeId", "");
+                        }}
+                        disabled={citiesLoading}
+                      >
+                        <SelectTrigger
+                          id="city"
+                          className="min-h-11 w-full cursor-pointer rounded-xl border-white/10 bg-surface-lowest px-3"
+                        >
+                          <SelectValue placeholder="აირჩიე ქალაქი" />
+                        </SelectTrigger>
+                        <SelectContent
+                          align="start"
+                          side="bottom"
+                          sideOffset={8}
+                          alignItemWithTrigger={false}
+                          className="max-h-72"
+                        >
+                          {cities.map((city) => (
+                            <SelectItem
+                              key={city.id}
+                              value={city.name}
+                              className="cursor-pointer"
+                            >
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FieldError errors={[form.formState.errors.city]} />
+                    </FieldContent>
+                  </Field>
+
+                  <Field data-invalid={!!form.formState.errors.routeId}>
+                    <FieldLabel htmlFor="routeId">მარშრუტი</FieldLabel>
+                    <FieldContent>
+                      <Select
+                        value={selectedRouteId || null}
                       onValueChange={(value) => {
                         if (!value) return;
-                        form.setValue("city", value, { shouldValidate: true });
-                        form.setValue("routeId", "");
-                      }}
-                      disabled={citiesLoading}
-                    >
-                      <SelectTrigger
-                        id="city"
-                        className="min-h-11 w-full cursor-pointer rounded-xl border-white/10 bg-surface-lowest px-3"
-                      >
-                        <SelectValue placeholder="აირჩიე ქალაქი" />
-                      </SelectTrigger>
-                      <SelectContent
-                        align="start"
-                        side="bottom"
-                        sideOffset={8}
-                        alignItemWithTrigger={false}
-                        className="max-h-72"
-                      >
-                        {cities.map((city) => (
-                          <SelectItem
-                            key={city.id}
-                            value={city.name}
-                            className="cursor-pointer"
-                          >
-                            {city.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FieldError errors={[form.formState.errors.city]} />
-                  </FieldContent>
-                </Field>
-
-                <Field data-invalid={!!form.formState.errors.routeId}>
-                  <FieldLabel htmlFor="routeId">მარშრუტი</FieldLabel>
-                  <FieldContent>
-                    <Select
-                      value={selectedRouteId || null}
-                      onValueChange={(value) => {
-                        if (!value) return;
+                        const route = routes.find((r) => r.id === value);
                         form.setValue("routeId", value, {
                           shouldValidate: true,
                         });
+                        if (route?.city) {
+                          form.setValue("city", route.city, {
+                            shouldValidate: true,
+                          });
+                        }
                       }}
-                      disabled={!selectedCity || routesLoading}
-                    >
-                      <SelectTrigger
-                        id="routeId"
-                        className="min-h-11 w-full cursor-pointer rounded-xl border-white/10 bg-surface-lowest px-3"
+                        disabled={!selectedCity || routesLoading}
                       >
-                        <SelectValue
-                          placeholder={
-                            selectedCity
-                              ? "აირჩიე მარშრუტი"
-                              : "ჯერ აირჩიე ქალაქი"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent
-                        align="start"
-                        side="bottom"
-                        sideOffset={8}
-                        alignItemWithTrigger={false}
-                        className="max-h-72"
-                      >
-                        {cityRoutes.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">
-                            ამ ქალაქში მარშრუტი არ არის
-                          </div>
-                        ) : (
-                          cityRoutes.map((route) => (
-                            <SelectItem
-                              key={route.id}
-                              value={route.id}
-                              className="cursor-pointer"
-                            >
-                              {route.title}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FieldError errors={[form.formState.errors.routeId]} />
-                  </FieldContent>
-                </Field>
-
-                <Field className="md:col-span-2">
-                  <FieldLabel htmlFor="practicedAt">
-                    თარიღი (არასავალდებულო)
-                  </FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="practicedAt"
-                      type="date"
-                      className="h-11 rounded-xl border-white/10 bg-surface-lowest"
-                      {...form.register("practicedAt")}
-                    />
-                  </FieldContent>
-                </Field>
-              </FieldGroup>
-
-              <div className="space-y-3 rounded-2xl border border-white/8 bg-surface-lowest/40 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-                      შეცდომები
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      დაამატე რამდენიმე შეცდომა ერთ ჩანაწერში.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 rounded-xl border-white/10"
-                    onClick={() => append({ text: "" })}
-                  >
-                    <Plus className="size-4" />
-                    დამატება
-                  </Button>
-                </div>
-
-                <Separator className="bg-white/8" />
-
-                {form.formState.errors.mistakes?.root ||
-                form.formState.errors.mistakes?.message ? (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.mistakes.root?.message ||
-                      form.formState.errors.mistakes.message}
-                  </p>
-                ) : null}
-
-                <div className="space-y-3">
-                  {fields.map((field, index) => (
-                    <Field
-                      key={field.id}
-                      data-invalid={
-                        !!form.formState.errors.mistakes?.[index]?.text
-                      }
-                    >
-                      <FieldLabel htmlFor={`mistakes.${index}.text`}>
-                        შეცდომა #{index + 1}
-                      </FieldLabel>
-                      <FieldContent>
-                        <div className="flex gap-2">
-                          <Input
-                            id={`mistakes.${index}.text`}
-                            placeholder="მაგ. სარკე არ შემოწმდა"
-                            className="h-11 rounded-xl border-white/10 bg-surface-lowest"
-                            {...form.register(`mistakes.${index}.text`)}
+                        <SelectTrigger
+                          id="routeId"
+                          className="min-h-11 w-full cursor-pointer rounded-xl border-white/10 bg-surface-lowest px-3"
+                        >
+                          <SelectValue
+                            placeholder={
+                              selectedCity
+                                ? "აირჩიე მარშრუტი"
+                                : "ჯერ აირჩიე ქალაქი"
+                            }
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-11 shrink-0 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                            disabled={fields.length <= 1}
-                            onClick={() => remove(index)}
-                            aria-label="შეცდომის წაშლა"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
-                        <FieldError
-                          errors={[
-                            form.formState.errors.mistakes?.[index]?.text,
-                          ]}
-                        />
-                      </FieldContent>
-                    </Field>
-                  ))}
-                </div>
-              </div>
+                        </SelectTrigger>
+                        <SelectContent
+                          align="start"
+                          side="bottom"
+                          sideOffset={8}
+                          alignItemWithTrigger={false}
+                          className="max-h-72"
+                        >
+                          {cityRoutes.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                              ამ ქალაქში მარშრუტი არ არის
+                            </div>
+                          ) : (
+                            cityRoutes.map((route) => (
+                              <SelectItem
+                                key={route.id}
+                                value={route.id}
+                                className="cursor-pointer"
+                              >
+                                {route.title}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FieldError errors={[form.formState.errors.routeId]} />
+                    </FieldContent>
+                  </Field>
 
-              <ButtonGroup className="flex-wrap pt-1">
+                  <Field className="md:col-span-2">
+                    <FieldLabel htmlFor="practicedAt">
+                      პრაქტიკის დრო
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="practicedAt"
+                        type="datetime-local"
+                        className="h-11 max-w-sm rounded-xl border-white/10 bg-surface-lowest"
+                        {...form.register("practicedAt")}
+                      />
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        ნაგულისხმევად ახლანდელი თარიღი და საათი — სურვილისამებრ
+                        შეგიძლია შეცვლა.
+                      </p>
+                    </FieldContent>
+                  </Field>
+                </FieldGroup>
+              </section>
+
+              <MistakeNoteEntriesEditor
+                control={form.control}
+                errors={form.formState.errors}
+                categories={categories}
+                severities={severities}
+                categoriesLoading={categoriesLoading}
+                fieldIds={fields.map((f) => f.id)}
+                onAppend={(entry) => append(entry)}
+                onRemove={remove}
+              />
+
+              <ButtonGroup className="flex-wrap border-t border-white/8 pt-5">
                 <Button
                   type="submit"
                   className="h-11 rounded-xl px-6"
-                  disabled={isPending}
+                  disabled={isPending || mistakeCount === 0}
                 >
                   {isPending ? (
                     <>
@@ -396,18 +364,10 @@ function MistakeNoteFormContent({ noteId }: MistakeNoteFormPageProps) {
         </form>
       </Form>
     </PageFrame>
+    </div>
   );
 }
 
 export function MistakeNoteFormPage({ noteId }: MistakeNoteFormPageProps) {
-  return (
-    <AuthGate
-      roles={["ADMIN", "INSTRUCTOR"]}
-      accessStatuses={["ACTIVE"]}
-      redirectTo="/pending"
-      loginRedirect="/login"
-    >
-      <MistakeNoteFormContent noteId={noteId} />
-    </AuthGate>
-  );
+  return <MistakeNoteFormContent noteId={noteId} />;
 }

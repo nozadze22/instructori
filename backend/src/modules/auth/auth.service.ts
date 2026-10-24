@@ -9,7 +9,13 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ChangePasswordDto, LoginDto, RegisterDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  RegisterStudentDto,
+  UpdateNameDto,
+} from './dto/auth.dto';
 import type { Role as PrismaRole } from '../../generated/prisma/enums';
 import type {
   AccessSource,
@@ -61,11 +67,67 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
-        fullName: dto.fullName,
+        email: dto.email.trim().toLowerCase(),
+        fullName: dto.fullName.trim(),
         passwordHash,
         role: 'INSTRUCTOR',
         accessStatus: 'PENDING',
+        instructorCode: await this.generateUniqueInstructorCode(),
+        profile: { create: {} },
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+      },
+    });
+
+    return this.issueSession(this.toAuthTokenUser(user), {
+      replaceAllSessions: true,
+    });
+  }
+
+  async registerStudent(dto: RegisterStudentDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const email = dto.email.trim().toLowerCase();
+    const instructorCode = dto.instructorCode?.trim().toUpperCase();
+
+    const exists = await this.prisma.user.findUnique({ where: { email } });
+    if (exists) throw new ConflictException('Email already registered');
+
+    let instructorId: string | undefined;
+    if (instructorCode) {
+      const instructor = await this.prisma.user.findFirst({
+        where: {
+          instructorCode,
+          role: 'INSTRUCTOR',
+          accessStatus: 'ACTIVE',
+        },
+        select: { id: true },
+      });
+      if (!instructor) {
+        throw new BadRequestException('Invalid instructor code');
+      }
+      instructorId = instructor.id;
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        fullName: dto.fullName.trim(),
+        passwordHash,
+        role: 'USER',
+        accessStatus: 'ACTIVE',
+        ...(instructorId ? { linkedInstructorId: instructorId } : {}),
+        profile: { create: {} },
       },
       select: {
         id: true,
@@ -111,6 +173,27 @@ export class AuthService {
 
   async getMe(userId: string): Promise<AuthUser> {
     const user = await this.requireActiveUser(userId);
+    return this.toAuthUser(user);
+  }
+
+  async updateName(userId: string, dto: UpdateNameDto): Promise<AuthUser> {
+    const fullName = dto.fullName.trim();
+    if (fullName.length < 2) {
+      throw new BadRequestException('Name must be at least 2 characters');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { fullName },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+      },
+    });
     return this.toAuthUser(user);
   }
 
@@ -276,10 +359,22 @@ export class AuthService {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: user.role === 'USER' ? 'INSTRUCTOR' : user.role,
+      role: user.role,
       accessStatus: user.accessStatus,
       accessSource: user.accessSource,
     };
+  }
+
+  private async generateUniqueInstructorCode(): Promise<string> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const code = randomBytes(4).toString('hex').toUpperCase();
+      const taken = await this.prisma.user.findUnique({
+        where: { instructorCode: code },
+        select: { id: true },
+      });
+      if (!taken) return code;
+    }
+    throw new BadRequestException('Could not generate instructor code');
   }
 
   private hashRefreshToken(token: string) {

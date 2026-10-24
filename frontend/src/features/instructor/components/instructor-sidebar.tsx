@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ClipboardList,
   LayoutDashboard,
   LogOut,
   Map,
@@ -27,7 +26,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "დაშბორდი", icon: LayoutDashboard, exact: true },
   { href: "/routes", label: "მარშრუტები", icon: Map },
-  { href: "/mistake-notes", label: "შეცდომები", icon: ClipboardList },
   { href: "/profile", label: "პროფილი", icon: UserRound },
 ] as const;
 

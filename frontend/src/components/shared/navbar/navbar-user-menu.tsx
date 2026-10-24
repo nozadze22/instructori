@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Bookmark,
   ChevronRight,
+  ClipboardList,
   LogOut,
   Map,
   Shield,
@@ -23,7 +24,7 @@ import {
 import type { AuthUser } from "@/features/auth/login/api/login";
 import { useLogout } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
-import { appHomeForUser, isAdminUser } from "@/lib/auth-paths";
+import { appHomeForUser, isAdminUser, isAppUser } from "@/lib/auth-paths";
 import { userDisplayName, userInitials } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 
@@ -40,24 +41,29 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
   const initials = userInitials(user);
 
   const isAdmin = isAdminUser(user);
+  const appUser = isAppUser(user);
   const isPendingAccess =
     user.role === "INSTRUCTOR" && user.accessStatus === "PENDING";
 
   const primaryHref = isAdmin ? "/admin" : appHomeForUser(user);
   const primaryLabel = isAdmin
     ? "ადმინ პანელი"
-    : isPendingAccess
-      ? "მოლოდინი"
-      : "მარშრუტები";
-  const PrimaryIcon = isAdmin ? Shield : Map;
+    : appUser
+      ? "პროფილი"
+      : isPendingAccess
+        ? "მოლოდინი"
+        : "მარშრუტები";
+  const PrimaryIcon = isAdmin ? Shield : appUser ? UserRound : Map;
 
   const statusLabel = isAdmin
     ? "ადმინი"
-    : isPendingAccess
-      ? "მოლოდინში"
-      : user.accessStatus === "BLOCKED"
-        ? "დაბლოკილი"
-        : "ინსტრუქტორი";
+    : appUser
+      ? "მომხმარებელი"
+      : isPendingAccess
+        ? "მოლოდინში"
+        : user.accessStatus === "BLOCKED"
+          ? "დაბლოკილი"
+          : "ინსტრუქტორი";
 
   return (
     <DropdownMenu>
@@ -132,7 +138,7 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
 
           {!isAdmin ? (
             <>
-              {user.accessStatus === "ACTIVE" ? (
+              {!appUser && user.accessStatus === "ACTIVE" ? (
                 <DropdownMenuItem
                   className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
                   onClick={() => router.push("/chemi-marshrutebi")}
@@ -147,16 +153,45 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                 </DropdownMenuItem>
               ) : null}
 
-              <DropdownMenuItem
-                className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-                onClick={() => router.push("/profile")}
-              >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
-                <UserRound className="size-4" />
-              </span>
-              <span className="flex-1 text-sm font-medium">პროფილი</span>
-              <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
-            </DropdownMenuItem>
+              {!appUser && user.accessStatus === "ACTIVE" ? (
+                <>
+                  <DropdownMenuItem
+                    className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                    onClick={() => router.push("/practice")}
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                      <ClipboardList className="size-4" />
+                    </span>
+                    <span className="flex-1 text-sm font-medium">პრაქტიკა</span>
+                    <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                    onClick={() => router.push("/mistake-notes")}
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                      <ClipboardList className="size-4 opacity-70" />
+                    </span>
+                    <span className="flex-1 text-sm font-medium">
+                      ძველი ჩანაწერები
+                    </span>
+                    <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+
+              {!appUser ? (
+                <DropdownMenuItem
+                  className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                  onClick={() => router.push("/profile")}
+                >
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                    <UserRound className="size-4" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium">პროფილი</span>
+                  <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                </DropdownMenuItem>
+              ) : null}
             </>
           ) : null}
         </div>

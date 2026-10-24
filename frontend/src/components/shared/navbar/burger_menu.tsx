@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, LogIn, Map, Menu, UserPlus, UserRound } from "lucide-react";
+import {
+  ClipboardList,
+  LayoutDashboard,
+  LogIn,
+  Map,
+  Menu,
+  UserPlus,
+  UserRound,
+} from "lucide-react";
 
 import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { Button } from "@/components/ui/button";
@@ -18,6 +26,7 @@ import { visibleNavbarLinks } from "./navbar_links";
 type BurgerMenuProps = {
   appHref?: string | null;
   isAdmin?: boolean;
+  isAppUser?: boolean;
   isInstructor?: boolean;
   isLoggedIn?: boolean;
 };
@@ -25,6 +34,7 @@ type BurgerMenuProps = {
 export function BurgerMenu({
   appHref,
   isAdmin,
+  isAppUser,
   isInstructor,
   isLoggedIn,
 }: BurgerMenuProps) {
@@ -51,7 +61,10 @@ export function BurgerMenu({
           <div className="px-3 pb-1">
             <PwaInstallButton className="w-full" variant="secondary" />
           </div>
-          {visibleNavbarLinks(Boolean(isLoggedIn)).map((link) => {
+          {visibleNavbarLinks(
+            Boolean(isLoggedIn),
+            isAppUser ? "USER" : undefined,
+          ).map((link) => {
             const Icon = link.icon;
             return (
               <Link
@@ -64,6 +77,16 @@ export function BurgerMenu({
               </Link>
             );
           })}
+
+          {isAppUser ? (
+            <Link
+              href="/profile"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+            >
+              <UserRound className="size-4" />
+              <span>პროფილი</span>
+            </Link>
+          ) : null}
 
           {appHref ? (
             <>
@@ -83,6 +106,15 @@ export function BurgerMenu({
                     <Map className="size-4" />
                     <span>ჩემი მარშრუტები</span>
                   </Link>
+                  {!isAdmin ? (
+                    <Link
+                      href="/mistake-notes"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"
+                    >
+                      <ClipboardList className="size-4" />
+                      <span>შეცდომები</span>
+                    </Link>
+                  ) : null}
                   <Link
                     href="/profile"
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/5 hover:text-primary"

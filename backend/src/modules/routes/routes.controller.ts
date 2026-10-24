@@ -3,12 +3,10 @@ import {
   Controller,
   Delete,
   Get,
-  Header,
   Param,
   Patch,
   Post,
   Query,
-  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { AccessGuard } from '../auth/auth_guard/access.guard';
@@ -23,20 +21,14 @@ import {
   NavigationTickDto,
   ReorderStepsDto,
   RoutesListQueryDto,
-  RouteTtsDto,
   UpdateRouteDto,
   UpdateStepDto,
 } from './dto/route.dto';
 import { RoutesService } from './routes.service';
-import { TtsService } from './tts.service';
-
 @Controller('routes')
 @UseGuards(JwtAuthGuard, AccessGuard)
 export class RoutesController {
-  constructor(
-    private readonly routesService: RoutesService,
-    private readonly ttsService: TtsService,
-  ) {}
+  constructor(private readonly routesService: RoutesService) {}
 
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateRouteDto) {
@@ -61,17 +53,6 @@ export class RoutesController {
   @Roles('ADMIN')
   syncExamCatalog(@CurrentUser() user: AuthUser) {
     return this.routesService.syncExamCatalog(user);
-  }
-
-  @Post('tts')
-  @Header('Content-Type', 'audio/mpeg')
-  @Header('Cache-Control', 'private, max-age=3600')
-  async speak(@Body() dto: RouteTtsDto) {
-    const audio = await this.ttsService.synthesize(dto.text);
-    return new StreamableFile(audio, {
-      type: 'audio/mpeg',
-      disposition: 'inline',
-    });
   }
 
   @Get('saved')

@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { postNavigationTick } from "@/features/routes/api/routes";
+import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
 import { requestWakeLock, releaseWakeLock } from "@/hooks/use-wake-lock";
 import { getApiUrl } from "@/lib/api";
-import type { PathPoint, RouteAction } from "@/features/routes/lib/route-actions";
 
 type SimCommand = {
   id: string;
@@ -694,9 +694,7 @@ async function prefetchTts(text: string) {
     if (!contentType.includes("audio")) return;
     const blob = await response.blob();
     ttsUrlCache.set(key, URL.createObjectURL(blob));
-  } catch {
-    // Prefetch is best-effort; playback will fetch again.
-  }
+  } catch {}
 }
 
 async function speakGeorgianMp3(text: string) {
@@ -811,15 +809,22 @@ async function speakPrompt(options: {
     .then(async () => {
       if (epoch !== speakEpoch) throw new Error("cancelled");
 
+      let mp3Error: unknown;
       try {
         await speakGeorgianMp3(voiceText);
+        return;
       } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
         if (error instanceof AudioBlockedError) throw error;
-        if (!(await speakBrowser(voiceText))) {
-          throw new Error("Georgian voice failed");
-        }
+        mp3Error = error;
       }
+
+      if (await speakBrowser(voiceText)) {
+        return;
+      }
+
+      const failed = mp3Error ?? new Error("Georgian voice failed");
+      throw failed;
     });
 
   await speakChain;
@@ -962,6 +967,7 @@ export function useRouteSimulation(options: {
           setAudioBlocked(false);
         }
       } catch (error) {
+        if (error instanceof Error && error.message === "cancelled") return;
         if (!unmountedRef.current) {
           setAudioBlocked(error instanceof AudioBlockedError);
         }
@@ -1069,7 +1075,8 @@ export function useRouteSimulation(options: {
           })
           .catch((error) => {
             pendingSpeakRef.current.delete(command.id);
-            if (error instanceof AudioBlockedError && !unmountedRef.current) {
+            if (error instanceof Error && error.message === "cancelled") return;
+            if (!unmountedRef.current && error instanceof AudioBlockedError) {
               setAudioBlocked(true);
             }
           })

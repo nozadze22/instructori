@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Bookmark,
   BookmarkCheck,
+  AlertTriangle,
   MapPinned,
   Pause,
   Pencil,
@@ -36,6 +37,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
+import type { DrivingMistake } from "@/features/driving-practice/api/driving-sessions";
+import { MistakeDetailDialog } from "@/features/driving-practice/components/mistake-detail-dialog";
+import { MistakePickerSheet } from "@/features/driving-practice/components/mistake-picker-sheet";
+import {
+  useCreateDrivingMistake,
+  useCreateDrivingSession,
+  useUpdateDrivingMistake,
+} from "@/features/driving-practice/hooks/driving-sessions";
+import {
+  useMistakeCategories,
+  useMistakeSeverities,
+} from "@/features/driving-practice/hooks/mistake-catalog";
 import {
   useDeleteRoute,
   usePublicRoute,
@@ -54,6 +67,7 @@ import { resolveRouteCity } from "@/features/routes/lib/resolve-route-city";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { humanizeApiError } from "@/lib/api-errors";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 const RouteMapView = dynamic(
   () =>
@@ -108,6 +122,8 @@ function LiveNavScreen({
   current,
   simulation,
   onStop,
+  onRecordMistake,
+  recording,
 }: {
   path: PathPoint[];
   steps: RouteStep[];
@@ -115,6 +131,8 @@ function LiveNavScreen({
   current?: RouteStep;
   simulation: ReturnType<typeof useRouteSimulation>;
   onStop: () => void;
+  onRecordMistake?: () => void;
+  recording?: boolean;
 }) {
   useWakeLock(true);
 
@@ -276,6 +294,21 @@ function LiveNavScreen({
           >
             დასრულება
           </button>
+          {onRecordMistake ? (
+            <button
+              type="button"
+              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-rose-500 text-white shadow-lg transition active:scale-95 disabled:opacity-60"
+              aria-label="შეცდომის დაფიქსირება"
+              disabled={recording}
+              onClick={onRecordMistake}
+            >
+              {recording ? (
+                <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              ) : (
+                <AlertTriangle className="size-5" />
+              )}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -298,6 +331,20 @@ function RouteDetailContent({
   const deleteRoute = useDeleteRoute();
   const saveRoute = useSaveRoute();
   const unsaveRoute = useUnsaveRoute();
+  const createSession = useCreateDrivingSession();
+  const { data: mistakeCategories = [] } = useMistakeCategories();
+  const { data: mistakeSeverities = [] } = useMistakeSeverities();
+  const [studentName, setStudentName] = useState("");
+  const [practiceSessionId, setPracticeSessionId] = useState<string | null>(
+    null,
+  );
+  const createMistake = useCreateDrivingMistake(practiceSessionId ?? "");
+  const updateMistake = useUpdateDrivingMistake(practiceSessionId ?? "");
+  const [mistakePickerOpen, setMistakePickerOpen] = useState(false);
+  const [mistakeDetailOpen, setMistakeDetailOpen] = useState(false);
+  const [activeMistake, setActiveMistake] = useState<DrivingMistake | null>(
+    null,
+  );
   const [stepIndex, setStepIndex] = useState(0);
   const [commandQuery, setCommandQuery] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -370,6 +417,39 @@ function RouteDetailContent({
     route.isPublished &&
     route.createdById !== me.userId;
   const cityLabel = route ? resolveRouteCity(route) : null;
+
+  const startNavigation = async () => {
+    // iOS: audio unlock must run in the same tap as the button — before any await.
+    void simulation.unlockAudio();
+
+    if (simulation.running) {
+      simulation.stop();
+      return;
+    }
+
+    if (!publicView && !practiceSessionId) {
+      if (studentName.trim().length < 2) return;
+      const session = await createSession.mutateAsync({
+        studentName: studentName.trim(),
+        routeId,
+      });
+      setPracticeSessionId(session.id);
+    }
+
+    simulation.start();
+  };
+
+  const recordNavigationMistake = async (categoryId: string) => {
+    if (!simulation.position || !practiceSessionId) return;
+    setMistakePickerOpen(false);
+    const created = await createMistake.mutateAsync({
+      categoryId,
+      latitude: simulation.position.lat,
+      longitude: simulation.position.lng,
+    });
+    setActiveMistake(created);
+    setMistakeDetailOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -551,10 +631,40 @@ function RouteDetailContent({
               current={current}
               simulation={simulation}
               onStop={() => simulation.stop()}
+              onRecordMistake={
+                !publicView && practiceSessionId
+                  ? () => setMistakePickerOpen(true)
+                  : undefined
+              }
+              recording={createMistake.isPending}
             />,
             document.body,
           )
         : null}
+
+      <MistakePickerSheet
+        open={mistakePickerOpen}
+        onOpenChange={setMistakePickerOpen}
+        categories={mistakeCategories}
+        onPick={(categoryId) => void recordNavigationMistake(categoryId)}
+        pending={createMistake.isPending}
+      />
+
+      <MistakeDetailDialog
+        key={activeMistake?.id ?? "empty"}
+        mistake={activeMistake}
+        severities={mistakeSeverities}
+        open={mistakeDetailOpen}
+        onOpenChange={setMistakeDetailOpen}
+        saving={updateMistake.isPending}
+        onSave={async (data) => {
+          if (!activeMistake) return;
+          await updateMistake.mutateAsync({
+            mistakeId: activeMistake.id,
+            ...data,
+          });
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-12">
         <section className="glass relative overflow-hidden rounded-[1.75rem] p-5 ring-1 ring-white/10 md:p-7 lg:col-span-7">
@@ -660,20 +770,38 @@ function RouteDetailContent({
             )}
 
             <div className="flex flex-wrap gap-2">
+              {!publicView && !practiceSessionId && !simulation.running ? (
+                <Input
+                  value={studentName}
+                  onChange={(event) => setStudentName(event.target.value)}
+                  placeholder="მოსწავლის სახელი"
+                  className="h-10 w-full rounded-xl border-white/10 bg-surface-lowest sm:w-52"
+                />
+              ) : null}
               <Button
                 type="button"
                 className="rounded-xl"
-                disabled={!simulation.canRun}
-                onClick={() =>
-                  simulation.running ? simulation.stop() : simulation.start()
+                disabled={
+                  !simulation.canRun ||
+                  createSession.isPending ||
+                  (!publicView &&
+                    !practiceSessionId &&
+                    studentName.trim().length < 2)
                 }
+                onClick={() => void startNavigation()}
               >
-                {simulation.running ? (
+                {createSession.isPending ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+                ) : simulation.running ? (
                   <Pause className="size-4" />
                 ) : (
                   <Play className="size-4" />
                 )}
-                {simulation.running ? "გაჩერება" : "ნავიგაციის დაწყება"}
+                {simulation.running
+                  ? "გაჩერება"
+                  : practiceSessionId
+                    ? "ნავიგაციის გაგრძელება"
+                    : "ნავიგაციის დაწყება"}
               </Button>
               <Button
                 type="button"

@@ -1,4 +1,32 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
+
+export class RegisterStudentDto {
+  @IsString()
+  @IsNotEmpty()
+  fullName!: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
+  @MinLength(8)
+  password!: string;
+
+  @IsString()
+  @MinLength(8)
+  confirmPassword!: string;
+
+  @IsOptional()
+  @IsString()
+  instructorCode!: string;
+}
 
 export class RegisterDto {
   @IsString()
@@ -32,4 +60,10 @@ export class ChangePasswordDto {
   @IsString()
   @MinLength(8)
   newPassword!: string;
+}
+
+export class UpdateNameDto {
+  @IsString()
+  @IsNotEmpty()
+  fullName!: string;
 }

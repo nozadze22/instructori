@@ -20,6 +20,7 @@ const SESSION_REPLACED_PATTERN = /logged in on another device/i;
 const AUTH_SKIP_REFRESH = new Set([
   "/auth/login",
   "/auth/register",
+  "/auth/register/student",
   "/auth/refresh",
   "/auth/logout",
   "/admin/login",
@@ -32,6 +33,13 @@ async function parseErrorMessage(response: Response): Promise<string> {
   const text = (await response.text()).trim();
   if (!text) {
     return `Request failed: ${response.status} ${response.statusText}`;
+  }
+
+  if (/^<!doctype html|^<html/i.test(text)) {
+    if (response.status === 404) {
+      return "API მისამართი ვერ მოიძებნა. გაუშვი backend (pnpm dev, პორტი 4001) და გადატვირთე frontend.";
+    }
+    return "სერვისმა HTML უპასუხა JSON-ის ნაცვლად. შეამოწმე backend და /api proxy.";
   }
 
   try {

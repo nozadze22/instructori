@@ -19,7 +19,13 @@ import { CurrentUser } from './auth_guard/current_user_decorator';
 import { RolesGuard } from './auth_guard/guard';
 import { Roles } from './auth_guard/roles.decorator';
 import type { AuthUser } from './dto/auth-types';
-import { ChangePasswordDto, LoginDto, RegisterDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  RegisterStudentDto,
+  UpdateNameDto,
+} from './dto/auth.dto';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -32,6 +38,16 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.auth.register(dto);
+    setAuthCookies(res, result);
+    return { user: result.user };
+  }
+
+  @Post('register/student')
+  async registerStudent(
+    @Body() dto: RegisterStudentDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.registerStudent(dto);
     setAuthCookies(res, result);
     return { user: result.user };
   }
@@ -70,6 +86,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: AuthUser) {
     return this.auth.getMe(user.userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  updateName(@CurrentUser() user: AuthUser, @Body() dto: UpdateNameDto) {
+    return this.auth.updateName(user.userId, dto);
   }
 
   @Patch('change-password')

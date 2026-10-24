@@ -62,7 +62,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AuthGate } from "@/features/auth/components/auth-gate";
 import {
   ContentPanel,
   PageEyebrow,
@@ -74,25 +73,27 @@ import {
   useDeleteMistakeNote,
   useMistakeNotes,
 } from "@/features/mistake-notes/hooks/mistake-notes";
+import {
+  useMistakeCategories,
+  useMistakeSeverities,
+} from "@/features/driving-practice/hooks/mistake-catalog";
+import {
+  formatLegacyMistakeLine,
+  isStructuredMistakeEntry,
+  parseMistakeNoteEntries,
+} from "@/features/mistake-notes/lib/mistake-note-entries";
 import { useExamCities } from "@/features/routes/hooks/routes";
+import { MistakeSeverityBadge } from "@/features/driving-practice/components/mistake-severity-badge";
+import { findSeverityById } from "@/features/driving-practice/lib/mistake-severity-ui";
+import { formatPracticedAtDisplay } from "@/features/mistake-notes/lib/practiced-at";
 import { cn } from "@/lib/utils";
-
-function formatDate(value: string) {
-  try {
-    return new Intl.DateTimeFormat("ka-GE", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
 
 function MistakeNotesListContent() {
   const [query, setQuery] = useState("");
   const [city, setCity] = useState<string>("all");
   const { data: cities = [] } = useExamCities();
+  const { data: categories = [] } = useMistakeCategories();
+  const { data: severities = [] } = useMistakeSeverities();
   const filters = useMemo(
     () => ({
       ...(city !== "all" ? { city } : {}),
@@ -110,7 +111,9 @@ function MistakeNotesListContent() {
         note.studentName.toLowerCase().includes(q) ||
         note.city.toLowerCase().includes(q) ||
         note.route.title.toLowerCase().includes(q) ||
-        note.mistakes.some((item) => item.toLowerCase().includes(q)),
+        note.mistakes.some((item) =>
+          formatLegacyMistakeLine(item).toLowerCase().includes(q),
+        ),
     );
   }, [notes, query]);
 
@@ -125,7 +128,8 @@ function MistakeNotesListContent() {
   );
 
   return (
-    <PageFrame>
+    <div className="overflow-x-hidden bg-surface-lowest pb-[max(4rem,env(safe-area-inset-bottom))] pt-4 md:pb-20 md:pt-8">
+    <PageFrame className="mx-auto w-full max-w-5xl px-4 sm:px-0">
       <PageHeader
         eyebrow={
           <PageEyebrow icon={<ClipboardList className="size-3.5" />}>
@@ -135,6 +139,16 @@ function MistakeNotesListContent() {
         title="შეცდომები"
         description="ჩაინიშნე მოსწავლის შეცდომები ქალაქისა და მარშრუტის მიხედვით."
         actions={
+          <div className="flex flex-wrap gap-2">
+          <Link
+            href="/practice"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-11 rounded-xl border-white/10 px-5 text-sm font-semibold",
+            )}
+          >
+            🚗 ახალი პრაქტიკა
+          </Link>
           <Link
             href="/mistake-notes/new"
             className={cn(
@@ -145,6 +159,7 @@ function MistakeNotesListContent() {
             <Plus className="size-4" />
             ახალი ჩანაწერი
           </Link>
+          </div>
         }
       />
 
@@ -260,7 +275,7 @@ function MistakeNotesListContent() {
                           variant="secondary"
                           className="rounded-lg border border-white/10 bg-white/5"
                         >
-                          {formatDate(note.practicedAt)}
+                          {formatPracticedAtDisplay(note.practicedAt)}
                         </Badge>
                         <Badge
                           variant="outline"
@@ -333,25 +348,77 @@ function MistakeNotesListContent() {
 
                 <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
                   <ItemGroup className="grid gap-2 sm:grid-cols-2">
-                    {note.mistakes.map((mistake, index) => (
-                      <Item
-                        key={`${note.id}-${index}`}
-                        variant="outline"
-                        size="sm"
-                        className="border-white/5 bg-white/3"
-                      >
-                        <ItemMedia variant="icon">
-                          <span className="text-xs font-semibold text-primary">
-                            {index + 1}
-                          </span>
-                        </ItemMedia>
-                        <ItemContent>
-                          <ItemTitle className="line-clamp-none whitespace-normal">
-                            {mistake}
-                          </ItemTitle>
-                        </ItemContent>
-                      </Item>
-                    ))}
+                    {note.mistakes.map((mistake, index) => {
+                      if (
+                        categories.length > 0 &&
+                        isStructuredMistakeEntry(mistake)
+                      ) {
+                        const entry = parseMistakeNoteEntries(
+                          [mistake],
+                          categories,
+                        )[0]!;
+                        const category = categories.find(
+                          (c) => c.id === entry.categoryId,
+                        );
+                        const severity = findSeverityById(
+                          severities,
+                          entry.severityId,
+                        );
+                        const noteText = entry.note?.trim();
+
+                        return (
+                          <Item
+                            key={`${note.id}-${index}`}
+                            variant="outline"
+                            size="sm"
+                            className="border-white/5 bg-white/3"
+                          >
+                            <ItemMedia variant="icon">
+                              <span className="text-base" aria-hidden>
+                                {category?.icon ?? "📝"}
+                              </span>
+                            </ItemMedia>
+                            <ItemContent className="gap-1.5">
+                              <ItemTitle className="line-clamp-none whitespace-normal">
+                                {category?.label ?? "შეცდომა"}
+                              </ItemTitle>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {severity ? (
+                                  <MistakeSeverityBadge severity={severity} />
+                                ) : null}
+                                {noteText ? (
+                                  <span className="text-xs text-muted-foreground">
+                                    {noteText}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </ItemContent>
+                          </Item>
+                        );
+                      }
+
+                      const label = formatLegacyMistakeLine(mistake);
+
+                      return (
+                        <Item
+                          key={`${note.id}-${index}`}
+                          variant="outline"
+                          size="sm"
+                          className="border-white/5 bg-white/3"
+                        >
+                          <ItemMedia variant="icon">
+                            <span className="text-xs font-semibold text-primary">
+                              {index + 1}
+                            </span>
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle className="line-clamp-none whitespace-normal">
+                              {label}
+                            </ItemTitle>
+                          </ItemContent>
+                        </Item>
+                      );
+                    })}
                   </ItemGroup>
                 </CardContent>
               </Card>
@@ -360,18 +427,10 @@ function MistakeNotesListContent() {
         )}
       </ContentPanel>
     </PageFrame>
+    </div>
   );
 }
 
 export function MistakeNotesListPage() {
-  return (
-    <AuthGate
-      roles={["ADMIN", "INSTRUCTOR"]}
-      accessStatuses={["ACTIVE"]}
-      redirectTo="/pending"
-      loginRedirect="/login"
-    >
-      <MistakeNotesListContent />
-    </AuthGate>
-  );
+  return <MistakeNotesListContent />;
 }
