@@ -2,16 +2,36 @@ import { type NextRequest } from "next/server";
 
 const DEFAULT_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
 
+function isBlockedBackendHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    return true;
+  }
+  if (host.endsWith(".local")) return true;
+  // RFC1918 / link-local — Vercel rejects these (DNS_HOSTNAME_RESOLVED_PRIVATE).
+  if (/^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(host)) {
+    return true;
+  }
+  return false;
+}
+
 function resolveBackendUrl(): string {
+  const onVercel = process.env.VERCEL === "1";
   for (const raw of [
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,
     DEFAULT_BACKEND_URL,
   ]) {
     const value = raw?.trim().replace(/\/$/, "") ?? "";
-    if (/^https?:\/\//i.test(value)) {
-      return value;
+    if (!/^https?:\/\//i.test(value)) continue;
+    if (onVercel) {
+      try {
+        if (isBlockedBackendHost(new URL(value).hostname)) continue;
+      } catch {
+        continue;
+      }
     }
+    return value;
   }
   return DEFAULT_BACKEND_URL;
 }

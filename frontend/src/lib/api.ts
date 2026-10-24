@@ -36,6 +36,11 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 
   if (/^<!doctype html|^<html/i.test(text)) {
+    if (
+      /DNS_HOSTNAME_RESOLVED_PRIVATE|could not be found/i.test(text)
+    ) {
+      return "API proxy ვერ მიუკავშირდა backend-ს. Vercel-ზე დააყენე BACKEND_URL (HTTPS, მაგ. Fly.io API) და გადააგდე deploy.";
+    }
     if (response.status === 404) {
       return "API მისამართი ვერ მოიძებნა. გაუშვი backend (pnpm dev, პორტი 4001) და გადატვირთე frontend.";
     }
