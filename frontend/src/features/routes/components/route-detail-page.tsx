@@ -419,6 +419,9 @@ function RouteDetailContent({
   const cityLabel = route ? resolveRouteCity(route) : null;
 
   const startNavigation = async () => {
+    // iOS: audio unlock must run in the same tap as the button — before any await.
+    void simulation.unlockAudio();
+
     if (simulation.running) {
       simulation.stop();
       return;
