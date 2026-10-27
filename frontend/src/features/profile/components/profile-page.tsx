@@ -3,6 +3,7 @@
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
+import { useProfileVehicles } from "@/features/profile/hooks/instructor-vehicles";
 import { InstructorProfileDetail } from "@/features/instructors/components/instructor-profile-detail";
 import { mapMeToInstructorDirectoryItem } from "@/features/instructors/lib/map-instructor-directory-item";
 import { isAppUser } from "@/lib/auth-paths";
@@ -16,6 +17,10 @@ type ProfilePageProps = {
 function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   const { data: me, isLoading } = useGetMe();
   const { data: profile } = useGetProfile();
+  const isInstructor = me && !isAppUser(me);
+  const { data: vehicles } = useProfileVehicles({
+    enabled: Boolean(isInstructor),
+  });
 
   if (isLoading) {
     return (
@@ -41,9 +46,12 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
     />
   ) : (
     <InstructorProfileDetail
-      key={profile?.updatedAt ?? me.userId}
-      variant="owner"
-      instructor={mapMeToInstructorDirectoryItem(me, profile)}
+      key={`${profile?.updatedAt ?? me.userId}-${vehicles?.length ?? 0}`}
+      variant="preview"
+      instructor={{
+        ...mapMeToInstructorDirectoryItem(me, profile),
+        vehicles: vehicles ?? [],
+      }}
     />
   );
 

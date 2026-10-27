@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   BadgeCheck,
   Bolt,
-  Car,
   ChevronDown,
   Eye,
   GraduationCap,
@@ -16,6 +15,7 @@ import {
   MapPin,
   LayoutDashboard,
   MessageCircle,
+  Pencil,
   Phone,
   Share2,
   Shield,
@@ -38,6 +38,7 @@ import { InstructorProfileContactCenter } from "@/features/instructors/component
 import { MOCK_INSTRUCTOR_PROFILE } from "@/features/instructors/data/mock-instructor-profile";
 import { INSTRUCTOR_CATEGORY_OPTIONS } from "@/features/auth/user/schema/user-schema";
 import { InstructorProfileBiographySection } from "@/features/instructors/components/instructor-profile-biography-section";
+import { InstructorProfileFleetSection } from "@/features/instructors/components/instructor-profile-fleet-section";
 import { InstructorProfileHeroOwner } from "@/features/instructors/components/instructor-profile-hero-owner";
 import { InstructorMetaBadgeIcon } from "@/features/instructors/components/instructor-meta-badge-icon";
 import { cn } from "@/lib/utils";
@@ -67,14 +68,16 @@ function formatInstructorCategories(categories: string[]): string {
 
 type InstructorProfileDetailProps = {
   instructor: InstructorDirectoryItem;
-  variant?: "public" | "owner";
+  variant?: "public" | "preview" | "edit";
 };
 
 export function InstructorProfileDetail({
   instructor,
   variant = "public",
 }: InstructorProfileDetailProps) {
-  const isOwner = variant === "owner";
+  const isEdit = variant === "edit";
+  const isPreview = variant === "preview";
+  const isPublicView = variant === "public" || isPreview;
   const [liked, setLiked] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(instructor.avatarUrl);
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
@@ -98,9 +101,9 @@ export function InstructorProfileDetail({
     if (categoryLabel) parts.push(categoryLabel);
     if (displayCity) parts.push(displayCity);
     if (parts.length > 0) return parts.join(" • ");
-    if (isOwner) return "დაამატე კატეგორიები და ქალაქი";
+    if (isEdit) return "დაამატე კატეგორიები და ქალაქი";
     return mock.tagline;
-  }, [categoryLabel, displayCity, isOwner]);
+  }, [categoryLabel, displayCity, isEdit]);
 
   const heroMetaBadges = useMemo(() => {
     const badges: { icon: string; label: string }[] = [];
@@ -120,13 +123,13 @@ export function InstructorProfileDetail({
       });
     }
     if (badges.length > 0) return badges;
-    return isOwner ? [] : mock.metaBadges;
+    return isEdit ? [] : mock.metaBadges;
   }, [
     categoryLabel,
     displayCity,
     instructor.phone,
     instructor.studentCount,
-    isOwner,
+    isEdit,
   ]);
 
   const ownerInitials = userInitials({
@@ -158,7 +161,7 @@ export function InstructorProfileDetail({
     <div className="flex min-w-0 w-full flex-col overflow-x-hidden pb-16">
       <div className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center">
         <nav className="flex flex-wrap items-center gap-2 text-sm text-on-surface-variant">
-          {isOwner ? (
+          {isPreview || isEdit ? (
             <>
               <Link
                 href="/dashboard"
@@ -168,7 +171,21 @@ export function InstructorProfileDetail({
                 დაშბორდი
               </Link>
               <span>/</span>
-              <span className="font-semibold text-on-surface">ჩემი პროფილი</span>
+              {isEdit ? (
+                <>
+                  <Link href="/profile" className="hover:text-primary">
+                    ჩემი პროფილი
+                  </Link>
+                  <span>/</span>
+                  <span className="font-semibold text-on-surface">
+                    რედაქტირება
+                  </span>
+                </>
+              ) : (
+                <span className="font-semibold text-on-surface">
+                  ჩემი პროფილი
+                </span>
+              )}
             </>
           ) : (
             <>
@@ -190,7 +207,15 @@ export function InstructorProfileDetail({
             </>
           )}
         </nav>
-        {!isOwner ? (
+        {isPreview ? (
+          <Button
+            className="rounded-xl shadow-md shadow-primary/20"
+            render={<Link href="/profile/edit" />}
+          >
+            <Pencil className="size-4" />
+            რედაქტირება
+          </Button>
+        ) : isPublicView ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-primary">
               <span className="size-2 animate-pulse rounded-full bg-primary" />
@@ -204,11 +229,14 @@ export function InstructorProfileDetail({
         ) : null}
       </div>
 
-      {isOwner ? (
-        <div className="mb-4 rounded-xl border border-primary/20 bg-primary/10 px-4 py-3">
-          <p className="text-sm text-on-surface">
-            პროფილი და საკონტაქტო ველები იხსნება რედაქტირების modal-ით —
-            შენახვის შემდეგ სტუდენტები ასე ხედავენ.
+      {isEdit ? (
+        <div className="mb-4 rounded-xl border border-outline-variant/40 bg-surface-container-high/50 px-4 py-3">
+          <p className="text-sm text-on-surface-variant">
+            ცვლილებები ინახება პირდაპირ — სტუდენტები ხედავენ{" "}
+            <Link href="/profile" className="font-medium text-primary hover:underline">
+              საჯარო პროფილის
+            </Link>{" "}
+            ვერსიას.
           </p>
         </div>
       ) : null}
@@ -220,17 +248,17 @@ export function InstructorProfileDetail({
         <div
           className={cn(
             "relative z-10 flex min-w-0 flex-col items-start justify-between gap-8",
-            !isOwner && "lg:flex-row lg:items-center",
+            isPublicView && "lg:flex-row lg:items-center",
           )}
         >
           <div
             className={cn(
               "flex min-w-0 flex-col items-start gap-6",
-              isOwner ? "w-full md:flex-row md:items-start" : "md:flex-row md:items-center",
+              isEdit ? "w-full md:flex-row md:items-start" : "md:flex-row md:items-center",
             )}
           >
             <div className="relative shrink-0">
-              {isOwner ? (
+              {isEdit ? (
                 <div className="relative size-36 rounded-2xl bg-linear-to-br from-primary via-primary-container/80 to-primary/40 p-[3px] shadow-xl shadow-primary/20 sm:size-40">
                   <div className="relative size-full overflow-hidden rounded-[calc(1rem-2px)] bg-surface-container-highest ring-1 ring-white/10">
                     <ImageUpload
@@ -302,7 +330,7 @@ export function InstructorProfileDetail({
             </div>
 
             <div className="min-w-0 flex-1">
-              {isOwner ? (
+              {isEdit ? (
                 <InstructorProfileHeroOwner
                   instructor={instructor}
                   categoryLabel={categoryLabel}
@@ -360,7 +388,7 @@ export function InstructorProfileDetail({
             </div>
           </div>
 
-          {!isOwner ? (
+          {isPublicView ? (
           <div className="flex min-w-0 w-full shrink-0 flex-col items-stretch gap-3 sm:flex-row lg:w-auto lg:flex-col lg:items-end">
             <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-container p-4 lg:justify-end">
               <div className="flex flex-col lg:text-right">
@@ -474,7 +502,7 @@ export function InstructorProfileDetail({
       <div className="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8">
           <InstructorProfileBiographySection
-            isOwner={isOwner}
+            isOwner={isEdit}
             instructorBio={instructor.bio}
             fallbackBody={mock.biography.body}
             title={mock.biography.title}
@@ -483,60 +511,10 @@ export function InstructorProfileDetail({
             stages={mock.biography.stages}
           />
 
-          <ProfileSection
-            icon={<Car className="size-[22px]" />}
-            title="სასწავლო ავტოპარკი & სიმულატორი"
-            subtitle="100% იდენტური საგამოცდო ცენტრის მანქანებთან"
-            badge="3 ერთეული ტექნიკა"
-          >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {mock.fleet.map((vehicle) => (
-                <article
-                  key={vehicle.title}
-                  className="flex flex-col overflow-hidden rounded-xl bg-surface-container"
-                >
-                  <div className="relative h-40 overflow-hidden bg-surface-container-high">
-                    <Image
-                      src={vehicle.image}
-                      alt={vehicle.title}
-                      fill
-                      sizes="(max-width:768px) 100vw, 33vw"
-                      className="object-cover"
-                    />
-                    <span className="absolute top-2 left-2 rounded bg-surface-container-lowest/80 px-2 py-0.5 text-xs font-bold text-primary backdrop-blur-md">
-                      {vehicle.tag}
-                    </span>
-                    <span className="absolute right-2 bottom-2 rounded bg-surface-container-lowest/80 px-2 py-0.5 text-[11px] text-on-surface backdrop-blur-md">
-                      {vehicle.subtag}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col justify-between gap-2 p-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-on-surface">
-                        {vehicle.title}
-                      </h3>
-                      <p className="mt-1 text-xs text-on-surface-variant">
-                        {vehicle.description}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 text-xs text-secondary">
-                      <span>{vehicle.meta}</span>
-                      <span
-                        className={cn(
-                          "font-semibold",
-                          vehicle.statusPrimary
-                            ? "text-primary"
-                            : "text-emerald-400",
-                        )}
-                      >
-                        {vehicle.status}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </ProfileSection>
+          <InstructorProfileFleetSection
+            mode={isEdit ? "manage" : "display"}
+            publicVehicles={instructor.vehicles ?? []}
+          />
 
           <ProfileSection
             icon={<BadgeCheck className="size-[22px]" />}
@@ -709,7 +687,7 @@ export function InstructorProfileDetail({
         <aside className="flex flex-col gap-6 lg:col-span-4">
           <InstructorProfileContactCenter
             instructor={instructor}
-            isOwner={isOwner}
+            isOwner={isEdit}
           />
 
           <div className="rounded-2xl bg-surface-container-low p-6 shadow-sm">

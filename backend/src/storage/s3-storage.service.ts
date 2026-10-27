@@ -76,4 +76,38 @@ export class S3StorageService {
 
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
   }
+
+  async uploadInstructorVehicleImage(
+    userId: string,
+    file: UploadedImageFile,
+  ): Promise<string> {
+    const mime = file.mimetype.toLowerCase();
+    if (!ALLOWED_MIME.has(mime)) {
+      throw new BadRequestException('Unsupported image type');
+    }
+
+    const ext = EXT_BY_MIME[mime] ?? 'bin';
+    const key = `vehicles/${userId}/${randomUUID()}.${ext}`;
+
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: file.buffer,
+          ContentType: mime,
+          CacheControl: 'public, max-age=31536000, immutable',
+        }),
+      );
+    } catch {
+      throw new InternalServerErrorException('Failed to upload image');
+    }
+
+    const encodedKey = key
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
+  }
 }

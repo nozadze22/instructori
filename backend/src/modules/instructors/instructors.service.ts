@@ -28,7 +28,26 @@ const instructorSelect = {
       students: true,
     },
   },
-} as const;
+  instructorVehicles: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      imageUrl: true,
+      tag: true,
+      images: {
+        select: {
+          id: true,
+          imageUrl: true,
+          sortOrder: true,
+        },
+        orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+      },
+      sortOrder: true,
+    },
+    orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+  },
+};
 
 @Injectable()
 export class InstructorsService {
@@ -168,8 +187,18 @@ export class InstructorsService {
       phone: string | null;
       avatarUrl: string | null;
       city: string | null;
+      workingHours: string | null;
     } | null;
     _count: { students: number };
+    instructorVehicles: {
+      id: string;
+      title: string;
+      description: string | null;
+      imageUrl: string;
+      tag: string | null;
+      sortOrder: number;
+      images: { id: string; imageUrl: string; sortOrder: number }[];
+    }[];
   }) {
     return {
       id: instructor.id,
@@ -183,6 +212,15 @@ export class InstructorsService {
       city: instructor.profile?.city ?? null,
       workingHours: instructor.profile?.workingHours ?? null,
       studentCount: instructor._count.students,
+      vehicles: instructor.instructorVehicles.map((vehicle) => ({
+        id: vehicle.id,
+        title: vehicle.title,
+        description: vehicle.description,
+        imageUrl: vehicle.imageUrl,
+        tag: vehicle.tag,
+        sortOrder: vehicle.sortOrder,
+        images: vehicle.images,
+      })),
     };
   }
 

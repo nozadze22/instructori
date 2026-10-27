@@ -105,7 +105,6 @@ export const MOCK_INSTRUCTOR_PROFILE = {
       image:
         "https://lh3.googleusercontent.com/aida-public/AB6AXuBpO7-NdFKvvtyy5igkRD6e9VDh-IT2AKRBw_-VkN8YKxpdDAyFy07HGDhFIerUVB4S5r7hzeS4fnzv8akad6x0am5DrDPukCphhe07KrnAUCMeLRcQGJ_r_wiVL-tGGWf0MU40RcKzWqF5wElRgPNQs6JYLWypPPsAAYVpz6g0SlROw_vUr6lBa_Y_qhGsZ0iLsb4v1p68mdFW-pkdbWdEyhacV8zHpKtuUm2T__F9VlBzOskiTdUyBw",
       tag: "მექანიკა",
-      subtag: "საგამოცდო ანალოგი",
       title: "Skoda Fabia (2023)",
       description:
         "ზუსტად ის მოდელი, რაც რუსთავის საგამოცდო მოედანზეა. აღჭურვილია დუბლირებული პედლებითა და კამერებით.",
@@ -116,7 +115,6 @@ export const MOCK_INSTRUCTOR_PROFILE = {
       image:
         "https://lh3.googleusercontent.com/aida-public/AB6AXuAm_x367SGREzXIPHlPD4qHzT5vi1Yf4uJdxFEGgIYi0AonSl291BEU1DhWHTjRclvXNdJdB8O9tjNACo5rn-2L89mWnu049YFHhsBmLb7HHz3O83mCnE3uYto7Eqcs4Ofe2h0V8vWsEZtAxy6Ui1wlNhCwq0bu90nzbhpa-A_IEIK5zilv1Hj5ttEYzwcNsl_y4PhVjNJV5Mp1CVaIvlDboSj6cxg6Oh3yOaQPqbMUmVE5bmmWluEtHQ",
       tag: "ავტომატიკა",
-      subtag: "ქალაქის მართვა",
       title: "Toyota Yaris Hybrid (2022)",
       description:
         "ავტომატური კოლოფი B კატეგორიისთვის. რბილი მართვა, სენსორული ასისტენტები და პარკინგ-კონტროლი.",
@@ -127,7 +125,6 @@ export const MOCK_INSTRUCTOR_PROFILE = {
       image:
         "https://lh3.googleusercontent.com/aida-public/AB6AXuD7vU6_1O_9hr5Qe--Vnz-Ubu5eSpJjFtlUjqubt5Bt9pKehMNSjUcC49AyAi-MXvj2V_R3HJUc8yO6yGQjwhbUjukn4RgTNHNYfxy188OB3GEb0ZIe_dAwK9CeJruFQet6DRG0cQQMpzEuV7vNBMXksfgqNQKi7u1KobhrctHjzho4rxN_OAnadjPHWXpUrVXb-h-Fl3Y4V_tt91cc3y6vfxh57kNesVmVWxVSM16RwYImRWHOotjR_A",
       tag: "SimDrive RIG",
-      subtag: "1:1 Digital Twin",
       title: "SimDrive Pro Digital Twin",
       description:
         "3-ეკრანიანი 180° სისტემა, ჰიდრავლიკური გადაბმულობა და რუსთავის მოედნის მილიმეტრული ციფრული ასლი.",

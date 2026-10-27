@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,8 +13,34 @@ import {
   JoinInstructorDto,
   UpdateProfileDto,
 } from './dto/profile.dto';
+import type { AuthUser } from '../auth/dto/auth-types';
+import {
+  CreateInstructorVehicleDto,
+  UpdateInstructorVehicleDto,
+} from './dto/instructor-vehicle.dto';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const MAX_VEHICLE_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VEHICLES_PER_INSTRUCTOR = 6;
+
+const instructorVehicleSelect = {
+  id: true,
+  title: true,
+  description: true,
+  imageUrl: true,
+  tag: true,
+  images: {
+    select: {
+      id: true,
+      imageUrl: true,
+      sortOrder: true,
+    },
+    orderBy: { sortOrder: 'asc' },
+  },
+  sortOrder: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 @Injectable()
 export class ProfileService {
@@ -192,5 +219,139 @@ export class ProfileService {
       where: { userId },
       data: { avatarUrl: null },
     });
+  }
+
+  async listMyVehicles(user: AuthUser) {
+    this.assertInstructorAccount(user);
+
+    return this.prisma.instructorVehicle.findMany({
+      where: { instructorId: user.userId },
+      select: instructorVehicleSelect,
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async createVehicle(
+    user: AuthUser,
+    dto: CreateInstructorVehicleDto,
+    files: UploadedImageFile[],
+  ) {
+    this.assertInstructorAccount(user);
+    this.assertVehicleImages(files);
+
+    const count = await this.prisma.instructorVehicle.count({
+      where: { instructorId: user.userId },
+    });
+    if (count >= MAX_VEHICLES_PER_INSTRUCTOR) {
+      throw new BadRequestException(
+        `You can add up to ${MAX_VEHICLES_PER_INSTRUCTOR} vehicles`,
+      );
+    }
+
+    const uploadedImages = await Promise.all(
+      files.map((file) =>
+        this.storage.uploadInstructorVehicleImage(user.userId, file),
+      ),
+    );
+
+    return this.prisma.instructorVehicle.create({
+      data: {
+        instructorId: user.userId,
+        title: dto.title.trim(),
+        description: dto.description?.trim() || null,
+        imageUrl: uploadedImages[0],
+        images: {
+          create: uploadedImages.map((imageUrl, sortOrder) => ({
+            imageUrl,
+            sortOrder,
+          })),
+        },
+        tag: dto.tag?.trim() || null,
+        sortOrder: count,
+      },
+      select: instructorVehicleSelect,
+    });
+  }
+
+  async updateVehicle(
+    user: AuthUser,
+    vehicleId: string,
+    dto: UpdateInstructorVehicleDto,
+  ) {
+    this.assertInstructorAccount(user);
+    await this.getOwnedVehicle(user.userId, vehicleId);
+
+    return this.prisma.instructorVehicle.update({
+      where: { id: vehicleId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description.trim() || null }
+          : {}),
+        ...(dto.tag !== undefined ? { tag: dto.tag.trim() || null } : {}),
+      },
+      select: instructorVehicleSelect,
+    });
+  }
+
+  async replaceVehiclePhoto(
+    user: AuthUser,
+    vehicleId: string,
+    file: UploadedImageFile,
+  ) {
+    this.assertInstructorAccount(user);
+    this.assertVehicleImages([file]);
+    await this.getOwnedVehicle(user.userId, vehicleId);
+
+    const imageUrl = await this.storage.uploadInstructorVehicleImage(
+      user.userId,
+      file,
+    );
+
+    return this.prisma.instructorVehicle.update({
+      where: { id: vehicleId },
+      data: { imageUrl },
+      select: instructorVehicleSelect,
+    });
+  }
+
+  async deleteVehicle(user: AuthUser, vehicleId: string) {
+    this.assertInstructorAccount(user);
+    await this.getOwnedVehicle(user.userId, vehicleId);
+
+    await this.prisma.instructorVehicle.delete({
+      where: { id: vehicleId },
+    });
+
+    return { ok: true as const };
+  }
+
+  private assertInstructorAccount(user: AuthUser) {
+    if (user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN') {
+      throw new ForbiddenException('Only instructors can manage vehicles');
+    }
+  }
+
+  private assertVehicleImages(files: UploadedImageFile[] | undefined) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('At least one image file is required');
+    }
+    if (files.length > 8) {
+      throw new BadRequestException('You can upload up to 8 images');
+    }
+    if (files.some((file) => file.size > MAX_VEHICLE_IMAGE_BYTES)) {
+      throw new BadRequestException('Image file is too large');
+    }
+  }
+
+  private async getOwnedVehicle(instructorId: string, vehicleId: string) {
+    const vehicle = await this.prisma.instructorVehicle.findFirst({
+      where: { id: vehicleId, instructorId },
+      select: { id: true },
+    });
+    if (!vehicle) {
+      throw new NotFoundException('Vehicle not found');
+    }
+    return vehicle;
   }
 }

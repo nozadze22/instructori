@@ -76,8 +76,36 @@ model User {
   drivingSessionsAsStudent DrivingSession[] @relation("DrivingSessionsStudent")
   instructorMessagesSent     InstructorMessage[] @relation("InstructorMessagesSent")
   instructorMessagesReceived InstructorMessage[] @relation("InstructorMessagesReceived")
+  instructorVehicles         InstructorVehicle[]
 
   @@index([linkedInstructorId])
+}
+
+model InstructorVehicle {
+  id           String   @id @default(uuid())
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  images       InstructorVehicleImage[]
+  title        String
+  description  String?
+  imageUrl     String
+  tag          String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId, sortOrder])
+}
+
+model InstructorVehicleImage {
+  id        String           @id @default(uuid())
+  vehicleId String
+  vehicle   InstructorVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+
+  @@index([vehicleId, sortOrder])
 }
 
 model RefreshToken {
