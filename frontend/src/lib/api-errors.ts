@@ -34,5 +34,9 @@ export function humanizeApiError(error: unknown): string {
     return API_ERROR_MESSAGES.serverUnavailable;
   }
 
+  if (/^<!doctype html|^<html/i.test(message)) {
+    return API_ERROR_MESSAGES.serverUnavailable;
+  }
+
   return message;
 }

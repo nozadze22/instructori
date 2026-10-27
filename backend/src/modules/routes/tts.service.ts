@@ -5,23 +5,12 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
-import type { Readable } from 'stream';
 
 const MAX_TEXT_LENGTH = 500;
 const TTS_TIMEOUT_MS = 20_000;
 const CACHE_LIMIT = 80;
-const GEORGIAN_VOICE = 'ka-GE-EkaNeural';
-/** Bump when voice/format/prosody changes so cached audio is regenerated. */
-const TTS_PROFILE = 'v2-soft-96k';
-const TTS_OUTPUT_FORMAT = OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3;
-const TTS_PROSODY = {
-  /** Slightly slower — clearer, softer instructor-style delivery. */
-  rate: 0.92,
-  /** Slightly lower pitch — fuller, warmer tone. */
-  pitch: '-2Hz',
-  volume: 100,
-} as const;
+/** Bump when the provider/model/voice changes so cached audio is regenerated. */
+const TTS_PROFILE = 'v5-elevenlabs';
 
 @Injectable()
 export class TtsService {
@@ -43,28 +32,78 @@ export class TtsService {
     const cached = this.cache.get(key);
     if (cached) return cached;
 
-    const tts = new MsEdgeTTS();
+    const elevenLabsKey = process.env.ELEVENLABS_API_KEY?.trim();
+    const elevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID?.trim();
+    if (!elevenLabsKey || !elevenLabsVoiceId) {
+      throw new ServiceUnavailableException(
+        'ElevenLabs TTS კონფიგურირებული არ არის: დაამატე ELEVENLABS_API_KEY და ELEVENLABS_VOICE_ID backend/.env-ში.',
+      );
+    }
+
     try {
-      await tts.setMetadata(GEORGIAN_VOICE, TTS_OUTPUT_FORMAT);
-
-      const { audioStream } = tts.toStream(normalized, TTS_PROSODY);
-      const buffer = await this.readStream(audioStream);
-
-      if (buffer.length < 64) {
-        throw new Error('ცარიელი აუდიო პასუხი');
-      }
-
+      const buffer = await this.synthesizeElevenLabs(
+        normalized,
+        elevenLabsKey,
+        elevenLabsVoiceId,
+      );
       this.remember(key, buffer);
+      this.logger.log(
+        `ElevenLabs TTS ok (${normalized.length} chars → ${buffer.length} bytes)`,
+      );
       return buffer;
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `TTS failed: ${error instanceof Error ? error.message : String(error)}`,
+        `ElevenLabs TTS failed (${normalized.length} chars): ${msg}`,
       );
-      throw new ServiceUnavailableException(
-        'ხმის სინთეზი დროებით მიუწვდომელია',
+    }
+    throw new ServiceUnavailableException(
+      'ElevenLabs-ის ხმის გენერაცია დროებით ვერ მოხერხდა. სცადე ხელახლა.',
+    );
+  }
+
+  private async synthesizeElevenLabs(
+    text: string,
+    apiKey: string,
+    voiceId: string,
+  ): Promise<Buffer> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKey,
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            text,
+            model_id: process.env.ELEVENLABS_MODEL_ID?.trim() || 'eleven_v4',
+            voice_settings: {
+              stability: 0.55,
+              similarity_boost: 0.8,
+              style: 0.15,
+              use_speaker_boost: true,
+            },
+          }),
+        },
       );
+
+      const body = Buffer.from(await response.arrayBuffer());
+      if (!response.ok) {
+        throw new Error(`${response.status} ${body.toString('utf8').slice(0, 280)}`);
+      }
+      if (body.length < 64) {
+        throw new Error('ElevenLabs returned empty audio');
+      }
+      return body;
     } finally {
-      tts.close();
+      clearTimeout(timer);
     }
   }
 
@@ -78,25 +117,4 @@ export class TtsService {
     this.cache.set(key, buffer);
   }
 
-  private readStream(stream: Readable): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      const timer = setTimeout(() => {
-        stream.destroy();
-        reject(new Error('TTS timeout'));
-      }, TTS_TIMEOUT_MS);
-
-      stream.on('data', (chunk: Buffer | string) => {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      });
-      stream.once('end', () => {
-        clearTimeout(timer);
-        resolve(Buffer.concat(chunks));
-      });
-      stream.once('error', (error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-    });
-  }
 }

@@ -4,12 +4,18 @@ import { ExamRegionsController } from './exam-regions.controller';
 import { ExamRegionsService } from './exam-regions.service';
 import { PublicRoutesController } from './public-routes.controller';
 import { RoutesController } from './routes.controller';
+import { RoutesTtsController } from './routes-tts.controller';
 import { RoutesService } from './routes.service';
 import { TtsService } from './tts.service';
 
 @Module({
   imports: [AuthModule],
-  controllers: [RoutesController, PublicRoutesController, ExamRegionsController],
+  controllers: [
+    RoutesController,
+    RoutesTtsController,
+    PublicRoutesController,
+    ExamRegionsController,
+  ],
   providers: [RoutesService, ExamRegionsService, TtsService],
   exports: [RoutesService, ExamRegionsService],
 })

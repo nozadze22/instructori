@@ -35,6 +35,18 @@ async function parseErrorMessage(response: Response): Promise<string> {
     return `Request failed: ${response.status} ${response.statusText}`;
   }
 
+  if (/^<!doctype html|^<html/i.test(text)) {
+    if (
+      /DNS_HOSTNAME_RESOLVED_PRIVATE|could not be found/i.test(text)
+    ) {
+      return "API proxy ვერ მიუკავშირდა backend-ს. Vercel-ზე დააყენე BACKEND_URL (HTTPS, მაგ. Fly.io API) და გადააგდე deploy.";
+    }
+    if (response.status === 404) {
+      return "API მისამართი ვერ მოიძებნა. გაუშვი backend (pnpm dev, პორტი 4001) და გადატვირთე frontend.";
+    }
+    return "სერვისმა HTML უპასუხა JSON-ის ნაცვლად. შეამოწმე backend და /api proxy.";
+  }
+
   try {
     const parsed = JSON.parse(text) as { message?: unknown; error?: unknown };
     if (typeof parsed.message === "string" && parsed.message) {
