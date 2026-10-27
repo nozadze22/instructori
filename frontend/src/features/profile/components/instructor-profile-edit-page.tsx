@@ -7,17 +7,14 @@ import { InstructorProfileDetail } from "@/features/instructors/components/instr
 import { mapMeToInstructorDirectoryItem } from "@/features/instructors/lib/map-instructor-directory-item";
 import { isAppUser } from "@/lib/auth-paths";
 import Wrapper from "@/components/shared/wrapper/wrapper";
+import { InstructorProfileLoading } from "@/features/profile/components/instructor-profile-loading";
 
 function EditContent() {
   const { data: me, isLoading } = useGetMe();
-  const { data: profile } = useGetProfile();
+  const { data: profile, isLoading: isProfileLoading } = useGetProfile();
 
-  if (isLoading) {
-    return (
-      <p className="py-16 text-center text-sm text-muted-foreground">
-        იტვირთება...
-      </p>
-    );
+  if (isLoading || isProfileLoading) {
+    return <InstructorProfileLoading />;
   }
 
   if (!me || isAppUser(me)) {

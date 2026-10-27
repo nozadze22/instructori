@@ -77,6 +77,8 @@ model User {
   instructorMessagesSent     InstructorMessage[] @relation("InstructorMessagesSent")
   instructorMessagesReceived InstructorMessage[] @relation("InstructorMessagesReceived")
   instructorVehicles         InstructorVehicle[]
+  trainingSteps              InstructorTrainingStep[]
+  instructorCertificates     InstructorCertificate[]
 
   @@index([linkedInstructorId])
 }
@@ -90,6 +92,33 @@ model InstructorVehicle {
   description  String?
   imageUrl     String
   tag          String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId, sortOrder])
+}
+
+model InstructorTrainingStep {
+  id           String   @id @default(uuid())
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([instructorId, sortOrder])
+}
+
+model InstructorCertificate {
+  id           String   @id @default(uuid())
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  imageUrl     String
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

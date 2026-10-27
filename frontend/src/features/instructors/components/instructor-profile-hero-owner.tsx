@@ -8,13 +8,13 @@ import type { InstructorDirectoryItem } from "@/features/instructors/api/instruc
 import { InstructorMetaBadgeIcon } from "@/features/instructors/components/instructor-meta-badge-icon";
 import { ProfileHeroEditDialog } from "@/features/profile/components/profile-hero-edit-dialog";
 
-type HeroBadge = { icon: string; label: string };
+type HeroBadge = Readonly<{ icon: string; label: string }>;
 
 type InstructorProfileHeroOwnerProps = {
   instructor: InstructorDirectoryItem;
   categoryLabel: string;
   heroTagline: string;
-  heroMetaBadges: HeroBadge[];
+  heroMetaBadges: readonly HeroBadge[];
   avatarUrl?: string | null;
 };
 

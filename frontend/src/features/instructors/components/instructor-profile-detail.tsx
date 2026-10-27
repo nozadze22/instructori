@@ -9,15 +9,10 @@ import {
   ChevronDown,
   Eye,
   GraduationCap,
-  Heart,
   Home,
   Mail,
-  MapPin,
   LayoutDashboard,
-  MessageCircle,
   Pencil,
-  Phone,
-  Share2,
   Shield,
   ShieldCheck,
   Camera,
@@ -28,7 +23,7 @@ import {
   UserRound,
   Verified,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/shared/image-upload";
@@ -39,6 +34,8 @@ import { MOCK_INSTRUCTOR_PROFILE } from "@/features/instructors/data/mock-instru
 import { INSTRUCTOR_CATEGORY_OPTIONS } from "@/features/auth/user/schema/user-schema";
 import { InstructorProfileBiographySection } from "@/features/instructors/components/instructor-profile-biography-section";
 import { InstructorProfileFleetSection } from "@/features/instructors/components/instructor-profile-fleet-section";
+import { InstructorTrainingStepsSection } from "@/features/instructors/components/instructor-training-steps-section";
+import { InstructorCertificatesSection } from "@/features/instructors/components/instructor-certificates-section";
 import { InstructorProfileHeroOwner } from "@/features/instructors/components/instructor-profile-hero-owner";
 import { InstructorMetaBadgeIcon } from "@/features/instructors/components/instructor-meta-badge-icon";
 import { cn } from "@/lib/utils";
@@ -78,16 +75,11 @@ export function InstructorProfileDetail({
   const isEdit = variant === "edit";
   const isPreview = variant === "preview";
   const isPublicView = variant === "public" || isPreview;
-  const [liked, setLiked] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(instructor.avatarUrl);
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
     useUploadProfileAvatar();
   const { mutate: removeAvatar, isPending: isRemovingAvatar } =
     useRemoveProfileAvatar();
-
-  useEffect(() => {
-    setAvatarUrl(instructor.avatarUrl);
-  }, [instructor.avatarUrl]);
 
   const categoryLabel = formatInstructorCategories(
     instructor.instructorCategories,
@@ -406,36 +398,6 @@ export function InstructorProfileDetail({
                 პაკეტები: {mock.packageDeal}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-xl bg-surface-container-high"
-                aria-label="შეტყობინება"
-              >
-                <MessageCircle className="size-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className={cn(
-                  "gap-1.5 rounded-xl bg-surface-container-high",
-                  liked && "text-error",
-                )}
-                onClick={() => setLiked((value) => !value)}
-              >
-                <Heart className={cn("size-5", liked && "fill-error")} />
-                <span className="text-xs">{mock.likesLabel}</span>
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-xl bg-surface-container-high"
-                aria-label="გაზიარება"
-              >
-                <Share2 className="size-5" />
-              </Button>
-            </div>
           </div>
           ) : null}
         </div>
@@ -455,10 +417,12 @@ export function InstructorProfileDetail({
                 <span
                   className={cn(
                     "rounded px-2 py-0.5 text-[11px] font-bold",
-                    kpi.badgeClass ?? "text-on-surface-variant",
+                    "badgeClass" in kpi
+                      ? kpi.badgeClass
+                      : "text-on-surface-variant",
                   )}
                 >
-                  {kpi.badge}
+                  {"badge" in kpi ? kpi.badge : null}
                 </span>
               )}
             </div>
@@ -485,16 +449,18 @@ export function InstructorProfileDetail({
                   style={{ width: `${kpi.progress}%` }}
                 />
               </div>
-            ) : (
+            ) : "footnote" in kpi ? (
               <p
                 className={cn(
                   "mt-2 text-[11px]",
-                  kpi.footnoteClass ?? "text-primary",
+                  "footnoteClass" in kpi
+                    ? kpi.footnoteClass
+                    : "text-primary",
                 )}
               >
                 {kpi.footnote}
               </p>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
@@ -509,6 +475,7 @@ export function InstructorProfileDetail({
             subtitle={mock.biography.subtitle}
             badge={mock.biography.badge}
             stages={mock.biography.stages}
+            trainingSteps={instructor.trainingSteps ?? []}
           />
 
           <InstructorProfileFleetSection
@@ -516,91 +483,14 @@ export function InstructorProfileDetail({
             publicVehicles={instructor.vehicles ?? []}
           />
 
-          <ProfileSection
-            icon={<BadgeCheck className="size-[22px]" />}
-            title="სერტიფიკატები, ლიცენზიები & აკრედიტაცია"
-            subtitle="ოფიციალურად დამოწმებული დოკუმენტები"
-          >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {mock.certificates.map((cert) => (
-                <div
-                  key={cert.title}
-                  className="flex items-start gap-4 rounded-xl bg-surface-container p-4"
-                >
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
-                    <ShieldCheck className="size-7" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-on-surface">
-                        {cert.title}
-                      </span>
-                      <Verified className="size-4 text-primary" />
-                    </div>
-                    <p className="text-xs text-on-surface-variant">
-                      {cert.subtitle}
-                    </p>
-                    <p className="mt-1 font-mono text-xs text-secondary">
-                      {cert.code}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ProfileSection>
+          {isEdit ? (
+            <InstructorTrainingStepsSection mode="manage" />
+          ) : null}
 
-          <ProfileSection
-            icon={<MapPin className="size-[22px]" />}
-            title="სპეციალიზებული საგამოცდო ლოკაციები"
-            subtitle="რეალური მარშრუტები და მოედნის წერტილები"
-            badge="აქტიური მარშრუტები"
-            badgeClass="text-emerald-400 bg-emerald-950/40"
-          >
-            <div className="relative overflow-hidden rounded-xl shadow-inner">
-              <div className="relative h-72 w-full">
-                <Image
-                  src={mock.mapImage}
-                  alt="საგამოცდო ლოკაციები"
-                  fill
-                  sizes="100vw"
-                  className="object-cover"
-                />
-              </div>
-              <div className="absolute right-4 bottom-4 left-4 flex flex-col items-center justify-between gap-3 rounded-xl bg-surface-container-lowest/90 p-4 backdrop-blur-md sm:flex-row">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary">
-                    <MapPin className="size-4" />
-                  </div>
-                  <div>
-                    <span className="block text-sm font-semibold text-on-surface">
-                      რუსთავის საგამოცდო ჰაბი & თბილისის არეალი
-                    </span>
-                    <span className="text-xs text-on-surface-variant">
-                      შეკრების წერტილი: დელისის მეტრო ან რუსთავის მოედანი
-                    </span>
-                  </div>
-                </div>
-                <span className="rounded-md bg-surface-container-high px-2.5 py-1 font-mono text-xs text-secondary">
-                  GPS ტელემეტრია: ჩართულია
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {mock.routeAreas.map((area) => (
-                <div
-                  key={area.title}
-                  className="flex flex-col gap-1.5 rounded-xl bg-surface-container p-3.5"
-                >
-                  <span className="text-sm font-semibold text-primary">
-                    {area.title}
-                  </span>
-                  <p className="text-xs text-on-surface-variant">
-                    {area.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </ProfileSection>
+          <InstructorCertificatesSection
+            manage={isEdit}
+            publicCertificates={instructor.certificates ?? []}
+          />
 
           <ProfileSection
             icon={<Star className="size-[22px]" />}

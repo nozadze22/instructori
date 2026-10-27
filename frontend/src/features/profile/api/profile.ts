@@ -7,6 +7,8 @@ export type Profile = {
   phone: string | null;
   avatarUrl: string | null;
   city: string | null;
+  country?: string | null;
+  transmissionModes?: string | null;
   workingHours: string | null;
   instructorCategories: string[];
   createdAt: string;

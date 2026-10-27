@@ -14,6 +14,13 @@ type BiographyStage = {
   description: string;
 };
 
+type TrainingStep = {
+  id: string;
+  title: string;
+  description: string;
+  sortOrder: number;
+};
+
 type InstructorProfileBiographySectionProps = {
   isOwner: boolean;
   instructorBio: string | null;
@@ -22,6 +29,7 @@ type InstructorProfileBiographySectionProps = {
   subtitle: string;
   badge?: string;
   stages: readonly BiographyStage[];
+  trainingSteps?: readonly TrainingStep[];
 };
 
 export function InstructorProfileBiographySection({
@@ -32,6 +40,7 @@ export function InstructorProfileBiographySection({
   subtitle,
   badge,
   stages,
+  trainingSteps = [],
 }: InstructorProfileBiographySectionProps) {
   const [bioOpen, setBioOpen] = useState(false);
   const { data: profile } = useGetProfile({ enabled: isOwner });
@@ -91,25 +100,34 @@ export function InstructorProfileBiographySection({
           {bodyContent}
         </p>
 
-        {!isOwner ? (
+        {!isOwner && trainingSteps.length > 0 ? (
           <div className="mt-2 flex flex-col gap-3">
-            <span className="flex items-center gap-2 text-sm font-semibold text-on-surface">
-              <MapPin className="size-4 text-primary" />
-              ჩემი სწავლების 4-ეტაპიანი სისტემა:
+            <span className="flex items-center gap-2 text-sm font-bold text-on-surface">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <MapPin className="size-4" />
+              </span>
+              ჩემი სწავლების {trainingSteps.length}-ეტაპიანი სისტემა:
             </span>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {stages.map((stage) => (
+              {trainingSteps.map((stage, index) => (
                 <div
-                  key={stage.step}
-                  className="flex flex-col gap-2 rounded-xl bg-surface-container p-4"
+                  key={stage.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-primary/15 bg-surface-container p-5 shadow-sm shadow-black/10 transition-colors hover:border-primary/35 hover:bg-surface-container-high"
                 >
-                  <span className="text-xs font-bold text-primary">
-                    {stage.step}
-                  </span>
-                  <h3 className="text-sm font-bold text-on-surface">
-                    {stage.title}
-                  </h3>
-                  <p className="text-xs leading-relaxed text-on-surface-variant">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <span className="text-[11px] font-bold tracking-wide text-primary uppercase">
+                        ეტაპი {index + 1}
+                      </span>
+                      <h3 className="text-base font-bold text-on-surface">
+                        {stage.title}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed text-on-surface-variant">
                     {stage.description}
                   </p>
                 </div>

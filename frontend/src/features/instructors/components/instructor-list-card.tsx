@@ -3,10 +3,8 @@
 import type { ComponentType, ReactNode } from "react";
 import Image from "next/image";
 import {
-  Bookmark,
   Brain,
   CalendarDays,
-  Heart,
   IdCard,
   MapPin,
   Medal,
@@ -103,38 +101,6 @@ export function InstructorListCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            title="შენახვა / რჩეულებში დამატება"
-            onClick={onToggleBookmark}
-            className={cn(
-              "flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/8 bg-surface-container/80 text-xs font-medium transition-colors",
-              bookmarked
-                ? "border-primary/30 text-primary"
-                : "text-on-surface-variant hover:border-primary/20 hover:text-primary",
-            )}
-          >
-            <Bookmark
-              className={cn("size-4", bookmarked && "fill-current")}
-            />
-            {bookmarked ? "შენახული" : "შენახვა"}
-          </button>
-          <button
-            type="button"
-            title="მოწონება"
-            onClick={onToggleLike}
-            className={cn(
-              "flex h-9 min-w-[4.5rem] items-center justify-center gap-1 rounded-xl border border-white/8 bg-surface-container/80 px-3 text-xs font-medium transition-colors",
-              liked
-                ? "border-error/25 bg-error/10 text-error"
-                : "text-on-surface-variant hover:border-error/20 hover:text-error",
-            )}
-          >
-            <Heart className={cn("size-4", liked && "fill-error text-error")} />
-            {likeCount}
-          </button>
-        </div>
       </CardHeader>
 
       <CardContent className="relative flex flex-1 flex-col gap-4 px-5 pt-4 pb-0">

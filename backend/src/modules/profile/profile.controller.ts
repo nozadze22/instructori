@@ -26,6 +26,14 @@ import {
   CreateInstructorVehicleDto,
   UpdateInstructorVehicleDto,
 } from './dto/instructor-vehicle.dto';
+import {
+  CreateInstructorTrainingStepDto,
+  UpdateInstructorTrainingStepDto,
+} from './dto/instructor-training-step.dto';
+import {
+  CreateInstructorCertificateDto,
+  UpdateInstructorCertificateDto,
+} from './dto/instructor-certificate.dto';
 import type { UploadedImageFile } from '../../storage/uploaded-image.type';
 import { ProfileService } from './profile.service';
 
@@ -134,5 +142,79 @@ export class ProfileController {
   @Delete('vehicles/:id')
   deleteVehicle(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.profileService.deleteVehicle(user, id);
+  }
+
+  @Get('training-steps')
+  listMyTrainingSteps(@CurrentUser() user: AuthUser) {
+    return this.profileService.listMyTrainingSteps(user);
+  }
+
+  @Post('training-steps')
+  createTrainingStep(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateInstructorTrainingStepDto,
+  ) {
+    return this.profileService.createTrainingStep(user, dto);
+  }
+
+  @Patch('training-steps/:id')
+  updateTrainingStep(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateInstructorTrainingStepDto,
+  ) {
+    return this.profileService.updateTrainingStep(user, id, dto);
+  }
+
+  @Delete('training-steps/:id')
+  deleteTrainingStep(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.profileService.deleteTrainingStep(user, id);
+  }
+
+  @Get('certificates')
+  listMyCertificates(@CurrentUser() user: AuthUser) {
+    return this.profileService.listMyCertificates(user);
+  }
+
+  @Post('certificates')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  createCertificate(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateInstructorCertificateDto,
+    @UploadedFile() file: UploadedImageFile,
+  ) {
+    return this.profileService.createCertificate(user, dto, file);
+  }
+
+  @Patch('certificates/:id')
+  updateCertificate(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateInstructorCertificateDto,
+  ) {
+    return this.profileService.updateCertificate(user, id, dto);
+  }
+
+  @Post('certificates/:id/photo')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  replaceCertificatePhoto(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedImageFile,
+  ) {
+    return this.profileService.replaceCertificatePhoto(user, id, file);
+  }
+
+  @Delete('certificates/:id')
+  deleteCertificate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.profileService.deleteCertificate(user, id);
   }
 }

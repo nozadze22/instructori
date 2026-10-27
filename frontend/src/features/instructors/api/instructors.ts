@@ -1,5 +1,7 @@
 import { apiRequest } from "@/lib/api";
 import type { InstructorVehicle } from "@/features/profile/api/instructor-vehicles";
+import type { InstructorTrainingStep } from "@/features/profile/api/instructor-training-steps";
+import type { InstructorCertificate } from "@/features/profile/api/instructor-certificates";
 
 export type InstructorDirectoryItem = {
   id: string;
@@ -14,6 +16,8 @@ export type InstructorDirectoryItem = {
   workingHours: string | null;
   studentCount: number;
   vehicles?: InstructorVehicle[];
+  trainingSteps?: InstructorTrainingStep[];
+  certificates?: InstructorCertificate[];
 };
 
 export type InstructorMessage = {

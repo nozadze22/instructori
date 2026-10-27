@@ -47,6 +47,25 @@ const instructorSelect = {
     },
     orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
   },
+  trainingSteps: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      sortOrder: true,
+    },
+    orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+  },
+  instructorCertificates: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      imageUrl: true,
+      sortOrder: true,
+    },
+    orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+  },
 };
 
 @Injectable()
@@ -199,6 +218,19 @@ export class InstructorsService {
       sortOrder: number;
       images: { id: string; imageUrl: string; sortOrder: number }[];
     }[];
+    trainingSteps: {
+      id: string;
+      title: string;
+      description: string;
+      sortOrder: number;
+    }[];
+    instructorCertificates: {
+      id: string;
+      title: string;
+      description: string | null;
+      imageUrl: string;
+      sortOrder: number;
+    }[];
   }) {
     return {
       id: instructor.id,
@@ -221,6 +253,8 @@ export class InstructorsService {
         sortOrder: vehicle.sortOrder,
         images: vehicle.images,
       })),
+      trainingSteps: instructor.trainingSteps,
+      certificates: instructor.instructorCertificates,
     };
   }
 

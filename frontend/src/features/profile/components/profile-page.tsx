@@ -4,6 +4,8 @@ import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
 import { useProfileVehicles } from "@/features/profile/hooks/instructor-vehicles";
+import { useProfileTrainingSteps } from "@/features/profile/hooks/instructor-training-steps";
+import { useProfileCertificates } from "@/features/profile/hooks/instructor-certificates";
 import { InstructorProfileDetail } from "@/features/instructors/components/instructor-profile-detail";
 import { mapMeToInstructorDirectoryItem } from "@/features/instructors/lib/map-instructor-directory-item";
 import { isAppUser } from "@/lib/auth-paths";
@@ -21,6 +23,10 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   const { data: vehicles } = useProfileVehicles({
     enabled: Boolean(isInstructor),
   });
+  const { data: trainingSteps } = useProfileTrainingSteps({
+    enabled: Boolean(isInstructor),
+  });
+  const { data: certificates } = useProfileCertificates(Boolean(isInstructor));
 
   if (isLoading) {
     return (
@@ -46,11 +52,13 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
     />
   ) : (
     <InstructorProfileDetail
-      key={`${profile?.updatedAt ?? me.userId}-${vehicles?.length ?? 0}`}
+      key={`${profile?.updatedAt ?? me.userId}-${vehicles?.length ?? 0}-${trainingSteps?.length ?? 0}-${certificates?.length ?? 0}`}
       variant="preview"
       instructor={{
         ...mapMeToInstructorDirectoryItem(me, profile),
         vehicles: vehicles ?? [],
+        trainingSteps: trainingSteps ?? [],
+        certificates: certificates ?? [],
       }}
     />
   );

@@ -18,6 +18,14 @@ import {
   CreateInstructorVehicleDto,
   UpdateInstructorVehicleDto,
 } from './dto/instructor-vehicle.dto';
+import {
+  CreateInstructorTrainingStepDto,
+  UpdateInstructorTrainingStepDto,
+} from './dto/instructor-training-step.dto';
+import {
+  CreateInstructorCertificateDto,
+  UpdateInstructorCertificateDto,
+} from './dto/instructor-certificate.dto';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const MAX_VEHICLE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -37,6 +45,25 @@ const instructorVehicleSelect = {
     },
     orderBy: { sortOrder: 'asc' },
   },
+  sortOrder: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const instructorTrainingStepSelect = {
+  id: true,
+  title: true,
+  description: true,
+  sortOrder: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const instructorCertificateSelect = {
+  id: true,
+  title: true,
+  description: true,
+  imageUrl: true,
   sortOrder: true,
   createdAt: true,
   updatedAt: true,
@@ -326,6 +353,154 @@ export class ProfileService {
     return { ok: true as const };
   }
 
+  async listMyTrainingSteps(user: AuthUser) {
+    this.assertInstructorAccount(user);
+
+    return this.prisma.instructorTrainingStep.findMany({
+      where: { instructorId: user.userId },
+      select: instructorTrainingStepSelect,
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async createTrainingStep(
+    user: AuthUser,
+    dto: CreateInstructorTrainingStepDto,
+  ) {
+    this.assertInstructorAccount(user);
+
+    const count = await this.prisma.instructorTrainingStep.count({
+      where: { instructorId: user.userId },
+    });
+
+    return this.prisma.instructorTrainingStep.create({
+      data: {
+        instructorId: user.userId,
+        title: dto.title.trim(),
+        description: dto.description.trim(),
+        sortOrder: dto.sortOrder ?? count,
+      },
+      select: instructorTrainingStepSelect,
+    });
+  }
+
+  async updateTrainingStep(
+    user: AuthUser,
+    stepId: string,
+    dto: UpdateInstructorTrainingStepDto,
+  ) {
+    this.assertInstructorAccount(user);
+    await this.getOwnedTrainingStep(user.userId, stepId);
+
+    return this.prisma.instructorTrainingStep.update({
+      where: { id: stepId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description.trim() }
+          : {}),
+        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+      },
+      select: instructorTrainingStepSelect,
+    });
+  }
+
+  async deleteTrainingStep(user: AuthUser, stepId: string) {
+    this.assertInstructorAccount(user);
+    await this.getOwnedTrainingStep(user.userId, stepId);
+
+    await this.prisma.instructorTrainingStep.delete({
+      where: { id: stepId },
+    });
+
+    return { ok: true as const };
+  }
+
+  async listMyCertificates(user: AuthUser) {
+    this.assertInstructorAccount(user);
+    return this.prisma.instructorCertificate.findMany({
+      where: { instructorId: user.userId },
+      select: instructorCertificateSelect,
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async createCertificate(
+    user: AuthUser,
+    dto: CreateInstructorCertificateDto,
+    file: UploadedImageFile,
+  ) {
+    this.assertInstructorAccount(user);
+    this.assertVehicleImages([file]);
+    const count = await this.prisma.instructorCertificate.count({
+      where: { instructorId: user.userId },
+    });
+    const imageUrl = await this.storage.uploadInstructorCertificateImage(
+      user.userId,
+      file,
+    );
+
+    return this.prisma.instructorCertificate.create({
+      data: {
+        instructorId: user.userId,
+        title: dto.title.trim(),
+        description: dto.description?.trim() || null,
+        imageUrl,
+        sortOrder: count,
+      },
+      select: instructorCertificateSelect,
+    });
+  }
+
+  async updateCertificate(
+    user: AuthUser,
+    certificateId: string,
+    dto: UpdateInstructorCertificateDto,
+  ) {
+    this.assertInstructorAccount(user);
+    await this.getOwnedCertificate(user.userId, certificateId);
+    return this.prisma.instructorCertificate.update({
+      where: { id: certificateId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description.trim() || null }
+          : {}),
+      },
+      select: instructorCertificateSelect,
+    });
+  }
+
+  async replaceCertificatePhoto(
+    user: AuthUser,
+    certificateId: string,
+    file: UploadedImageFile,
+  ) {
+    this.assertInstructorAccount(user);
+    this.assertVehicleImages([file]);
+    await this.getOwnedCertificate(user.userId, certificateId);
+
+    const imageUrl = await this.storage.uploadInstructorCertificateImage(
+      user.userId,
+      file,
+    );
+
+    return this.prisma.instructorCertificate.update({
+      where: { id: certificateId },
+      data: { imageUrl },
+      select: instructorCertificateSelect,
+    });
+  }
+
+  async deleteCertificate(user: AuthUser, certificateId: string) {
+    this.assertInstructorAccount(user);
+    await this.getOwnedCertificate(user.userId, certificateId);
+    await this.prisma.instructorCertificate.delete({
+      where: { id: certificateId },
+    });
+    return { ok: true as const };
+  }
+
   private assertInstructorAccount(user: AuthUser) {
     if (user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN') {
       throw new ForbiddenException('Only instructors can manage vehicles');
@@ -353,5 +528,30 @@ export class ProfileService {
       throw new NotFoundException('Vehicle not found');
     }
     return vehicle;
+  }
+
+  private async getOwnedTrainingStep(instructorId: string, stepId: string) {
+    const step = await this.prisma.instructorTrainingStep.findFirst({
+      where: { id: stepId, instructorId },
+      select: { id: true },
+    });
+    if (!step) {
+      throw new NotFoundException('Training step not found');
+    }
+    return step;
+  }
+
+  private async getOwnedCertificate(
+    instructorId: string,
+    certificateId: string,
+  ) {
+    const certificate = await this.prisma.instructorCertificate.findFirst({
+      where: { id: certificateId, instructorId },
+      select: { id: true },
+    });
+    if (!certificate) {
+      throw new NotFoundException('Certificate not found');
+    }
+    return certificate;
   }
 }
