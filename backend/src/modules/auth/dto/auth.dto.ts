@@ -1,10 +1,16 @@
 import {
   IsEmail,
+  IsArray,
+  ArrayNotEmpty,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   MinLength,
 } from 'class-validator';
+
+export const INSTRUCTOR_CATEGORIES = ['B', 'C', 'D', 'E', 'ALL'] as const;
 
 export class RegisterStudentDto {
   @IsString()
@@ -14,6 +20,11 @@ export class RegisterStudentDto {
   @IsEmail()
   @IsNotEmpty()
   email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(30)
+  phone!: string;
 
   @IsString()
   @MinLength(8)
@@ -36,6 +47,20 @@ export class RegisterDto {
   @IsEmail()
   @IsNotEmpty()
   email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(30)
+  phone!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  city!: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsEnum(INSTRUCTOR_CATEGORIES, { each: true })
+  instructorCategories!: string[];
 
   @IsString()
   @MinLength(8)

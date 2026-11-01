@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  /** Dev: allow localhost and 127.0.0.1 so HMR + Maps match production behavior. */
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
   images: {
     remotePatterns: [
       {

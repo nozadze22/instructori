@@ -386,6 +386,21 @@ export function RouteMapView({
   practiceMarkers,
   className,
 }: RouteMapViewProps) {
+  const isDev = process.env.NODE_ENV === "development";
+  const svgFallback = (
+    <RouteMapSvgFallback
+      path={path}
+      commands={commands}
+      activeIndex={activeIndex}
+      vehiclePosition={vehiclePosition}
+      showCommandMarkers={showCommandMarkers}
+      showVehicleMarker={showVehicleMarker}
+      traveledPath={traveledPath}
+      aheadPath={aheadPath}
+      practiceMarkers={practiceMarkers}
+    />
+  );
+
   return (
     <div
       className={cn(
@@ -397,19 +412,8 @@ export function RouteMapView({
       <div className="absolute inset-0">
         <GoogleMapsProvider
           compact
-          fallback={
-            <RouteMapSvgFallback
-              path={path}
-              commands={commands}
-              activeIndex={activeIndex}
-              vehiclePosition={vehiclePosition}
-              showCommandMarkers={showCommandMarkers}
-              showVehicleMarker={showVehicleMarker}
-              traveledPath={traveledPath}
-              aheadPath={aheadPath}
-              practiceMarkers={practiceMarkers}
-            />
-          }
+          showSetupHelp={isDev}
+          fallback={isDev ? undefined : svgFallback}
         >
           <RouteMapViewInner
             path={path}

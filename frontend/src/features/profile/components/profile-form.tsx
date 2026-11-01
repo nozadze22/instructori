@@ -3,16 +3,16 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Globe2,
   ImageIcon,
   MapPin,
   Phone,
   User,
   UserRound,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldContent,
@@ -35,10 +35,11 @@ import {
 } from "@/features/profile/hooks/profile";
 import {
   defaultProfileValues,
+  type ProfileSchema,
   profileSchema,
   toProfilePayload,
-  type ProfileSchema,
 } from "@/features/profile/schema/profile.schema";
+import { INSTRUCTOR_CATEGORY_OPTIONS } from "@/features/auth/user/schema/user-schema";
 
 const inputGroupClassName =
   "h-12 rounded-xl border-white/10 bg-surface-lowest shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255/15%)]";
@@ -46,11 +47,14 @@ const inputGroupClassName =
 type ProfileFormProps = {
   submitLabel?: string;
   className?: string;
+  /** Avatar upload is handled elsewhere (e.g. instructor profile hero). */
+  hideAvatarField?: boolean;
 };
 
 export function ProfileForm({
   submitLabel,
   className,
+  hideAvatarField = false,
 }: ProfileFormProps) {
   const { data: me } = useGetMe();
   const { data: profile, isLoading } = useGetProfile();
@@ -64,6 +68,10 @@ export function ProfileForm({
     defaultValues: defaultProfileValues,
     mode: "onSubmit",
   });
+  const selectedCategories = useWatch({
+    control: form.control,
+    name: "instructorCategories",
+  });
 
   useEffect(() => {
     form.reset({
@@ -72,7 +80,11 @@ export function ProfileForm({
       phone: profile?.phone ?? "",
       avatarUrl: profile?.avatarUrl ?? "",
       city: profile?.city ?? "",
-      country: profile?.country ?? "",
+      workingHours: profile?.workingHours ?? "",
+      hourlyRate:
+        profile?.hourlyRate != null ? String(profile.hourlyRate) : "",
+      packageDeal: profile?.packageDeal ?? "",
+      instructorCategories: profile?.instructorCategories ?? [],
     });
   }, [form, me?.fullName, profile]);
 
@@ -149,27 +161,29 @@ export function ProfileForm({
             </FieldContent>
           </Field>
 
-          <Field data-invalid={!!form.formState.errors.avatarUrl}>
-            <FieldLabel
-              htmlFor="avatarUrl"
-              className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
-              ავატარის URL
-            </FieldLabel>
-            <FieldContent>
-              <InputGroup className={inputGroupClassName}>
-                <InputGroupAddon>
-                  <ImageIcon />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="avatarUrl"
-                  placeholder="https://..."
-                  {...form.register("avatarUrl")}
-                />
-              </InputGroup>
-              <FieldError errors={[form.formState.errors.avatarUrl]} />
-            </FieldContent>
-          </Field>
+          {!hideAvatarField ? (
+            <Field data-invalid={!!form.formState.errors.avatarUrl}>
+              <FieldLabel
+                htmlFor="avatarUrl"
+                className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+              >
+                ავატარის URL
+              </FieldLabel>
+              <FieldContent>
+                <InputGroup className={inputGroupClassName}>
+                  <InputGroupAddon>
+                    <ImageIcon />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="avatarUrl"
+                    placeholder="https://..."
+                    {...form.register("avatarUrl")}
+                  />
+                </InputGroup>
+                <FieldError errors={[form.formState.errors.avatarUrl]} />
+              </FieldContent>
+            </Field>
+          ) : null}
 
           <Field data-invalid={!!form.formState.errors.city}>
             <FieldLabel
@@ -193,28 +207,54 @@ export function ProfileForm({
             </FieldContent>
           </Field>
 
-          <Field data-invalid={!!form.formState.errors.country}>
-            <FieldLabel
-              htmlFor="country"
-              className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-            >
-              ქვეყანა
-            </FieldLabel>
-            <FieldContent>
-              <InputGroup className={inputGroupClassName}>
-                <InputGroupAddon>
-                  <Globe2 />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="country"
-                  placeholder="საქართველო"
-                  {...form.register("country")}
-                />
-              </InputGroup>
-              <FieldError errors={[form.formState.errors.country]} />
-            </FieldContent>
-          </Field>
         </FieldGroup>
+
+        <Field
+          data-invalid={!!form.formState.errors.instructorCategories}
+        >
+          <FieldLabel className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            სწავლების კატეგორიები
+          </FieldLabel>
+          <FieldContent>
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-surface-lowest p-3 sm:grid-cols-3">
+              {INSTRUCTOR_CATEGORY_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-transparent px-3 py-2.5 text-sm text-muted-foreground transition-colors has-checked:border-primary/40 has-checked:bg-primary/10 has-checked:text-primary"
+                >
+                  <Checkbox
+                    checked={selectedCategories?.includes(option.value)}
+                    onCheckedChange={(checked) => {
+                      const current = form.getValues("instructorCategories") ?? [];
+                      if (option.value === "ALL") {
+                        form.setValue(
+                          "instructorCategories",
+                          checked === true ? ["ALL"] : [],
+                          { shouldDirty: true },
+                        );
+                        return;
+                      }
+                      const withoutAll = current.filter(
+                        (value) => value !== "ALL",
+                      );
+                      form.setValue(
+                        "instructorCategories",
+                        checked === true
+                          ? [...withoutAll, option.value]
+                          : withoutAll.filter((value) => value !== option.value),
+                        { shouldDirty: true },
+                      );
+                    }}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+            <FieldError
+              errors={[form.formState.errors.instructorCategories]}
+            />
+          </FieldContent>
+        </Field>
 
         <Field data-invalid={!!form.formState.errors.bio}>
           <FieldLabel

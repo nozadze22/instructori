@@ -4,10 +4,14 @@ import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
 import { RoutesService } from './routes.service';
 import { PublicRoutesQueryDto } from './dto/route.dto';
+import { ExamRegionsService } from './exam-regions.service';
 
 @Controller('public/routes')
 export class PublicRoutesController {
-  constructor(private readonly routesService: RoutesService) {}
+  constructor(
+    private readonly routesService: RoutesService,
+    private readonly examRegionsService: ExamRegionsService,
+  ) {}
 
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
@@ -16,6 +20,11 @@ export class PublicRoutesController {
     @CurrentUser() user?: AuthUser,
   ) {
     return this.routesService.findPublicCatalog(query, user?.userId);
+  }
+
+  @Get('cities')
+  cities() {
+    return this.examRegionsService.getAllExamCities();
   }
 
   @Get(':id')

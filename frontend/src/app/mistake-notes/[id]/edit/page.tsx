@@ -1,24 +1,10 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
-import { MistakeNoteFormPage } from "@/features/mistake-notes/components/mistake-note-form-page";
-
-type EditMistakeNotePageProps = {
+type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default async function EditMistakeNotePage({
-  params,
-}: EditMistakeNotePageProps) {
+export default async function MistakeNotesEditRedirectPage({ params }: Props) {
   const { id } = await params;
-  return (
-    <Suspense
-      fallback={
-        <p className="py-16 text-center text-sm text-muted-foreground">
-          იტვირთება...
-        </p>
-      }
-    >
-      <MistakeNoteFormPage noteId={id} />
-    </Suspense>
-  );
+  redirect(`/notes/${id}/edit`);
 }

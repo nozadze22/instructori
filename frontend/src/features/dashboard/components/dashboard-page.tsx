@@ -27,6 +27,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useDashboard } from "@/features/dashboard/hooks/dashboard";
 import {
+  useInstructorMessages,
+  useMarkInstructorMessageRead,
+} from "@/features/instructors/hooks/instructors";
+import {
   PageEyebrow,
   PageFrame,
   PageHeader,
@@ -38,6 +42,14 @@ export function DashboardPage() {
   const router = useRouter();
   const { data: me, isLoading: meLoading } = useGetMe();
   const { data, isLoading, isError, error } = useDashboard();
+  const {
+    data: messages = [],
+    isLoading: messagesLoading,
+    isError: messagesError,
+    error: messagesErrorValue,
+  } = useInstructorMessages();
+  const { mutate: markRead, isPending: isMarkingRead } =
+    useMarkInstructorMessageRead();
 
   useEffect(() => {
     if (!meLoading && me?.role === "ADMIN") {
@@ -90,6 +102,69 @@ export function DashboardPage() {
           value={String(stats.upcomingLessons)}
           icon={<CalendarDays className="size-4" />}
         />
+      </section>
+
+      <section className="rounded-3xl border border-white/8 bg-surface-low p-6 shadow-xl">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">მიღებული შეტყობინებები</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              მომხმარებლების მოთხოვნები ინსტრუქტორის კატალოგიდან.
+            </p>
+          </div>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            {messages.filter((message) => message.status === "UNREAD").length} ახალი
+          </span>
+        </div>
+
+        {messagesLoading ? (
+          <p className="text-sm text-muted-foreground">შეტყობინებები იტვირთება...</p>
+        ) : null}
+        {messagesError ? (
+          <p className="text-sm text-destructive">
+            {messagesErrorValue instanceof Error
+              ? messagesErrorValue.message
+              : "შეტყობინებების ჩატვირთვა ვერ მოხერხდა"}
+          </p>
+        ) : null}
+        {!messagesLoading && !messagesError && messages.length === 0 ? (
+          <p className="text-sm text-muted-foreground">შეტყობინებები ჯერ არ არის.</p>
+        ) : null}
+
+        <div className="space-y-3">
+          {messages.map((message) => (
+            <article
+              key={message.id}
+              className="rounded-2xl border border-white/8 bg-surface-container p-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">{message.sender.fullName}</h3>
+                  <p className="text-xs text-muted-foreground">{message.sender.email}</p>
+                </div>
+                <time className="text-xs text-muted-foreground">
+                  {new Date(message.createdAt).toLocaleString("ka-GE")}
+                </time>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-foreground">{message.message}</p>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold text-primary">
+                  {message.status === "UNREAD" ? "წაუკითხავი" : "წაკითხული"}
+                </span>
+                {message.status === "UNREAD" ? (
+                  <button
+                    type="button"
+                    disabled={isMarkingRead}
+                    onClick={() => markRead(message.id)}
+                    className="cursor-pointer text-xs font-semibold text-primary hover:underline"
+                  >
+                    წაკითხულად მონიშვნა
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

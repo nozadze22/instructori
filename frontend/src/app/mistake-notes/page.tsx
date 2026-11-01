@@ -1,5 +1,5 @@
-import { MistakeNotesListPage } from "@/features/mistake-notes/components/mistake-notes-list-page";
+import { redirect } from "next/navigation";
 
-export default function MistakeNotesPage() {
-  return <MistakeNotesListPage />;
+export default function MistakeNotesRedirectPage() {
+  redirect("/notes");
 }

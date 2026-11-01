@@ -15,6 +15,7 @@ export async function registerUser(
       body: JSON.stringify({
         fullName: data.fullName,
         email: data.email,
+        phone: data.phone,
         password: data.password,
         confirmPassword: data.repeatPassword,
         ...(data.hasInstructorCode
@@ -29,7 +30,10 @@ export async function registerUser(
     body: JSON.stringify({
       fullName: data.fullName,
       email: data.email,
+      phone: data.phone,
       password: data.password,
+        city: data.city,
+        instructorCategories: data.instructorCategories,
     }),
   });
 }
