@@ -80,6 +80,10 @@ export function ProfileForm({
       phone: profile?.phone ?? "",
       avatarUrl: profile?.avatarUrl ?? "",
       city: profile?.city ?? "",
+      workingHours: profile?.workingHours ?? "",
+      hourlyRate:
+        profile?.hourlyRate != null ? String(profile.hourlyRate) : "",
+      packageDeal: profile?.packageDeal ?? "",
       instructorCategories: profile?.instructorCategories ?? [],
     });
   }, [form, me?.fullName, profile]);

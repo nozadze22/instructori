@@ -29,6 +29,9 @@ export function useProfilePatch() {
       city: profile?.city ?? "",
       instructorCategories: profile?.instructorCategories ?? [],
       workingHours: profile?.workingHours ?? "",
+      hourlyRate:
+        profile?.hourlyRate != null ? String(profile.hourlyRate) : "",
+      packageDeal: profile?.packageDeal ?? "",
     };
   }, [me?.fullName, profile]);
 

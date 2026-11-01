@@ -12,9 +12,12 @@ export default function PracticeLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const loginRedirect = `/login?next=${encodeURIComponent(pathname)}`;
   const { data: me, isLoading, isError, error } = useGetMe();
+  const isSummaryRoute = /\/practice\/[^/]+\/summary\/?$/.test(pathname);
 
   const allowed =
-    !!me && me.role === "INSTRUCTOR" && me.accessStatus === "ACTIVE";
+    !!me &&
+    ((me.role === "INSTRUCTOR" && me.accessStatus === "ACTIVE") ||
+      (me.role === "USER" && isSummaryRoute));
 
   useEffect(() => {
     if (isLoading) return;
@@ -36,13 +39,24 @@ export default function PracticeLayout({ children }: { children: ReactNode }) {
       return;
     }
     if (me.role === "USER") {
-      router.replace(forbiddenPath(pathname));
+      if (!isSummaryRoute) {
+        router.replace(forbiddenPath(pathname));
+      }
       return;
     }
     if (me.role !== "INSTRUCTOR" || me.accessStatus !== "ACTIVE") {
       router.replace("/marshrutebi");
     }
-  }, [error, isError, isLoading, loginRedirect, me, pathname, router]);
+  }, [
+    error,
+    isError,
+    isLoading,
+    isSummaryRoute,
+    loginRedirect,
+    me,
+    pathname,
+    router,
+  ]);
 
   if (isLoading || !allowed) {
     return (

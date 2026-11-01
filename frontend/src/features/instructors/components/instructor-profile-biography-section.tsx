@@ -39,7 +39,6 @@ export function InstructorProfileBiographySection({
   title,
   subtitle,
   badge,
-  stages,
   trainingSteps = [],
 }: InstructorProfileBiographySectionProps) {
   const [bioOpen, setBioOpen] = useState(false);

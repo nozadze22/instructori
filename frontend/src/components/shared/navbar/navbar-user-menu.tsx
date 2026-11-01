@@ -7,7 +7,9 @@ import {
   ClipboardList,
   LogOut,
   Map,
+  MessageSquare,
   Shield,
+  Users,
   UserRound,
 } from "lucide-react";
 
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { AuthUser } from "@/features/auth/login/api/login";
 import { useLogout } from "@/features/auth/login/hooks/login";
+import { useChatDrawer } from "@/features/chat/components/chat-drawer-context";
 import { useGetProfile } from "@/features/profile/hooks/profile";
 import { appHomeForUser, isAdminUser, isAppUser } from "@/lib/auth-paths";
 import { userDisplayName, userInitials } from "@/lib/user-display";
@@ -36,6 +39,11 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
   const router = useRouter();
   const { mutate: logout, isPending } = useLogout();
   const { data: profile } = useGetProfile({ enabled: true });
+  const { openChat } = useChatDrawer();
+
+  function goToMessages() {
+    openChat();
+  }
 
   const displayName = userDisplayName(user);
   const initials = userInitials(user);
@@ -157,27 +165,54 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                 <>
                   <DropdownMenuItem
                     className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-                    onClick={() => router.push("/practice")}
+                    onClick={() => router.push("/my-students")}
                   >
                     <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
-                      <ClipboardList className="size-4" />
+                      <Users className="size-4" />
                     </span>
-                    <span className="flex-1 text-sm font-medium">პრაქტიკა</span>
+                    <span className="flex-1 text-sm font-medium">ჩემი სტუდენტები</span>
                     <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
-                    onClick={() => router.push("/mistake-notes")}
+                    onClick={() => router.push("/notes")}
                   >
                     <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
                       <ClipboardList className="size-4 opacity-70" />
                     </span>
                     <span className="flex-1 text-sm font-medium">
-                      ძველი ჩანაწერები
+                      შენიშვნები
+                    </span>
+                    <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                    onClick={goToMessages}
+                  >
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                      <MessageSquare className="size-4" />
+                    </span>
+                    <span className="flex-1 text-sm font-medium">
+                      შეტყობინებები
                     </span>
                     <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
                   </DropdownMenuItem>
                 </>
+              ) : null}
+
+              {appUser && user.accessStatus === "ACTIVE" ? (
+                <DropdownMenuItem
+                  className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                  onClick={goToMessages}
+                >
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                    <MessageSquare className="size-4" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium">
+                    შეტყობინებები
+                  </span>
+                  <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                </DropdownMenuItem>
               ) : null}
 
               {!appUser ? (

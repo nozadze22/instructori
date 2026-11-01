@@ -8,12 +8,15 @@ export type InstructorDirectoryItem = {
   fullName: string;
   email: string;
   createdAt: string;
+  instructorCode?: string | null;
   instructorCategories: string[];
   bio: string | null;
   phone: string | null;
   avatarUrl: string | null;
   city: string | null;
   workingHours: string | null;
+  hourlyRate: number | null;
+  packageDeal: string | null;
   studentCount: number;
   vehicles?: InstructorVehicle[];
   trainingSteps?: InstructorTrainingStep[];

@@ -7,15 +7,14 @@ import {
   BadgeCheck,
   Bolt,
   ChevronDown,
-  Eye,
   GraduationCap,
   Home,
   Mail,
   LayoutDashboard,
   Pencil,
-  Shield,
   ShieldCheck,
   Camera,
+  Copy,
   Loader2,
   Sparkles,
   Star,
@@ -24,6 +23,7 @@ import {
   Verified,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/shared/image-upload";
@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { userInitials } from "@/lib/user-display";
 import {
   useRemoveProfileAvatar,
+  useCreateInstructorCode,
   useUploadProfileAvatar,
 } from "@/features/profile/hooks/profile";
 
@@ -80,6 +81,7 @@ export function InstructorProfileDetail({
     useUploadProfileAvatar();
   const { mutate: removeAvatar, isPending: isRemovingAvatar } =
     useRemoveProfileAvatar();
+  const createCode = useCreateInstructorCode();
 
   const categoryLabel = formatInstructorCategories(
     instructor.instructorCategories,
@@ -149,6 +151,53 @@ export function InstructorProfileDetail({
     bolt: <Bolt className="size-6 text-primary" />,
   };
 
+  const profileKpis = [
+    {
+      icon: "school",
+      value: instructor.studentCount,
+      label: "მომზადებული სტუდენტი",
+      footnote: "რეალური მონაცემი",
+    },
+    {
+      icon: "timer",
+      value: instructor.vehicles?.length ?? 0,
+      label: "ავტომობილი",
+      footnote: "პროფილში დამატებული",
+    },
+    {
+      icon: "assignment",
+      value: instructor.trainingSteps?.length ?? 0,
+      label: "სწავლების ეტაპი",
+      footnote: "პროფილში დამატებული",
+    },
+    {
+      icon: "verified",
+      value: instructor.certificates?.length ?? 0,
+      label: "სერტიფიკატი",
+      footnote: "პროფილში დამატებული",
+    },
+    {
+      icon: "bolt",
+      value: instructor.instructorCategories.length,
+      label: "კატეგორია",
+      footnote: "არჩეული მიმართულება",
+    },
+    {
+      icon: "star",
+      value: [
+        instructor.fullName,
+        instructor.city,
+        instructor.phone,
+        instructor.bio,
+        instructor.vehicles?.length,
+        instructor.trainingSteps?.length,
+        instructor.certificates?.length,
+      ].filter(Boolean).length,
+      label: "პროფილის შევსება",
+      footnote: "შევსებული ველები",
+    },
+  ] as const;
+
   return (
     <div className="flex min-w-0 w-full flex-col overflow-x-hidden pb-16">
       <div className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center">
@@ -207,22 +256,54 @@ export function InstructorProfileDetail({
             <Pencil className="size-4" />
             რედაქტირება
           </Button>
-        ) : isPublicView ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-primary">
-              <span className="size-2 animate-pulse rounded-full bg-primary" />
-              {mock.availability}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-lg bg-surface-container px-2 py-1 text-xs text-on-surface-variant">
-              <Eye className="size-4" />
-              {mock.viewsThisWeek}
-            </span>
-          </div>
         ) : null}
       </div>
 
       {isEdit ? (
-        <div className="mb-4 rounded-xl border border-outline-variant/40 bg-surface-container-high/50 px-4 py-3">
+        <div className="mb-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+                შენი ინსტრუქტორის კოდი
+              </p>
+              <p className="mt-1 text-sm text-on-surface-variant">
+                გაუზიარე ეს კოდი სტუდენტს რეგისტრაციისას.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {instructor.instructorCode ? (
+                <>
+                  <code className="rounded-lg bg-surface-container px-3 py-2 text-sm font-bold tracking-[0.18em] text-on-surface">
+                    {instructor.instructorCode}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-lg"
+                    aria-label="კოდის კოპირება"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(
+                        instructor.instructorCode ?? "",
+                      );
+                      toast.success("კოდი დაკოპირდა");
+                    }}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  className="rounded-lg"
+                  disabled={createCode.isPending}
+                  onClick={() => createCode.mutate()}
+                >
+                  {createCode.isPending ? "იქმნება..." : "კოდის შექმნა"}
+                </Button>
+              )}
+            </div>
+          </div>
           <p className="text-sm text-on-surface-variant">
             ცვლილებები ინახება პირდაპირ — სტუდენტები ხედავენ{" "}
             <Link href="/profile" className="font-medium text-primary hover:underline">
@@ -311,12 +392,6 @@ export function InstructorProfileDetail({
                   >
                     <ShieldCheck className="size-5 fill-current" />
                   </div>
-                  <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-surface-container-lowest/90 px-2 py-0.5 backdrop-blur-md">
-                    <span className="size-2 rounded-full bg-emerald-400" />
-                    <span className="text-[10px] font-bold tracking-wider text-on-surface uppercase">
-                      LIVE
-                    </span>
-                  </div>
                 </>
               )}
             </div>
@@ -341,16 +416,7 @@ export function InstructorProfileDetail({
                         <Sparkles className="size-4" />
                         {categoryLabel}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary-container/20 px-3 py-1 text-xs font-semibold text-primary">
-                        <Sparkles className="size-4" />
-                        {mock.masterBadge}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-highest px-2.5 py-1 text-xs text-secondary">
-                      <Shield className="size-4" />
-                      {mock.accreditation}
-                    </span>
+                    ) : null}
                   </div>
                   <p className="max-w-2xl break-words text-lg text-on-surface-variant">
                     {heroTagline}
@@ -380,7 +446,7 @@ export function InstructorProfileDetail({
             </div>
           </div>
 
-          {isPublicView ? (
+          {isPublicView || isEdit ? (
           <div className="flex min-w-0 w-full shrink-0 flex-col items-stretch gap-3 sm:flex-row lg:w-auto lg:flex-col lg:items-end">
             <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-container p-4 lg:justify-end">
               <div className="flex flex-col lg:text-right">
@@ -388,15 +454,31 @@ export function InstructorProfileDetail({
                   საბაზისო ტარიფი
                 </span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-primary">
-                    ₾{mock.hourlyRate}
-                  </span>
-                  <span className="text-sm text-on-surface-variant">/ საათი</span>
+                  {instructor.hourlyRate != null ? (
+                    <>
+                      <span className="text-2xl font-bold text-primary">
+                        ₾{instructor.hourlyRate}
+                      </span>
+                      <span className="text-sm text-on-surface-variant">
+                        / საათი
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-on-surface-variant">
+                      {isEdit ? "მიუთითე რედაქტირებიდან" : "მითითებული არ არის"}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="rounded-lg bg-surface-container-high px-2.5 py-1.5 text-center text-xs text-secondary">
-                პაკეტები: {mock.packageDeal}
-              </div>
+              {instructor.packageDeal ? (
+                <div className="rounded-lg bg-surface-container-high px-2.5 py-1.5 text-center text-xs text-secondary">
+                  პაკეტები: {instructor.packageDeal}
+                </div>
+              ) : isEdit ? (
+                <div className="rounded-lg bg-surface-container-high px-2.5 py-1.5 text-center text-xs text-on-surface-variant">
+                  პაკეტი არ არის
+                </div>
+              ) : null}
             </div>
           </div>
           ) : null}
@@ -404,63 +486,23 @@ export function InstructorProfileDetail({
       </section>
 
       <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        {mock.kpis.map((kpi) => (
+        {profileKpis.map((kpi) => (
           <div
             key={kpi.label}
             className="flex flex-col justify-between rounded-2xl bg-surface-container-low p-5 shadow-sm transition-all hover:bg-surface-container"
           >
             <div className="mb-2 flex items-center justify-between">
               {kpiIcons[kpi.icon]}
-              {"live" in kpi && kpi.live ? (
-                <span className="size-2 rounded-full bg-emerald-400" />
-              ) : (
-                <span
-                  className={cn(
-                    "rounded px-2 py-0.5 text-[11px] font-bold",
-                    "badgeClass" in kpi
-                      ? kpi.badgeClass
-                      : "text-on-surface-variant",
-                  )}
-                >
-                  {"badge" in kpi ? kpi.badge : null}
-                </span>
-              )}
             </div>
             <div>
               <div className="text-2xl font-extrabold tracking-tight text-on-surface">
-                {kpi.icon === "school"
-                  ? `${instructor.studentCount.toLocaleString("ka-GE")}+`
-                  : kpi.value}
-                {"suffix" in kpi && kpi.suffix ? (
-                  <span className="text-sm font-normal text-on-surface-variant">
-                    {" "}
-                    {kpi.suffix}
-                  </span>
-                ) : null}
+                {kpi.value.toLocaleString("ka-GE")}
               </div>
               <div className="mt-0.5 text-xs text-on-surface-variant">
                 {kpi.label}
               </div>
             </div>
-            {"progress" in kpi && kpi.progress ? (
-              <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-surface-container-highest">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${kpi.progress}%` }}
-                />
-              </div>
-            ) : "footnote" in kpi ? (
-              <p
-                className={cn(
-                  "mt-2 text-[11px]",
-                  "footnoteClass" in kpi
-                    ? kpi.footnoteClass
-                    : "text-primary",
-                )}
-              >
-                {kpi.footnote}
-              </p>
-            ) : null}
+            <p className="mt-2 text-[11px] text-primary">{kpi.footnote}</p>
           </div>
         ))}
       </div>

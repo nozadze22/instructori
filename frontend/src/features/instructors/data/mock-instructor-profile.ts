@@ -1,9 +1,6 @@
 /** Static showcase content until instructor profile API expands. */
 export const MOCK_INSTRUCTOR_PROFILE = {
-  fallbackPortrait:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuCk-kub5hoy6I2I1BD8owtc1BqIeLBdbt6-1WADPtPLJUAY7gbG2ihVi7YtnkyVh3tjbPOzyZZiZz-Q2aNWWlE9Fn5Ox-iOduj-8N6jO7x0-aEiQRZVSAcnYZdLgbkz1J4TrxIQL-WuiI7mu3atub_z9shI1jpMMypRKM6oIpQRBBfX0uVwHy4zzgguLWPolvgTPkbGkacal5OuQ70vroB7sCDpevd6wCR1R__YK3IS2IXOknB-clpuwg",
-  masterBadge: "Master ინსტრუქტორი",
-  accreditation: "შსს აკრედიტებული #GEO-88421",
+  fallbackPortrait: "/images.png",
   tagline:
     "უმაღლესი კატეგორიის ექსპერტ-ინსტრუქტორი • რუსთავისა და თბილისის საგამოცდო მარშრუტების სპეციალისტი",
   metaBadges: [
@@ -16,8 +13,6 @@ export const MOCK_INSTRUCTOR_PROFILE = {
   hourlyRate: 45,
   packageDeal: "10 სთ - ₾390",
   likesLabel: "1.4k",
-  availability: "ხელმისაწვდომია დღეს: 3 თავისუფალი სლოტი",
-  viewsThisWeek: "1,842 ნახვა ამ კვირაში",
   kpis: [
     {
       icon: "verified",

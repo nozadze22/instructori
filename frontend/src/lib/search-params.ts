@@ -13,6 +13,8 @@ export const searchParams = {
   perPage: parseAsInteger.withDefault(10),
   sort: parseAsStringEnum(["asc", "desc"] as const).withDefault("desc"),
   modal: parseAsBoolean.withDefault(false),
+  studentModal: parseAsBoolean.withDefault(false),
+  studentQ: parseAsString.withDefault(""),
   city: parseAsString.withDefault(""),
   mode: parseAsStringEnum(["waypoints", "command"] as const).withDefault(
     "waypoints",
@@ -33,6 +35,15 @@ export const searchParams = {
     "system",
   ),
   install: parseAsStringEnum(["select", "android", "ios"] as const),
+  notesStudentSort: parseAsStringEnum([
+    "recent",
+    "most-notes",
+    "name-asc",
+    "name-desc",
+  ] as const).withDefault("recent"),
+  notesEntrySort: parseAsStringEnum(["newest", "oldest"] as const).withDefault(
+    "newest",
+  ),
 };
 
 /** Server Components: parse searchParams once per request */

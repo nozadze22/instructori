@@ -3,7 +3,9 @@ import { toast } from "sonner";
 
 import {
   createProfile,
+  createInstructorCode,
   getInstructorGroup,
+  getInstructorStudents,
   getProfile,
   joinInstructorGroup,
   removeProfileAvatar,
@@ -26,6 +28,37 @@ export function useGetInstructorGroup() {
     queryKey: ["profile", "instructor-group"],
     queryFn: getInstructorGroup,
     retry: false,
+  });
+}
+
+export function useGetInstructorStudents(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["profile", "students"],
+    queryFn: getInstructorStudents,
+    retry: false,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useCreateInstructorCode() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["profile", "instructor-code", "create"],
+    mutationFn: createInstructorCode,
+    onSuccess: ({ instructorCode }) => {
+      queryClient.setQueryData(["profile"], (profile: unknown) =>
+        profile && typeof profile === "object"
+          ? { ...profile, instructorCode }
+          : profile,
+      );
+      toast.success("ინსტრუქტორის კოდი შეიქმნა");
+    },
+    onError: (error: Error) => {
+      toast.error("კოდის შექმნა ვერ მოხერხდა", {
+        description: error.message,
+      });
+    },
   });
 }
 

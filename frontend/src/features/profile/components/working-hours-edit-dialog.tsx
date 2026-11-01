@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Clock } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { ProfileEditModal } from "@/components/shared/profile-edit-modal";
 import {
@@ -61,7 +61,11 @@ export function WorkingHoursEditDialog({
     onOpenChange(false);
   };
 
-  const preview = formatWorkingHours(form.watch());
+  const watchedValues = useWatch({ control: form.control });
+  const preview = formatWorkingHours({
+    ...defaultWorkingHoursFormValues,
+    ...watchedValues,
+  });
 
   return (
     <ProfileEditModal

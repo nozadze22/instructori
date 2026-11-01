@@ -5,11 +5,11 @@ import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
 import {
   ArrowLeft,
   Bookmark,
   BookmarkCheck,
-  AlertTriangle,
   MapPinned,
   Pause,
   Pencil,
@@ -37,18 +37,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
-import type { DrivingMistake } from "@/features/driving-practice/api/driving-sessions";
-import { MistakeDetailDialog } from "@/features/driving-practice/components/mistake-detail-dialog";
-import { MistakePickerSheet } from "@/features/driving-practice/components/mistake-picker-sheet";
-import {
-  useCreateDrivingMistake,
-  useCreateDrivingSession,
-  useUpdateDrivingMistake,
-} from "@/features/driving-practice/hooks/driving-sessions";
-import {
-  useMistakeCategories,
-  useMistakeSeverities,
-} from "@/features/driving-practice/hooks/mistake-catalog";
 import {
   useDeleteRoute,
   usePublicRoute,
@@ -63,11 +51,14 @@ import {
   defaultVoiceText,
   parseRoutePath,
 } from "@/features/routes/lib/route-actions";
+import { NavStartChoiceDialog } from "@/features/routes/components/nav-start-choice-dialog";
+import { StudentPickerDialog } from "@/features/routes/components/student-picker-dialog";
 import { resolveRouteCity } from "@/features/routes/lib/resolve-route-city";
+import type { InstructorStudent } from "@/features/profile/api/profile";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { humanizeApiError } from "@/lib/api-errors";
+import { searchParams } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 
 const RouteMapView = dynamic(
   () =>
@@ -122,8 +113,7 @@ function LiveNavScreen({
   current,
   simulation,
   onStop,
-  onRecordMistake,
-  recording,
+  studentName,
 }: {
   path: PathPoint[];
   steps: RouteStep[];
@@ -131,8 +121,7 @@ function LiveNavScreen({
   current?: RouteStep;
   simulation: ReturnType<typeof useRouteSimulation>;
   onStop: () => void;
-  onRecordMistake?: () => void;
-  recording?: boolean;
+  studentName?: string;
 }) {
   useWakeLock(true);
 
@@ -294,22 +283,12 @@ function LiveNavScreen({
           >
             დასრულება
           </button>
-          {onRecordMistake ? (
-            <button
-              type="button"
-              className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-rose-500 text-white shadow-lg transition active:scale-95 disabled:opacity-60"
-              aria-label="შეცდომის დაფიქსირება"
-              disabled={recording}
-              onClick={onRecordMistake}
-            >
-              {recording ? (
-                <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <AlertTriangle className="size-5" />
-              )}
-            </button>
-          ) : null}
         </div>
+        {studentName ? (
+          <p className="truncate text-center text-xs text-white/70">
+            მოსწავლე: {studentName}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -331,24 +310,32 @@ function RouteDetailContent({
   const deleteRoute = useDeleteRoute();
   const saveRoute = useSaveRoute();
   const unsaveRoute = useUnsaveRoute();
-  const createSession = useCreateDrivingSession();
-  const { data: mistakeCategories = [] } = useMistakeCategories();
-  const { data: mistakeSeverities = [] } = useMistakeSeverities();
-  const [studentName, setStudentName] = useState("");
-  const [practiceSessionId, setPracticeSessionId] = useState<string | null>(
-    null,
-  );
-  const createMistake = useCreateDrivingMistake(practiceSessionId ?? "");
-  const updateMistake = useUpdateDrivingMistake(practiceSessionId ?? "");
-  const [mistakePickerOpen, setMistakePickerOpen] = useState(false);
-  const [mistakeDetailOpen, setMistakeDetailOpen] = useState(false);
-  const [activeMistake, setActiveMistake] = useState<DrivingMistake | null>(
-    null,
+  const [navStudent, setNavStudent] = useState<InstructorStudent | null>(null);
+  const [navSolo, setNavSolo] = useState(false);
+  const [startChoiceOpen, setStartChoiceOpen] = useState(false);
+  const [studentPickerOpen, setStudentPickerOpen] = useQueryState(
+    "studentModal",
+    searchParams.studentModal.withOptions({
+      history: "replace",
+      shallow: true,
+    }),
   );
   const [stepIndex, setStepIndex] = useState(0);
   const [commandQuery, setCommandQuery] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const stepListRef = useRef<HTMLDivElement>(null);
+  const canPickStudent =
+    !publicView && (me?.role === "INSTRUCTOR" || me?.role === "ADMIN");
+  const navConfigured = Boolean(navStudent) || navSolo;
+
+  const openStudentPicker = () => {
+    setStartChoiceOpen(false);
+    void setStudentPickerOpen(true);
+  };
+
+  const closeStudentPicker = () => {
+    void setStudentPickerOpen(false);
+  };
 
   const steps = useMemo(() => route?.steps ?? [], [route?.steps]);
   const path = useMemo(() => parseRoutePath(route?.path), [route?.path]);
@@ -418,7 +405,12 @@ function RouteDetailContent({
     route.createdById !== me.userId;
   const cityLabel = route ? resolveRouteCity(route) : null;
 
-  const startNavigation = async () => {
+  const beginNavigation = () => {
+    void simulation.unlockAudio();
+    simulation.start();
+  };
+
+  const startNavigation = () => {
     // iOS: audio unlock must run in the same tap as the button — before any await.
     void simulation.unlockAudio();
 
@@ -427,28 +419,39 @@ function RouteDetailContent({
       return;
     }
 
-    if (!publicView && !practiceSessionId) {
-      if (studentName.trim().length < 2) return;
-      const session = await createSession.mutateAsync({
-        studentName: studentName.trim(),
-        routeId,
-      });
-      setPracticeSessionId(session.id);
+    if (navConfigured) {
+      beginNavigation();
+      return;
     }
 
-    simulation.start();
+    if (canPickStudent) {
+      setStartChoiceOpen(true);
+      return;
+    }
+
+    beginNavigation();
   };
 
-  const recordNavigationMistake = async (categoryId: string) => {
-    if (!simulation.position || !practiceSessionId) return;
-    setMistakePickerOpen(false);
-    const created = await createMistake.mutateAsync({
-      categoryId,
-      latitude: simulation.position.lat,
-      longitude: simulation.position.lng,
-    });
-    setActiveMistake(created);
-    setMistakeDetailOpen(true);
+  const handleStartWithStudent = () => {
+    openStudentPicker();
+  };
+
+  const handleStartWithoutStudent = () => {
+    setNavStudent(null);
+    setNavSolo(true);
+    setStartChoiceOpen(false);
+    beginNavigation();
+  };
+
+  const handleStudentSelect = (student: InstructorStudent) => {
+    setNavStudent(student);
+    setNavSolo(false);
+    closeStudentPicker();
+    beginNavigation();
+  };
+
+  const handleStopNavigation = () => {
+    simulation.stop();
   };
 
   if (isLoading) {
@@ -630,40 +633,27 @@ function RouteDetailContent({
               activeStepIndex={activeStepIndex}
               current={current}
               simulation={simulation}
-              onStop={() => simulation.stop()}
-              onRecordMistake={
-                !publicView && practiceSessionId
-                  ? () => setMistakePickerOpen(true)
-                  : undefined
-              }
-              recording={createMistake.isPending}
+              onStop={handleStopNavigation}
+              studentName={navStudent?.fullName}
             />,
             document.body,
           )
         : null}
 
-      <MistakePickerSheet
-        open={mistakePickerOpen}
-        onOpenChange={setMistakePickerOpen}
-        categories={mistakeCategories}
-        onPick={(categoryId) => void recordNavigationMistake(categoryId)}
-        pending={createMistake.isPending}
+      <NavStartChoiceDialog
+        open={startChoiceOpen}
+        onOpenChange={setStartChoiceOpen}
+        onWithStudent={handleStartWithStudent}
+        onWithoutStudent={handleStartWithoutStudent}
       />
 
-      <MistakeDetailDialog
-        key={activeMistake?.id ?? "empty"}
-        mistake={activeMistake}
-        severities={mistakeSeverities}
-        open={mistakeDetailOpen}
-        onOpenChange={setMistakeDetailOpen}
-        saving={updateMistake.isPending}
-        onSave={async (data) => {
-          if (!activeMistake) return;
-          await updateMistake.mutateAsync({
-            mistakeId: activeMistake.id,
-            ...data,
-          });
+      <StudentPickerDialog
+        open={Boolean(studentPickerOpen)}
+        onOpenChange={(open) => {
+          if (open) openStudentPicker();
+          else closeStudentPicker();
         }}
+        onSelect={handleStudentSelect}
       />
 
       <div className="grid gap-6 lg:grid-cols-12">
@@ -769,96 +759,136 @@ function RouteDetailContent({
               <p className="text-muted-foreground">{idleNavigationCopy}</p>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              {!publicView && !practiceSessionId && !simulation.running ? (
-                <Input
-                  value={studentName}
-                  onChange={(event) => setStudentName(event.target.value)}
-                  placeholder="მოსწავლის სახელი"
-                  className="h-10 w-full rounded-xl border-white/10 bg-surface-lowest sm:w-52"
-                />
+            <div className="flex flex-col gap-3">
+              {navStudent ? (
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span>
+                    მოსწავლე:{" "}
+                    <span className="font-medium text-foreground">
+                      {navStudent.fullName}
+                    </span>
+                  </span>
+                  {canPickStudent ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-primary"
+                      onClick={openStudentPicker}
+                    >
+                      შეცვლა
+                    </Button>
+                  ) : null}
+                </div>
+              ) : navSolo ? (
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span>უმოსწავლოდ</span>
+                  {canPickStudent ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-primary"
+                      onClick={() => setStartChoiceOpen(true)}
+                    >
+                      შეცვლა
+                    </Button>
+                  ) : null}
+                </div>
+              ) : canPickStudent ? (
+                <p className="text-sm text-muted-foreground">
+                  დაწყებაზე აირჩევ — მოსწავლით ან უმოსწავლოდ. აქ შეცდომები არ
+                  იწერება.
+                </p>
               ) : null}
-              <Button
-                type="button"
-                className="rounded-xl"
-                disabled={
-                  !simulation.canRun ||
-                  createSession.isPending ||
-                  (!publicView &&
-                    !practiceSessionId &&
-                    studentName.trim().length < 2)
-                }
-                onClick={() => void startNavigation()}
-              >
-                {createSession.isPending ? (
-                  <span className="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
-                ) : simulation.running ? (
-                  <Pause className="size-4" />
-                ) : (
-                  <Play className="size-4" />
-                )}
-                {simulation.running
-                  ? "გაჩერება"
-                  : practiceSessionId
-                    ? "ნავიგაციის გაგრძელება"
-                    : "ნავიგაციის დაწყება"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-white/10"
-                onClick={() => simulation.reset()}
-              >
-                <RotateCcw className="size-4" />
-                თავიდან
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-white/10"
-                disabled={!current && !simulation.currentVoice}
-                onClick={() => {
-                  const text =
-                    simulation.currentVoice ||
-                    (current ? stepVoice(current) : "");
-                  if (!text) {
-                    void simulation.unlockAudio();
-                    return;
-                  }
-                  void simulation.speakCurrent(text, {
-                    action: current?.action,
-                  });
-                }}
-              >
-                <Volume2 className="size-4" />
-                ხმის გამეორება
-              </Button>
-              {!publicView ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-xl border-white/10"
-                    disabled={stepIndex === 0}
-                    onClick={() => setStepIndex((prev) => Math.max(0, prev - 1))}
-                  >
-                    <SkipBack className="size-4" />
-                    წინა
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-xl border-white/10"
-                    disabled={stepIndex >= steps.length - 1}
-                    onClick={() =>
-                      setStepIndex((prev) => Math.min(steps.length - 1, prev + 1))
+
+              <div className="flex flex-wrap gap-2.5">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-11 min-w-[11.5rem] rounded-2xl px-5 text-sm font-semibold shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5"
+                  disabled={!simulation.canRun}
+                  onClick={startNavigation}
+                >
+                  {simulation.running ? (
+                    <Pause className="size-4" />
+                  ) : (
+                    <Play className="size-4" />
+                  )}
+                  {simulation.running
+                    ? "გაჩერება"
+                    : navConfigured
+                      ? "ნავიგაციის გაგრძელება"
+                      : "ნავიგაციის დაწყება"}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11 rounded-2xl border-white/12 bg-white/5 px-4 text-sm font-medium backdrop-blur-sm hover:bg-white/10"
+                  onClick={() => simulation.reset()}
+                >
+                  <RotateCcw className="size-4" />
+                  თავიდან
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11 rounded-2xl border-white/12 bg-white/5 px-4 text-sm font-medium backdrop-blur-sm hover:bg-white/10"
+                  disabled={!current && !simulation.currentVoice}
+                  onClick={() => {
+                    const text =
+                      simulation.currentVoice ||
+                      (current ? stepVoice(current) : "");
+                    if (!text) {
+                      void simulation.unlockAudio();
+                      return;
                     }
-                  >
-                    შემდეგი
-                    <SkipForward className="size-4" />
-                  </Button>
-                </>
-              ) : null}
+                    void simulation.speakCurrent(text, {
+                      action: current?.action,
+                    });
+                  }}
+                >
+                  <Volume2 className="size-4" />
+                  ხმის გამეორება
+                </Button>
+
+                {!publicView ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="lg"
+                      className="h-11 rounded-2xl px-4 text-sm font-medium"
+                      disabled={stepIndex === 0}
+                      onClick={() =>
+                        setStepIndex((prev) => Math.max(0, prev - 1))
+                      }
+                    >
+                      <SkipBack className="size-4" />
+                      წინა
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="lg"
+                      className="h-11 rounded-2xl px-4 text-sm font-medium"
+                      disabled={stepIndex >= steps.length - 1}
+                      onClick={() =>
+                        setStepIndex((prev) =>
+                          Math.min(steps.length - 1, prev + 1),
+                        )
+                      }
+                    >
+                      შემდეგი
+                      <SkipForward className="size-4" />
+                    </Button>
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
         </section>

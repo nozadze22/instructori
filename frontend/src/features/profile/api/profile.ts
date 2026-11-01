@@ -10,7 +10,10 @@ export type Profile = {
   country?: string | null;
   transmissionModes?: string | null;
   workingHours: string | null;
+  hourlyRate: number | null;
+  packageDeal: string | null;
   instructorCategories: string[];
+  instructorCode?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -22,6 +25,8 @@ export type ProfileInput = {
   avatarUrl?: string;
   city?: string;
   workingHours?: string;
+  hourlyRate?: number | null;
+  packageDeal?: string | null;
   instructorCategories?: string[];
 };
 
@@ -32,6 +37,17 @@ export type InstructorGroup = {
     email: string;
     instructorCode: string | null;
   } | null;
+};
+
+export type InstructorStudent = {
+  id: string;
+  fullName: string;
+  email: string;
+  createdAt: string;
+  phone: string | null;
+  city: string | null;
+  avatarUrl: string | null;
+  practiceCount: number;
 };
 
 function toError(error: unknown, fallback: string): Error {
@@ -64,6 +80,20 @@ export async function getProfile(): Promise<Profile | null> {
     console.error("[getProfile]", error);
     throw toError(error, "პროფილის წამოღება ვერ მოხერხდა");
   }
+}
+
+export async function getInstructorStudents(): Promise<InstructorStudent[]> {
+  return apiRequest<InstructorStudent[]>("/profile/students", {
+    method: "GET",
+  });
+}
+
+export async function createInstructorCode(): Promise<{
+  instructorCode: string;
+}> {
+  return apiRequest<{ instructorCode: string }>("/profile/instructor-code", {
+    method: "POST",
+  });
 }
 
 export async function createProfile(data: ProfileInput): Promise<Profile> {

@@ -38,8 +38,7 @@ import { ProfileForm } from "@/features/profile/components/profile-form";
 import { cn } from "@/lib/utils";
 import { userDisplayName, userInitials } from "@/lib/user-display";
 
-const DEFAULT_AVATAR =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAk8ZE87DirpwqEjq7rwWQcXS22FobH_lOgCKCkw86uiWyb16jmfPP2ZavJig0ubEM3tIOGWjjNULNJ5GyjhHilyVdRKEWQQKIuyHcnErZ1FbSF4J9a6f_XxXw_DRfDsT00DSRW2dw-bwuGpWoD5gPCgmbkWzmwfx-z-Eho3p92fTBXBgcNkmuCprkvw5POki-bcd0QM9mszy6RLNhPtivM6AMFrAcd-YcMgkPziJlFXXXVPhc-Z7O8lZIgrnDRmsI8UyQ";
+const DEFAULT_AVATAR = "/images.png";
 
 const schedule = [
   { day: "ორშაბათი", value: "09:00 - 18:00" },
@@ -124,6 +123,8 @@ export function InstructorProfileView({
                 კონსულტაციის დაჯავშნა
               </Button>
               <Button
+                render={<Link href="/messages" />}
+                nativeButton={false}
                 variant="outline"
                 className="h-10 rounded-lg border-white/10 bg-surface-high/40 px-6 text-sm font-semibold"
               >

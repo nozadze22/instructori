@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, MapPin, Phone, Sparkles, User } from "lucide-react";
+import { Banknote, Mail, MapPin, Phone, Sparkles, User } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { ProfileEditModal } from "@/components/shared/profile-edit-modal";
@@ -72,6 +72,9 @@ export function ProfileHeroEditDialog({
       avatarUrl: profile?.avatarUrl ?? avatarUrl ?? "",
       city: profile?.city ?? "",
       workingHours: profile?.workingHours ?? "",
+      hourlyRate:
+        profile?.hourlyRate != null ? String(profile.hourlyRate) : "",
+      packageDeal: profile?.packageDeal ?? "",
       instructorCategories: profile?.instructorCategories ?? [],
     });
   }, [avatarUrl, form, me?.fullName, open, profile]);
@@ -89,7 +92,7 @@ export function ProfileHeroEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="პროფილის რედაქტირება"
-      description="სახელი, კატეგორიები, ქალაქი და ტელეფონი — ბიო ცალკე ბლოკში იწერება."
+      description="სახელი, კატეგორიები, ტარიფი, ქალაქი და ტელეფონი — ბიო ცალკე ბლოკში იწერება."
       formId={FORM_ID}
       isSubmitting={isPending}
       submitLabel="შენახვა"
@@ -174,6 +177,50 @@ export function ProfileHeroEditDialog({
               />
             </FieldContent>
           </Field>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field data-invalid={!!form.formState.errors.hourlyRate}>
+              <FieldLabel htmlFor="modal-hourlyRate">
+                საბაზისო ტარიფი (₾ / საათი)
+              </FieldLabel>
+              <FieldContent>
+                <InputGroup className={profileModalFieldShell}>
+                  <InputGroupAddon>
+                    <Banknote className="size-4 text-primary" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="modal-hourlyRate"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={9999}
+                    placeholder="45"
+                    className="border-0 bg-transparent"
+                    {...form.register("hourlyRate")}
+                  />
+                </InputGroup>
+                <FieldError errors={[form.formState.errors.hourlyRate]} />
+              </FieldContent>
+            </Field>
+
+            <Field data-invalid={!!form.formState.errors.packageDeal}>
+              <FieldLabel htmlFor="modal-packageDeal">პაკეტი</FieldLabel>
+              <FieldContent>
+                <InputGroup className={profileModalFieldShell}>
+                  <InputGroupAddon>
+                    <Banknote className="size-4 text-emerald-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="modal-packageDeal"
+                    placeholder="10 სთ - ₾390"
+                    className="border-0 bg-transparent"
+                    {...form.register("packageDeal")}
+                  />
+                </InputGroup>
+                <FieldError errors={[form.formState.errors.packageDeal]} />
+              </FieldContent>
+            </Field>
+          </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field data-invalid={!!form.formState.errors.city}>

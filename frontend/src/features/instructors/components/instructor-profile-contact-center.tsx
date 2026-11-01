@@ -1,14 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Clock, Mail, MapPin, Phone } from "lucide-react";
+import { Clock, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { useGetMe } from "@/features/auth/login/hooks/login";
 import type { InstructorDirectoryItem } from "@/features/instructors/api/instructors";
 import { InstructorEditableContactRow } from "@/features/instructors/components/instructor-editable-contact-row";
 import { InstructorProfileMessageForm } from "@/features/instructors/components/instructor-profile-message-form";
 import { PhoneEditDialog } from "@/features/profile/components/phone-edit-dialog";
 import { WorkingHoursEditDialog } from "@/features/profile/components/working-hours-edit-dialog";
-import { useGetProfile } from "@/features/profile/hooks/profile";
+import {
+  useGetInstructorGroup,
+  useGetProfile,
+} from "@/features/profile/hooks/profile";
 import { displayWorkingHours } from "@/features/profile/lib/working-hours";
 import { MOCK_INSTRUCTOR_PROFILE } from "@/features/instructors/data/mock-instructor-profile";
 
@@ -23,9 +29,14 @@ export function InstructorProfileContactCenter({
   instructor,
   isOwner,
 }: InstructorProfileContactCenterProps) {
+  const { data: me } = useGetMe();
   const { data: profile } = useGetProfile({ enabled: isOwner });
+  const isStudentViewer = !isOwner && me?.role === "USER";
+  const { data: group } = useGetInstructorGroup();
   const [workingHoursOpen, setWorkingHoursOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const isLinkedStudent =
+    isStudentViewer && group?.instructor?.id === instructor.id;
 
   const workingHours =
     (isOwner ? profile?.workingHours : null) ??
@@ -104,6 +115,25 @@ export function InstructorProfileContactCenter({
           <p className="mt-4 text-xs text-on-surface-variant sm:hidden">
             რედაქტირებისთვის დააჭირე ველს — გაიხსნება ფორმა.
           </p>
+        ) : isLinkedStudent ? (
+          <div className="mt-5 space-y-3">
+            <Button
+              render={
+                <Link
+                  href={`/messages?with=${encodeURIComponent(instructor.id)}`}
+                />
+              }
+              nativeButton={false}
+              className="h-10 w-full rounded-xl"
+            >
+              <MessageSquare className="size-4" />
+              ჩატის გახსნა
+            </Button>
+            <p className="text-xs text-on-surface-variant">
+              დაკავშირებული ხარ ამ ინსტრუქტორთან — შეგიძლია პირდაპირ ჩატში
+              მიწერო.
+            </p>
+          </div>
         ) : (
           <div className="mt-5">
             <InstructorProfileMessageForm instructorId={instructor.id} />

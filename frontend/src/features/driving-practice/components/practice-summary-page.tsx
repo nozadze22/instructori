@@ -139,13 +139,13 @@ export function PracticeSummaryPage({ sessionId }: PracticeSummaryPageProps) {
             ახალი პრაქტიკა
           </Link>
           <Link
-            href="/mistake-notes"
+            href="/notes"
             className={buttonVariants({
               variant: "outline",
               className: "rounded-xl border-white/10",
             })}
           >
-            ჩანაწერები
+            შენიშვნები
           </Link>
         </div>
       </div>

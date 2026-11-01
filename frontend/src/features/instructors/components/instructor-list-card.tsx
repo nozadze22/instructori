@@ -42,20 +42,10 @@ const badgeIcons: Record<
 
 type InstructorListCardProps = {
   instructor: MockInstructor;
-  liked: boolean;
-  bookmarked: boolean;
-  likeCount: number;
-  onToggleLike: () => void;
-  onToggleBookmark: () => void;
 };
 
 export function InstructorListCard({
   instructor,
-  liked,
-  bookmarked,
-  likeCount,
-  onToggleLike,
-  onToggleBookmark,
 }: InstructorListCardProps) {
   const BadgeIcon = badgeIcons[instructor.badgeIcon];
 

@@ -11,12 +11,15 @@ export function mapMeToInstructorDirectoryItem(
     fullName: me.fullName,
     email: me.email,
     createdAt: profile?.createdAt ?? new Date().toISOString(),
+    instructorCode: profile?.instructorCode ?? null,
     instructorCategories: profile?.instructorCategories ?? [],
     bio: profile?.bio ?? null,
     phone: profile?.phone ?? null,
     avatarUrl: profile?.avatarUrl ?? null,
     city: profile?.city ?? null,
     workingHours: profile?.workingHours ?? null,
+    hourlyRate: profile?.hourlyRate ?? null,
+    packageDeal: profile?.packageDeal ?? null,
     studentCount: 0,
   };
 }
