@@ -77,6 +77,74 @@ export async function getDrivingSessions(params?: {
   );
 }
 
+export async function getStudentDrivingSessions(studentUserId: string) {
+  return apiRequest<DrivingSessionListItem[]>(
+    `/students/${studentUserId}/driving-sessions`,
+  );
+}
+
+export type StudentOverviewMistake = {
+  id: string;
+  sessionId: string;
+  categoryId: string;
+  category: MistakeCategoryRef;
+  severity: MistakeSeverityRef;
+  note: string | null;
+  timestamp: string;
+  route: { id: string; title: string; city: string | null };
+  sessionEndedAt: string | null;
+};
+
+export type StudentOverviewSession = DrivingSessionListItem & {
+  recentMistakes: Array<{
+    id: string;
+    category: MistakeCategoryRef;
+    severity: MistakeSeverityRef;
+    note: string | null;
+    timestamp: string;
+  }>;
+};
+
+export type StudentPracticeOverview = {
+  student: {
+    id: string;
+    fullName: string;
+    email: string;
+    createdAt: string;
+    phone: string | null;
+    city: string | null;
+    avatarUrl: string | null;
+  };
+  stats: {
+    completedCount: number;
+    totalMistakes: number;
+    averageMistakes: number | null;
+    readiness: number | null;
+    totalHours: number;
+  };
+  categories: Array<{
+    categoryId: string;
+    code: string;
+    label: string;
+    icon: string;
+    count: number;
+  }>;
+  trend: Array<{
+    sessionId: string;
+    startedAt: string;
+    routeTitle: string;
+    mistakeCount: number;
+  }>;
+  recentMistakes: StudentOverviewMistake[];
+  sessions: StudentOverviewSession[];
+};
+
+export async function getStudentPracticeOverview(studentUserId: string) {
+  return apiRequest<StudentPracticeOverview>(
+    `/students/${studentUserId}/practice-overview`,
+  );
+}
+
 export async function getDrivingSession(id: string) {
   return apiRequest<DrivingSession>(`/driving-sessions/${id}`);
 }

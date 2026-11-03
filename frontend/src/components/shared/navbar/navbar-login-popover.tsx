@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock, LogIn, Mail, UserRound } from "lucide-react";
@@ -27,6 +28,7 @@ import {
 } from "@/features/auth/login/schema/login.schema";
 
 export function NavbarLoginPopover() {
+  const [open, setOpen] = useState(false);
   const { mutate: login, isPending } = useLogin();
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -35,7 +37,7 @@ export function NavbarLoginPopover() {
   });
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
           <Button
@@ -72,6 +74,7 @@ export function NavbarLoginPopover() {
                 ანგარიში არ გაქვს?{" "}
                 <Link
                   href="/register"
+                  onClick={() => setOpen(false)}
                   className="font-semibold text-primary hover:underline"
                 >
                   რეგისტრაცია
@@ -144,6 +147,7 @@ export function NavbarLoginPopover() {
             ანგარიში არ გაქვს?{" "}
             <Link
               href="/register"
+              onClick={() => setOpen(false)}
               className="font-semibold text-primary hover:underline"
             >
               შექმენი

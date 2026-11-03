@@ -6,6 +6,7 @@ import { useEffect, type ReactNode } from "react";
 import Navbar from "@/components/shared/navbar/navaber";
 import Wrapper from "@/components/shared/wrapper/wrapper";
 import { useGetMe } from "@/features/auth/login/hooks/login";
+import { ChatFloatingButton } from "@/features/chat/components/chat-entry-button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isAppUser } from "@/lib/auth-paths";
 import {
@@ -24,6 +25,10 @@ function isInstructorAppPath(pathname: string) {
   return pathname.startsWith("/dashboard") || pathname.startsWith("/routes");
 }
 
+function isUserInstructorsPath(pathname: string) {
+  return pathname.startsWith("/instructors");
+}
+
 /** Always edge-to-edge (no Wrapper at any breakpoint). */
 function isAlwaysFullBleedPath(pathname: string) {
   return (
@@ -34,8 +39,11 @@ function isAlwaysFullBleedPath(pathname: string) {
     pathname === "/register" ||
     pathname === "/forbidden" ||
     pathname === "/profile" ||
+    pathname.startsWith("/profile/") ||
     pathname === "/marshrutebi" ||
-    pathname.startsWith("/marshrutebi/")
+    pathname.startsWith("/marshrutebi/") ||
+    pathname === "/messages" ||
+    pathname.startsWith("/messages/")
   );
 }
 
@@ -45,7 +53,9 @@ function isMobileFullBleedPath(pathname: string) {
     pathname === "/practice" ||
     pathname.startsWith("/practice/") ||
     pathname === "/mistake-notes" ||
-    pathname.startsWith("/mistake-notes/")
+    pathname.startsWith("/mistake-notes/") ||
+    pathname === "/notes" ||
+    pathname.startsWith("/notes/")
   );
 }
 
@@ -67,7 +77,11 @@ export function AppChrome({ children }: { children: ReactNode }) {
     isAlwaysFullBleedPath(pathname) ||
     (isMobile && isMobileFullBleedPath(pathname));
 
-  if (isAdminPanelPath(pathname) || isInstructorAppPath(pathname)) {
+  if (
+    isAdminPanelPath(pathname) ||
+    isInstructorAppPath(pathname) ||
+    isUserInstructorsPath(pathname)
+  ) {
     return <>{children}</>;
   }
 
@@ -76,6 +90,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <>
         <Navbar />
         <main className="mt-16 flex min-h-0 flex-1 flex-col">{children}</main>
+        <ChatFloatingButton />
       </>
     );
   }
@@ -86,7 +101,8 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <main className="mt-16 flex min-h-0 flex-1 flex-col">
         <Wrapper className="flex flex-1 flex-col">{children}</Wrapper>
       </main>
+      <ChatFloatingButton />
     </>
   );
 }
-
+

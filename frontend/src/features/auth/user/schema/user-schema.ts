@@ -1,10 +1,29 @@
 import { z } from "zod";
 
+export const INSTRUCTOR_CATEGORY_OPTIONS = [
+  { value: "B", label: "B კატეგორია" },
+  { value: "C", label: "C კატეგორია" },
+  { value: "D", label: "D კატეგორია" },
+  { value: "E", label: "E კატეგორია" },
+  { value: "ALL", label: "ყველა კატეგორია" },
+] as const;
+
+const instructorCategoryValues = INSTRUCTOR_CATEGORY_OPTIONS.map(
+  (option) => option.value,
+) as [string, ...string[]];
+
 export const userRegistrationSchema = z
   .object({
     registrationRole: z.enum(["instructor", "student"]),
     fullName: z.string().min(2, "გთხოვთ მიუთითოთ სრული სახელი."),
     email: z.email("გთხოვთ მიუთითოთ სწორი ელ-ფოსტა."),
+    phone: z
+      .string()
+      .trim()
+      .min(7, "გთხოვთ მიუთითოთ სწორი მობილურის ნომერი.")
+      .max(30, "მობილურის ნომერი ძალიან გრძელია."),
+    city: z.string().trim(),
+    instructorCategories: z.array(z.enum(instructorCategoryValues)),
     password: z.string().min(8, "პაროლი უნდა იყოს მინიმუმ 8 სიმბოლო."),
     repeatPassword: z.string().min(1, "გთხოვთ დაადასტუროთ პაროლი."),
     hasInstructorCode: z.boolean(),
@@ -18,6 +37,25 @@ export const userRegistrationSchema = z
     path: ["repeatPassword"],
   })
   .superRefine((data, ctx) => {
+    if (data.registrationRole === "instructor" && data.city.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "გთხოვთ აირჩიოთ ქალაქი.",
+        path: ["city"],
+      });
+    }
+
+    if (
+      data.registrationRole === "instructor" &&
+      data.instructorCategories.length === 0
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "გთხოვთ აირჩიოთ მინიმუმ ერთი კატეგორია.",
+        path: ["instructorCategories"],
+      });
+    }
+
     if (data.registrationRole !== "student" || !data.hasInstructorCode) return;
 
     const code = data.instructorCode.trim();
@@ -45,6 +83,9 @@ export const defaultUserRegistrationValues: UserRegistrationSchema = {
   registrationRole: "instructor",
   fullName: "",
   email: "",
+  phone: "",
+  city: "",
+  instructorCategories: [],
   password: "",
   repeatPassword: "",
   hasInstructorCode: false,

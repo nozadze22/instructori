@@ -7,7 +7,13 @@ export type Profile = {
   phone: string | null;
   avatarUrl: string | null;
   city: string | null;
-  country: string | null;
+  country?: string | null;
+  transmissionModes?: string | null;
+  workingHours: string | null;
+  hourlyRate: number | null;
+  packageDeal: string | null;
+  instructorCategories: string[];
+  instructorCode?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -16,9 +22,31 @@ export type ProfileInput = {
   fullName?: string;
   bio?: string;
   phone?: string;
-  avatarUrl?: string;
   city?: string;
-  country?: string;
+  workingHours?: string;
+  hourlyRate?: number | null;
+  packageDeal?: string | null;
+  instructorCategories?: string[];
+};
+
+export type InstructorGroup = {
+  instructor: {
+    id: string;
+    fullName: string;
+    email: string;
+    instructorCode: string | null;
+  } | null;
+};
+
+export type InstructorStudent = {
+  id: string;
+  fullName: string;
+  email: string;
+  createdAt: string;
+  phone: string | null;
+  city: string | null;
+  avatarUrl: string | null;
+  practiceCount: number;
 };
 
 function toError(error: unknown, fallback: string): Error {
@@ -53,6 +81,20 @@ export async function getProfile(): Promise<Profile | null> {
   }
 }
 
+export async function getInstructorStudents(): Promise<InstructorStudent[]> {
+  return apiRequest<InstructorStudent[]>("/profile/students", {
+    method: "GET",
+  });
+}
+
+export async function createInstructorCode(): Promise<{
+  instructorCode: string;
+}> {
+  return apiRequest<{ instructorCode: string }>("/profile/instructor-code", {
+    method: "POST",
+  });
+}
+
 export async function createProfile(data: ProfileInput): Promise<Profile> {
   try {
     return await apiRequest<Profile>("/profile", {
@@ -75,6 +117,21 @@ export async function updateProfile(data: ProfileInput): Promise<Profile> {
     console.error("[updateProfile]", error);
     throw toError(error, "პროფილი ვერ განახლდა");
   }
+}
+
+export async function getInstructorGroup(): Promise<InstructorGroup> {
+  return apiRequest<InstructorGroup>("/profile/instructor-group", {
+    method: "GET",
+  });
+}
+
+export async function joinInstructorGroup(
+  instructorCode: string,
+): Promise<InstructorGroup> {
+  return apiRequest<InstructorGroup>("/profile/instructor-group", {
+    method: "POST",
+    body: JSON.stringify({ instructorCode }),
+  });
 }
 
 export async function uploadProfileAvatar(file: File): Promise<Profile> {

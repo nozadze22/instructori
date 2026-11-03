@@ -4,6 +4,8 @@ const APP_USER_PUBLIC_PATHS = [
   /^\/contact$/,
   /^\/about$/,
   /^\/profile(\/.*)?$/,
+  /^\/instructors(\/.*)?$/,
+  /^\/messages(\/.*)?$/,
   /^\/login$/,
   /^\/register$/,
   /^\/forbidden$/,
@@ -18,6 +20,8 @@ const INSTRUCTOR_ONLY_PATHS = [
   /^\/chemi-marshrutebi(\/.*)?$/,
   /^\/practice(\/.*)?$/,
   /^\/mistake-notes(\/.*)?$/,
+  /^\/notes(\/.*)?$/,
+  /^\/my-students(\/.*)?$/,
   /^\/my-practices(\/.*)?$/,
   /^\/pending(\/.*)?$/,
 ] as const;

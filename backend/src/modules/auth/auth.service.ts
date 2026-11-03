@@ -58,6 +58,19 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    const city = dto.city.trim();
+    const activeCity = await this.prisma.examRegion.findFirst({
+      where: {
+        name: city,
+      },
+      select: { id: true },
+    });
+    if (!activeCity) {
+      throw new BadRequestException(
+        'არჩეული ქალაქი აქტიური არ არის',
+      );
+    }
+
     const exists = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -73,7 +86,8 @@ export class AuthService {
         role: 'INSTRUCTOR',
         accessStatus: 'PENDING',
         instructorCode: await this.generateUniqueInstructorCode(),
-        profile: { create: {} },
+        instructorCategories: dto.instructorCategories,
+        profile: { create: { city, phone: dto.phone.trim() } },
       },
       select: {
         id: true,
@@ -127,7 +141,7 @@ export class AuthService {
         role: 'USER',
         accessStatus: 'ACTIVE',
         ...(instructorId ? { linkedInstructorId: instructorId } : {}),
-        profile: { create: {} },
+        profile: { create: { phone: dto.phone.trim() } },
       },
       select: {
         id: true,

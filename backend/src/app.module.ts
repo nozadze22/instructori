@@ -3,10 +3,13 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { ContactModule } from './modules/conatct/contanct.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DrivingSessionsModule } from './modules/driving-sessions/driving-sessions.module';
+import { InstructorsModule } from './modules/instructors/instructors.module';
 import { MistakeCatalogModule } from './modules/mistake-catalog/mistake-catalog.module';
+import { InstructorNotesModule } from './modules/instructor-notes/instructor-notes.module';
 import { MistakeNotesModule } from './modules/mistake-notes/mistake-notes.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RoutesModule } from './modules/routes/routes.module';
@@ -25,10 +28,13 @@ import { StorageModule } from './storage/storage.module';
     StorageModule,
     ContactModule,
     AuthModule,
+    ChatModule,
     DashboardModule,
+    InstructorsModule,
     ProfileModule,
     RoutesModule,
     MistakeNotesModule,
+    InstructorNotesModule,
     DrivingSessionsModule,
     MistakeCatalogModule,
   ],

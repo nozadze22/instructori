@@ -7,6 +7,8 @@ import {
   finishDrivingSession,
   getDrivingSession,
   getDrivingSessions,
+  getStudentDrivingSessions,
+  getStudentPracticeOverview,
   updateDrivingMistake,
   type CreateDrivingMistakeInput,
   type CreateDrivingSessionInput,
@@ -30,6 +32,22 @@ export function useDrivingSession(sessionId: string) {
     enabled: Boolean(sessionId),
     refetchInterval: (query) =>
       query.state.data?.endedAt ? false : 15_000,
+  });
+}
+
+export function useStudentDrivingSessions(studentUserId?: string) {
+  return useQuery({
+    queryKey: ["driving-sessions", "student", studentUserId],
+    queryFn: () => getStudentDrivingSessions(studentUserId!),
+    enabled: Boolean(studentUserId),
+  });
+}
+
+export function useStudentPracticeOverview(studentUserId?: string) {
+  return useQuery({
+    queryKey: ["driving-sessions", "student-overview", studentUserId],
+    queryFn: () => getStudentPracticeOverview(studentUserId!),
+    enabled: Boolean(studentUserId),
   });
 }
 
@@ -88,6 +106,18 @@ export function useFinishDrivingSession() {
     mutationFn: (sessionId: string) => finishDrivingSession(sessionId),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["driving-sessions"] });
+      if (data.studentUserId) {
+        void queryClient.invalidateQueries({
+          queryKey: ["driving-sessions", "student", data.studentUserId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: [
+            "driving-sessions",
+            "student-overview",
+            data.studentUserId,
+          ],
+        });
+      }
       queryClient.setQueryData(
         ["driving-sessions", "detail", data.id],
         data,

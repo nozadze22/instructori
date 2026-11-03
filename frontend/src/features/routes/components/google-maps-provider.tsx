@@ -32,7 +32,9 @@ function explainMapsError(error: unknown): MapsErrorInfo {
       steps: [
         "Google Cloud Console → APIs & Services → Credentials",
         "აირჩიე შენი Maps API key → Application restrictions → HTTP referrers",
-        `დაამატე: ${origin}/* (ან http://localhost:3001/*)`,
+        `დაამატე: ${origin}/*`,
+        "http://localhost:3001/*",
+        "http://127.0.0.1:3001/*",
         "Maps JavaScript API და Directions API უნდა ჩართული იყოს",
         "1-2 წუთში განაახლე გვერდი",
       ],
@@ -123,10 +125,12 @@ function MapsLoadGuard({
   children,
   compact,
   fallback,
+  showSetupHelp,
 }: {
   children: ReactNode;
   compact?: boolean;
   fallback?: ReactNode;
+  showSetupHelp?: boolean;
 }) {
   const status = useApiLoadingStatus();
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
@@ -162,6 +166,14 @@ function MapsLoadGuard({
     runtimeError != null;
 
   if (mapsUnavailable) {
+    if (showSetupHelp && runtimeError) {
+      return (
+        <MapsSetupPanel
+          compact={compact}
+          {...explainMapsError(runtimeError)}
+        />
+      );
+    }
     if (fallback) return <>{fallback}</>;
     return <DefaultMapsFallback compact={compact} />;
   }
@@ -268,7 +280,6 @@ export function GoogleMapsProvider({
   }
 
   if (providerError) {
-    if (fallback) return <>{fallback}</>;
     if (showSetupHelp) {
       return (
         <MapsSetupPanel
@@ -277,12 +288,17 @@ export function GoogleMapsProvider({
         />
       );
     }
+    if (fallback) return <>{fallback}</>;
     return <DefaultMapsFallback compact={compact} />;
   }
 
   return (
     <APIProvider apiKey={apiKey} onError={(error) => setProviderError(error)}>
-      <MapsLoadGuard compact={compact} fallback={fallback}>
+      <MapsLoadGuard
+        compact={compact}
+        fallback={fallback}
+        showSetupHelp={showSetupHelp}
+      >
         {children}
       </MapsLoadGuard>
     </APIProvider>

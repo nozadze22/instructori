@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function UserProfilePage() {
-  return <ProfilePage variant="public" />;
+  return <ProfilePage />;
 }

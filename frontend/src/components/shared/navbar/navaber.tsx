@@ -6,6 +6,7 @@ import { useGetMe } from "@/features/auth/login/hooks/login";
 import { appHomeForUser, isAdminUser, isAppUser } from "@/lib/auth-paths";
 import { cn } from "@/lib/utils";
 import { PwaInstallButton } from "@/components/shared/pwa-install-button";
+import { ChatNavButton } from "@/features/chat/components/chat-entry-button";
 import { BurgerMenu } from "./burger_menu";
 import { NavbarLoginPopover } from "./navbar-login-popover";
 import { NavbarUserMenu } from "./navbar-user-menu";
@@ -58,7 +59,8 @@ export function Navbar({ className }: NavbarProps) {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ChatNavButton />
           <PwaInstallButton
             className="sm:hidden"
             showLabel={false}
