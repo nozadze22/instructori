@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -9,6 +11,8 @@ import { createHash } from 'crypto';
 const MAX_TEXT_LENGTH = 500;
 const TTS_TIMEOUT_MS = 20_000;
 const CACHE_LIMIT = 80;
+const TTS_RATE_WINDOW_MS = 60_000;
+const TTS_RATE_MAX = 30;
 /** Bump when the provider/model/voice changes so cached audio is regenerated. */
 const TTS_PROFILE = 'v5-elevenlabs';
 
@@ -16,8 +20,13 @@ const TTS_PROFILE = 'v5-elevenlabs';
 export class TtsService {
   private readonly logger = new Logger(TtsService.name);
   private readonly cache = new Map<string, Buffer>();
+  private readonly rateWindows = new Map<
+    string,
+    { count: number; resetAt: number }
+  >();
 
-  async synthesize(text: string): Promise<Buffer> {
+  async synthesize(userId: string, text: string): Promise<Buffer> {
+    this.assertRateLimit(userId);
     const normalized = text.trim();
     if (!normalized) {
       throw new BadRequestException('ტექსტი ცარიელია');
@@ -105,6 +114,25 @@ export class TtsService {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  private assertRateLimit(userId: string) {
+    const now = Date.now();
+    const current = this.rateWindows.get(userId);
+    if (!current || current.resetAt <= now) {
+      this.rateWindows.set(userId, {
+        count: 1,
+        resetAt: now + TTS_RATE_WINDOW_MS,
+      });
+      return;
+    }
+    if (current.count >= TTS_RATE_MAX) {
+      throw new HttpException(
+        'ხმის გენერაცია ძალიან ხშირია. სცადე ერთი წუთის შემდეგ.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    current.count += 1;
   }
 
   private remember(key: string, buffer: Buffer) {

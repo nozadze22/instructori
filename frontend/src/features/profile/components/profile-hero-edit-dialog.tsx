@@ -46,7 +46,6 @@ export function ProfileHeroEditDialog({
   open,
   onOpenChange,
   email,
-  avatarUrl,
 }: ProfileHeroEditDialogProps) {
   const { data: me } = useGetMe();
   const { data: profile } = useGetProfile({ enabled: open });
@@ -69,7 +68,6 @@ export function ProfileHeroEditDialog({
       fullName: me?.fullName ?? "",
       bio: profile?.bio ?? "",
       phone: profile?.phone ?? "",
-      avatarUrl: profile?.avatarUrl ?? avatarUrl ?? "",
       city: profile?.city ?? "",
       workingHours: profile?.workingHours ?? "",
       hourlyRate:
@@ -77,13 +75,10 @@ export function ProfileHeroEditDialog({
       packageDeal: profile?.packageDeal ?? "",
       instructorCategories: profile?.instructorCategories ?? [],
     });
-  }, [avatarUrl, form, me?.fullName, open, profile]);
+  }, [form, me?.fullName, open, profile]);
 
   const onSubmit = async (values: ProfileSchema) => {
-    await patchProfile({
-      ...values,
-      avatarUrl: values.avatarUrl || profile?.avatarUrl || avatarUrl || "",
-    });
+    await patchProfile(values);
     onOpenChange(false);
   };
 

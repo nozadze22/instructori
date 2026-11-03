@@ -15,6 +15,7 @@ type JwtPayload = {
   accessStatus?: AccessStatus;
   accessSource?: AccessSource | null;
   sv?: number;
+  purpose?: string;
 };
 
 function cookieExtractor(req: Request): string | null {
@@ -40,6 +41,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthUser> {
+    if (payload.purpose) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {

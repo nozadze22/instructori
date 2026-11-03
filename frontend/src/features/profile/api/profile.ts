@@ -22,7 +22,6 @@ export type ProfileInput = {
   fullName?: string;
   bio?: string;
   phone?: string;
-  avatarUrl?: string;
   city?: string;
   workingHours?: string;
   hourlyRate?: number | null;

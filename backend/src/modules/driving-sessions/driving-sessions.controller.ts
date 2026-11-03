@@ -91,7 +91,26 @@ export class StudentDrivingSessionsController {
   constructor(private readonly drivingSessionsService: DrivingSessionsService) {}
 
   @Get(':studentUserId/driving-sessions')
-  findForStudent(@Param('studentUserId') studentUserId: string) {
-    return this.drivingSessionsService.findForStudent(studentUserId);
+  findForStudent(
+    @CurrentUser() user: AuthUser,
+    @Param('studentUserId') studentUserId: string,
+  ) {
+    return this.drivingSessionsService.findForStudent(
+      user.userId,
+      user.role,
+      studentUserId,
+    );
+  }
+
+  @Get(':studentUserId/practice-overview')
+  getPracticeOverview(
+    @CurrentUser() user: AuthUser,
+    @Param('studentUserId') studentUserId: string,
+  ) {
+    return this.drivingSessionsService.getPracticeOverview(
+      user.userId,
+      user.role,
+      studentUserId,
+    );
   }
 }

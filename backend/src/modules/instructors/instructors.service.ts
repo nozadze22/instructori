@@ -21,6 +21,8 @@ const instructorSelect = {
       avatarUrl: true,
       city: true,
       workingHours: true,
+      hourlyRate: true,
+      packageDeal: true,
     },
   },
   _count: {
@@ -207,6 +209,8 @@ export class InstructorsService {
       avatarUrl: string | null;
       city: string | null;
       workingHours: string | null;
+      hourlyRate: number | null;
+      packageDeal: string | null;
     } | null;
     _count: { students: number };
     instructorVehicles: {
@@ -243,6 +247,8 @@ export class InstructorsService {
       avatarUrl: instructor.profile?.avatarUrl ?? null,
       city: instructor.profile?.city ?? null,
       workingHours: instructor.profile?.workingHours ?? null,
+      hourlyRate: instructor.profile?.hourlyRate ?? null,
+      packageDeal: instructor.profile?.packageDeal ?? null,
       studentCount: instructor._count.students,
       vehicles: instructor.instructorVehicles.map((vehicle) => ({
         id: vehicle.id,

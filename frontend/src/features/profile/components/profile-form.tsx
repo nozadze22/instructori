@@ -2,13 +2,7 @@
 
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ImageIcon,
-  MapPin,
-  Phone,
-  User,
-  UserRound,
-} from "lucide-react";
+import { MapPin, Phone, User, UserRound } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -47,14 +41,11 @@ const inputGroupClassName =
 type ProfileFormProps = {
   submitLabel?: string;
   className?: string;
-  /** Avatar upload is handled elsewhere (e.g. instructor profile hero). */
-  hideAvatarField?: boolean;
 };
 
 export function ProfileForm({
   submitLabel,
   className,
-  hideAvatarField = false,
 }: ProfileFormProps) {
   const { data: me } = useGetMe();
   const { data: profile, isLoading } = useGetProfile();
@@ -78,7 +69,6 @@ export function ProfileForm({
       fullName: me?.fullName ?? "",
       bio: profile?.bio ?? "",
       phone: profile?.phone ?? "",
-      avatarUrl: profile?.avatarUrl ?? "",
       city: profile?.city ?? "",
       workingHours: profile?.workingHours ?? "",
       hourlyRate:
@@ -160,30 +150,6 @@ export function ProfileForm({
               <FieldError errors={[form.formState.errors.phone]} />
             </FieldContent>
           </Field>
-
-          {!hideAvatarField ? (
-            <Field data-invalid={!!form.formState.errors.avatarUrl}>
-              <FieldLabel
-                htmlFor="avatarUrl"
-                className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-              >
-                ავატარის URL
-              </FieldLabel>
-              <FieldContent>
-                <InputGroup className={inputGroupClassName}>
-                  <InputGroupAddon>
-                    <ImageIcon />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    id="avatarUrl"
-                    placeholder="https://..."
-                    {...form.register("avatarUrl")}
-                  />
-                </InputGroup>
-                <FieldError errors={[form.formState.errors.avatarUrl]} />
-              </FieldContent>
-            </Field>
-          ) : null}
 
           <Field data-invalid={!!form.formState.errors.city}>
             <FieldLabel

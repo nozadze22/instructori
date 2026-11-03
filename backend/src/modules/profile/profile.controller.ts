@@ -68,6 +68,16 @@ export class ProfileController {
     return this.profileService.getInstructorGroup(user.userId);
   }
 
+  @Get('students')
+  getStudents(@CurrentUser() user: AuthUser) {
+    return this.profileService.getStudents(user.userId);
+  }
+
+  @Post('instructor-code')
+  createInstructorCode(@CurrentUser() user: AuthUser) {
+    return this.profileService.createInstructorCode(user.userId);
+  }
+
   @Post('instructor-group')
   joinInstructorGroup(
     @CurrentUser() user: AuthUser,

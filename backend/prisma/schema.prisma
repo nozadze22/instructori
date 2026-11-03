@@ -71,11 +71,17 @@ model User {
   routes          Route[]
   savedRoutes     SavedRoute[]
   mistakeNotes           MistakeNote[]
+  instructorNotesAuthored InstructorNote[] @relation("InstructorNotesAuthor")
+  instructorNotesAbout    InstructorNote[] @relation("InstructorNotesStudent")
   refreshTokens          RefreshToken[]
   drivingSessionsLed     DrivingSession[] @relation("DrivingSessionsInstructor")
   drivingSessionsAsStudent DrivingSession[] @relation("DrivingSessionsStudent")
   instructorMessagesSent     InstructorMessage[] @relation("InstructorMessagesSent")
   instructorMessagesReceived InstructorMessage[] @relation("InstructorMessagesReceived")
+  chatAsLow                  ChatMessage[]       @relation("ChatUserLow")
+  chatAsHigh                 ChatMessage[]       @relation("ChatUserHigh")
+  chatSent                   ChatMessage[]       @relation("ChatSender")
+  chatThreadClears           ChatThreadClear[]
   instructorVehicles         InstructorVehicle[]
   trainingSteps              InstructorTrainingStep[]
   instructorCertificates     InstructorCertificate[]
@@ -158,6 +164,10 @@ model Profile {
   city          String?
   /// Display string e.g. "ყოველდღე: 08:30 - 20:30"
   workingHours  String?
+  /// Hourly lesson price in GEL
+  hourlyRate    Int?
+  /// Short package label e.g. "10 სთ - ₾390"
+  packageDeal   String?
   createdAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -184,6 +194,37 @@ model InstructorMessage {
 
   @@index([instructorId, status, createdAt])
   @@index([senderId, createdAt])
+}
+
+/// Bidirectional chat between two users (ordered pair userLowId < userHighId)
+model ChatMessage {
+  id         String    @id @default(uuid())
+  userLowId  String
+  userLow    User      @relation("ChatUserLow", fields: [userLowId], references: [id], onDelete: Cascade)
+  userHighId String
+  userHigh   User      @relation("ChatUserHigh", fields: [userHighId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User      @relation("ChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userLowId, userHighId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+/// Per-user "delete for me" — hides history only for that user
+model ChatThreadClear {
+  id         String   @id @default(uuid())
+  userLowId  String
+  userHighId String
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clearedAt  DateTime @default(now())
+
+  @@unique([userLowId, userHighId, userId])
+  @@index([userId])
+  @@index([userLowId, userHighId])
 }
 
 model Route {
@@ -264,6 +305,24 @@ model MistakeNote {
   @@index([instructorId, studentName])
   @@index([routeId])
   @@index([city])
+}
+
+/// Instructor private notes: reminders, next session, free-form text
+model InstructorNote {
+  id            String    @id @default(uuid())
+  instructorId  String
+  instructor    User      @relation("InstructorNotesAuthor", fields: [instructorId], references: [id], onDelete: Cascade)
+  studentUserId String?
+  studentUser   User?     @relation("InstructorNotesStudent", fields: [studentUserId], references: [id], onDelete: SetNull)
+  studentName   String
+  body          String
+  nextSessionAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([instructorId])
+  @@index([instructorId, nextSessionAt])
+  @@index([studentUserId])
 }
 
 model DrivingSession {

@@ -6,21 +6,23 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { OptionalJwtAuthGuard } from '../auth/auth_guard/optional-jwt-auth.guard';
+import { AccessGuard } from '../auth/auth_guard/access.guard';
+import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
+import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
+import type { AuthUser } from '../auth/dto/auth-types';
 import { RouteTtsDto } from './dto/route.dto';
 import { TtsService } from './tts.service';
 
-/** TTS without ACTIVE access gate — rehearsal / public catalog voice preview. */
 @Controller('routes')
+@UseGuards(JwtAuthGuard, AccessGuard)
 export class RoutesTtsController {
   constructor(private readonly ttsService: TtsService) {}
 
   @Post('tts')
-  @UseGuards(OptionalJwtAuthGuard)
   @Header('Content-Type', 'audio/mpeg')
   @Header('Cache-Control', 'private, max-age=3600')
-  async speak(@Body() dto: RouteTtsDto) {
-    const audio = await this.ttsService.synthesize(dto.text);
+  async speak(@CurrentUser() user: AuthUser, @Body() dto: RouteTtsDto) {
+    const audio = await this.ttsService.synthesize(user.userId, dto.text);
     return new StreamableFile(audio, {
       type: 'audio/mpeg',
       disposition: 'inline',

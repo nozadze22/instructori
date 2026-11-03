@@ -1,12 +1,16 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUrl,
+  Max,
   MaxLength,
+  Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { INSTRUCTOR_CATEGORIES } from '../../auth/dto/auth.dto';
 
@@ -28,10 +32,6 @@ export class CreateProfileDto {
   phone?: string;
 
   @IsOptional()
-  @IsUrl()
-  avatarUrl?: string;
-
-  @IsOptional()
   @IsString()
   @MaxLength(100)
   city?: string;
@@ -42,10 +42,22 @@ export class CreateProfileDto {
   workingHours?: string;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== '')
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(9999)
+  hourlyRate?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  packageDeal?: string | null;
+
+  @IsOptional()
   @IsArray()
   @IsEnum(INSTRUCTOR_CATEGORIES, { each: true })
   instructorCategories?: string[];
-
 }
 
 export class UpdateProfileDto {
@@ -67,10 +79,6 @@ export class UpdateProfileDto {
   phone?: string;
 
   @IsOptional()
-  @IsUrl()
-  avatarUrl?: string;
-
-  @IsOptional()
   @IsString()
   @MaxLength(100)
   city?: string;
@@ -81,10 +89,22 @@ export class UpdateProfileDto {
   workingHours?: string;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== '')
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(9999)
+  hourlyRate?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  packageDeal?: string | null;
+
+  @IsOptional()
   @IsArray()
   @IsEnum(INSTRUCTOR_CATEGORIES, { each: true })
   instructorCategories?: string[];
-
 }
 
 export class JoinInstructorDto {

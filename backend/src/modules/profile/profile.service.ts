@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { S3StorageService } from '../../storage/s3-storage.service';
 import type { UploadedImageFile } from '../../storage/uploaded-image.type';
@@ -94,9 +95,10 @@ export class ProfileService {
         userId,
         bio: dto.bio,
         phone: dto.phone,
-        avatarUrl: dto.avatarUrl,
         city: dto.city,
         workingHours: dto.workingHours,
+        hourlyRate: dto.hourlyRate ?? null,
+        packageDeal: dto.packageDeal?.trim() || null,
       },
     });
   }
@@ -106,7 +108,10 @@ export class ProfileService {
       where: { userId },
       include: {
         user: {
-          select: { instructorCategories: true },
+          select: {
+            instructorCategories: true,
+            instructorCode: true,
+          },
         },
       },
     });
@@ -117,7 +122,38 @@ export class ProfileService {
     return {
       ...profileData,
       instructorCategories: user.instructorCategories,
+      instructorCode: user.instructorCode,
     };
+  }
+
+  async createInstructorCode(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, instructorCode: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    if (user.role !== 'INSTRUCTOR') {
+      throw new ForbiddenException('Only instructors can create a code');
+    }
+    if (user.instructorCode) {
+      return { instructorCode: user.instructorCode };
+    }
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const instructorCode = randomBytes(4).toString('hex').toUpperCase();
+      try {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { instructorCode },
+        });
+        return { instructorCode };
+      } catch {
+        // A rare unique collision is retried with a new code.
+      }
+    }
+
+    throw new BadRequestException('Could not create instructor code');
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -140,9 +176,14 @@ export class ProfileService {
       data: {
         bio: dto.bio,
         phone: dto.phone,
-        avatarUrl: dto.avatarUrl,
         city: dto.city,
         workingHours: dto.workingHours,
+        ...(dto.hourlyRate !== undefined
+          ? { hourlyRate: dto.hourlyRate }
+          : {}),
+        ...(dto.packageDeal !== undefined
+          ? { packageDeal: dto.packageDeal?.trim() || null }
+          : {}),
       },
     });
   }
@@ -167,6 +208,57 @@ export class ProfileService {
     }
 
     return { instructor: user.linkedInstructor };
+  }
+
+  async getStudents(userId: string) {
+    const instructor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        students: {
+          where: { role: 'USER' },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            createdAt: true,
+            profile: {
+              select: {
+                phone: true,
+                city: true,
+                avatarUrl: true,
+              },
+            },
+            _count: {
+              select: {
+                drivingSessionsAsStudent: {
+                  where: { endedAt: { not: null } },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!instructor) {
+      throw new NotFoundException('User not found');
+    }
+    if (instructor.role !== 'INSTRUCTOR') {
+      throw new ForbiddenException('Only instructors can view students');
+    }
+
+    return instructor.students.map((student) => ({
+      id: student.id,
+      fullName: student.fullName,
+      email: student.email,
+      createdAt: student.createdAt,
+      phone: student.profile?.phone ?? null,
+      city: student.profile?.city ?? null,
+      avatarUrl: student.profile?.avatarUrl ?? null,
+      practiceCount: student._count.drivingSessionsAsStudent,
+    }));
   }
 
   async joinInstructorGroup(userId: string, dto: JoinInstructorDto) {
