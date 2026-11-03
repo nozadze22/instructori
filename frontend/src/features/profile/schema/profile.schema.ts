@@ -20,9 +20,6 @@ export const profileSchema = z.object({
     .max(30, "ტელეფონი ძალიან გრძელია.")
     .optional()
     .or(z.literal("")),
-  avatarUrl: z
-    .union([z.url("სწორი URL მიუთითე."), z.literal("")])
-    .optional(),
   city: z.string().max(100).optional().or(z.literal("")),
   workingHours: z.string().max(120).optional().or(z.literal("")),
   hourlyRate: z
@@ -50,7 +47,6 @@ export const defaultProfileValues: ProfileSchema = {
   fullName: "",
   bio: "",
   phone: "",
-  avatarUrl: "",
   city: "",
   workingHours: "",
   hourlyRate: "",
@@ -70,7 +66,6 @@ export function toProfilePayload(values: ProfileSchema) {
     fullName: values.fullName.trim(),
     bio: clean(values.bio),
     phone: clean(values.phone),
-    avatarUrl: clean(values.avatarUrl),
     city: clean(values.city),
     workingHours: clean(values.workingHours),
     hourlyRate: rateRaw ? Number(rateRaw) : null,

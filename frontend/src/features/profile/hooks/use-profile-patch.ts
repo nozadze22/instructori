@@ -25,7 +25,6 @@ export function useProfilePatch() {
       fullName: me?.fullName ?? "",
       bio: profile?.bio ?? "",
       phone: profile?.phone ?? "",
-      avatarUrl: profile?.avatarUrl ?? "",
       city: profile?.city ?? "",
       instructorCategories: profile?.instructorCategories ?? [],
       workingHours: profile?.workingHours ?? "",

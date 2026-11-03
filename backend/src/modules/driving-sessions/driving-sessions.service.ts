@@ -49,7 +49,7 @@ export class DrivingSessionsService {
     }
     await this.requireRoute(dto.routeId);
     if (dto.studentUserId) {
-      await this.requireStudentUser(dto.studentUserId);
+      await this.requireStudentUser(dto.studentUserId, instructorId, role);
     }
 
     return this.prisma.drivingSession.create({
@@ -88,7 +88,13 @@ export class DrivingSessionsService {
     });
   }
 
-  async findForStudent(studentUserId: string) {
+  async findForStudent(
+    requesterId: string,
+    role: string,
+    studentUserId: string,
+  ) {
+    await this.assertCanAccessStudent(requesterId, role, studentUserId);
+
     return this.prisma.drivingSession.findMany({
       where: {
         studentUserId,
@@ -100,6 +106,199 @@ export class DrivingSessionsService {
         _count: { select: { mistakes: true } },
       },
     });
+  }
+
+  async getPracticeOverview(
+    requesterId: string,
+    role: string,
+    studentUserId: string,
+  ) {
+    await this.assertCanAccessStudent(requesterId, role, studentUserId);
+
+    const student = await this.prisma.user.findUnique({
+      where: { id: studentUserId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        createdAt: true,
+        profile: {
+          select: {
+            phone: true,
+            city: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+    if (!student) {
+      throw new NotFoundException('Student not found');
+    }
+
+    const sessions = await this.prisma.drivingSession.findMany({
+      where: { studentUserId },
+      orderBy: { startedAt: 'desc' },
+      include: {
+        route: { select: { id: true, title: true, city: true } },
+        _count: { select: { mistakes: true } },
+        mistakes: {
+          orderBy: { timestamp: 'desc' },
+          take: 8,
+          include: {
+            category: {
+              select: { id: true, code: true, label: true, icon: true },
+            },
+            severity: {
+              select: { id: true, code: true, label: true },
+            },
+          },
+        },
+      },
+    });
+
+    const completedSessions = sessions.filter((session) => session.endedAt);
+    const recentMistakes = await this.prisma.drivingMistake.findMany({
+      where: {
+        session: { studentUserId },
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 40,
+      include: {
+        category: {
+          select: { id: true, code: true, label: true, icon: true },
+        },
+        severity: {
+          select: { id: true, code: true, label: true },
+        },
+        session: {
+          select: {
+            id: true,
+            startedAt: true,
+            endedAt: true,
+            route: { select: { id: true, title: true, city: true } },
+          },
+        },
+      },
+    });
+
+    const categoryGroups = await this.prisma.drivingMistake.groupBy({
+      by: ['categoryId'],
+      where: {
+        session: { studentUserId },
+      },
+      _count: { _all: true },
+    });
+
+    const categories = categoryGroups.length
+      ? await this.prisma.mistakeCategory.findMany({
+          where: {
+            id: { in: categoryGroups.map((row) => row.categoryId) },
+          },
+          select: { id: true, code: true, label: true, icon: true },
+        })
+      : [];
+
+    const categoryById = new Map(categories.map((item) => [item.id, item]));
+    const categoryStats = categoryGroups
+      .map((row) => {
+        const meta = categoryById.get(row.categoryId);
+        return {
+          categoryId: row.categoryId,
+          code: meta?.code ?? row.categoryId,
+          label: meta?.label ?? row.categoryId,
+          icon: meta?.icon ?? '📝',
+          count: row._count._all,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const totalMistakes = sessions.reduce(
+      (sum, session) => sum + session._count.mistakes,
+      0,
+    );
+    const completedCount = completedSessions.length;
+    const completedMistakes = completedSessions.reduce(
+      (sum, session) => sum + session._count.mistakes,
+      0,
+    );
+    const totalHours = completedSessions.reduce((sum, session) => {
+      if (!session.endedAt) return sum;
+      const ms =
+        new Date(session.endedAt).getTime() -
+        new Date(session.startedAt).getTime();
+      return sum + Math.max(0, ms) / 3_600_000;
+    }, 0);
+    const averageMistakes =
+      completedCount > 0 ? completedMistakes / completedCount : null;
+    const readiness =
+      completedCount > 0 && averageMistakes !== null
+        ? Math.round(
+            Math.min(
+              100,
+              Math.min(60, completedCount * 10) +
+                Math.max(0, 40 - averageMistakes * 10),
+            ),
+          )
+        : null;
+
+    const trend = [...completedSessions]
+      .reverse()
+      .map((session) => ({
+        sessionId: session.id,
+        startedAt: session.startedAt,
+        routeTitle: session.route.title,
+        mistakeCount: session._count.mistakes,
+      }));
+
+    return {
+      student: {
+        id: student.id,
+        fullName: student.fullName,
+        email: student.email,
+        createdAt: student.createdAt,
+        phone: student.profile?.phone ?? null,
+        city: student.profile?.city ?? null,
+        avatarUrl: student.profile?.avatarUrl ?? null,
+      },
+      stats: {
+        completedCount,
+        totalMistakes,
+        averageMistakes:
+          averageMistakes === null
+            ? null
+            : Math.round(averageMistakes * 10) / 10,
+        readiness,
+        totalHours: Math.round(totalHours * 10) / 10,
+      },
+      categories: categoryStats,
+      trend,
+      recentMistakes: recentMistakes.map((mistake) => ({
+        id: mistake.id,
+        sessionId: mistake.sessionId,
+        categoryId: mistake.categoryId,
+        category: mistake.category,
+        severity: mistake.severity,
+        note: mistake.note,
+        timestamp: mistake.timestamp,
+        route: mistake.session.route,
+        sessionEndedAt: mistake.session.endedAt,
+      })),
+      sessions: sessions.map((session) => ({
+        id: session.id,
+        studentName: student.fullName,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt,
+        route: session.route,
+        _count: session._count,
+        recentMistakes: session.mistakes.map((mistake) => ({
+          id: mistake.id,
+          category: mistake.category,
+          severity: mistake.severity,
+          note: mistake.note,
+          timestamp: mistake.timestamp,
+        })),
+      })),
+    };
   }
 
   async findOne(userId: string, role: string, id: string) {
@@ -213,13 +412,53 @@ export class DrivingSessionsService {
     }
   }
 
-  private async requireStudentUser(studentUserId: string) {
+  private async requireStudentUser(
+    studentUserId: string,
+    instructorId: string,
+    role: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: studentUserId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, linkedInstructorId: true },
     });
-    if (!user) {
+    if (!user || user.role !== 'USER') {
       throw new NotFoundException('Student user not found');
+    }
+    if (
+      role !== 'ADMIN' &&
+      user.linkedInstructorId !== instructorId
+    ) {
+      throw new ForbiddenException('Student is not in your group');
+    }
+  }
+
+  private async assertCanAccessStudent(
+    requesterId: string,
+    role: string,
+    studentUserId: string,
+  ) {
+    if (role === 'USER') {
+      if (requesterId !== studentUserId) {
+        throw new ForbiddenException('You can only view your own practices');
+      }
+      return;
+    }
+    if (role === 'INSTRUCTOR') {
+      const student = await this.prisma.user.findFirst({
+        where: {
+          id: studentUserId,
+          linkedInstructorId: requesterId,
+          role: 'USER',
+        },
+        select: { id: true },
+      });
+      if (!student) {
+        throw new ForbiddenException('Student is not in your group');
+      }
+      return;
+    }
+    if (role !== 'ADMIN') {
+      throw new ForbiddenException('You cannot view these practices');
     }
   }
 
