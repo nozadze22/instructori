@@ -27,7 +27,7 @@ function EditContent() {
 
   return (
     <InstructorProfileDetail
-      key={profile?.updatedAt ?? me.userId}
+      key={`${profile?.instructorCode ?? ""}-${profile?.updatedAt ?? me.userId}`}
       variant="edit"
       instructor={mapMeToInstructorDirectoryItem(me, profile)}
     />

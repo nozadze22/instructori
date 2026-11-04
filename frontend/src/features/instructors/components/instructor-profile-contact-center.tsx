@@ -16,9 +16,6 @@ import {
   useGetProfile,
 } from "@/features/profile/hooks/profile";
 import { displayWorkingHours } from "@/features/profile/lib/working-hours";
-import { MOCK_INSTRUCTOR_PROFILE } from "@/features/instructors/data/mock-instructor-profile";
-
-const mock = MOCK_INSTRUCTOR_PROFILE;
 
 type InstructorProfileContactCenterProps = {
   instructor: InstructorDirectoryItem;
@@ -46,7 +43,7 @@ export function InstructorProfileContactCenter({
   const phone =
     (isOwner ? profile?.phone : null) ??
     instructor.phone ??
-    (isOwner ? null : mock.contact.phone);
+    null;
 
   return (
     <>
@@ -79,7 +76,10 @@ export function InstructorProfileContactCenter({
               </span>
             }
             label="სამუშაო გრაფიკი"
-            value={displayWorkingHours(workingHours, mock.contact.hours)}
+            value={displayWorkingHours(
+              workingHours,
+              isOwner ? "დაამატე გრაფიკი" : "მითითებული არ არის",
+            )}
             isOwner={isOwner}
             onEdit={isOwner ? () => setWorkingHoursOpen(true) : undefined}
           />
@@ -102,13 +102,14 @@ export function InstructorProfileContactCenter({
             }
           />
 
-          {!isOwner ? (
-            <InstructorEditableContactRow
-              icon={<MapPin className="size-5 text-primary" />}
-              label="სათაო ოფისი"
-              value={mock.contact.address}
-            />
-          ) : null}
+          <InstructorEditableContactRow
+            icon={<MapPin className="size-5 text-primary" />}
+            label="ქალაქი"
+            value={
+              instructor.city?.trim() ||
+              (isOwner ? "დაამატე ქალაქი" : "მითითებული არ არის")
+            }
+          />
         </div>
 
         {isOwner ? (

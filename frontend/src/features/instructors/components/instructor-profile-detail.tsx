@@ -75,6 +75,7 @@ export function InstructorProfileDetail({
 }: InstructorProfileDetailProps) {
   const isEdit = variant === "edit";
   const isPreview = variant === "preview";
+  const isOwnerView = isEdit || isPreview;
   const isPublicView = variant === "public" || isPreview;
   const [avatarUrl, setAvatarUrl] = useState(instructor.avatarUrl);
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
@@ -259,7 +260,7 @@ export function InstructorProfileDetail({
         ) : null}
       </div>
 
-      {isEdit ? (
+      {isOwnerView ? (
         <div className="mb-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
             <div>
@@ -510,7 +511,7 @@ export function InstructorProfileDetail({
       <div className="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8">
           <InstructorProfileBiographySection
-            isOwner={isEdit}
+            isOwner={isOwnerView}
             instructorBio={instructor.bio}
             fallbackBody={mock.biography.body}
             title={mock.biography.title}
@@ -619,7 +620,7 @@ export function InstructorProfileDetail({
         <aside className="flex flex-col gap-6 lg:col-span-4">
           <InstructorProfileContactCenter
             instructor={instructor}
-            isOwner={isEdit}
+            isOwner={isOwnerView}
           />
 
           <div className="rounded-2xl bg-surface-container-low p-6 shadow-sm">

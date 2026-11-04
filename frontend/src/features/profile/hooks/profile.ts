@@ -52,6 +52,8 @@ export function useCreateInstructorCode() {
           ? { ...profile, instructorCode }
           : profile,
       );
+      void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("ინსტრუქტორის კოდი შეიქმნა");
     },
     onError: (error: Error) => {
@@ -94,6 +96,7 @@ export function useCreateProfile() {
     onSuccess: (data) => {
       queryClient.setQueryData(["profile"], data);
       void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("პროფილი შეიქმნა");
     },
     onError: (error: Error) => {
@@ -151,6 +154,7 @@ export function useUpdateProfile() {
     onSuccess: (data) => {
       queryClient.setQueryData(["profile"], data);
       void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("პროფილი განახლდა");
     },
     onError: (error: Error) => {

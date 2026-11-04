@@ -52,7 +52,7 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
     />
   ) : (
     <InstructorProfileDetail
-      key={`${profile?.updatedAt ?? me.userId}-${vehicles?.length ?? 0}-${trainingSteps?.length ?? 0}-${certificates?.length ?? 0}`}
+      key={`${profile?.instructorCode ?? ""}-${profile?.updatedAt ?? me.userId}-${vehicles?.length ?? 0}-${trainingSteps?.length ?? 0}-${certificates?.length ?? 0}`}
       variant="preview"
       instructor={{
         ...mapMeToInstructorDirectoryItem(me, profile),
