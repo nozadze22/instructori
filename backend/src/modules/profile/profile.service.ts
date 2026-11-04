@@ -90,7 +90,7 @@ export class ProfileService {
       });
     }
 
-    return this.prisma.profile.create({
+    await this.prisma.profile.create({
       data: {
         userId,
         bio: dto.bio,
@@ -101,6 +101,8 @@ export class ProfileService {
         packageDeal: dto.packageDeal?.trim() || null,
       },
     });
+
+    return this.getProfile(userId);
   }
 
   async getProfile(userId: string) {
@@ -171,7 +173,7 @@ export class ProfileService {
       });
     }
 
-    return this.prisma.profile.update({
+    await this.prisma.profile.update({
       where: { userId },
       data: {
         bio: dto.bio,
@@ -186,6 +188,8 @@ export class ProfileService {
           : {}),
       },
     });
+
+    return this.getProfile(userId);
   }
 
   async getInstructorGroup(userId: string) {
