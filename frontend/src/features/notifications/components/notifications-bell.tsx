@@ -22,6 +22,7 @@ import {
   formatNotificationWhen,
   notificationHref,
 } from "@/features/notifications/lib/notification-links";
+import { notificationLoadErrorCopy } from "@/features/notifications/lib/notification-load-error";
 import { cn } from "@/lib/utils";
 
 type NotificationsBellProps = {
@@ -43,6 +44,7 @@ export function NotificationsBell({
   const markAllRead = useMarkAllNotificationsRead();
 
   const unread = unreadQuery.data?.unreadCount ?? 0;
+  const loadError = listQuery.isError ? notificationLoadErrorCopy() : null;
 
   if (!enabled) return null;
 
@@ -93,11 +95,26 @@ export function NotificationsBell({
             </div>
           ) : null}
 
-          {listQuery.isError ? (
-            <p className="px-3 py-6 text-center text-sm text-destructive">
-              ზარი ვერ ჩაიტვირთა. გაუშვი notification სერვისი (პორტი 4002) და
-              გადატვირთე frontend.
-            </p>
+          {loadError ? (
+            <div className="flex flex-col items-center gap-3 px-3 py-6 text-center">
+              <p className="text-sm text-muted-foreground">{loadError.title}</p>
+              {loadError.hint ? (
+                <p className="text-xs text-muted-foreground/80">{loadError.hint}</p>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                disabled={listQuery.isFetching}
+                onClick={() => void listQuery.refetch()}
+              >
+                {listQuery.isFetching ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : null}
+                თავიდან ცდა
+              </Button>
+            </div>
           ) : null}
 
           {!listQuery.isLoading &&
