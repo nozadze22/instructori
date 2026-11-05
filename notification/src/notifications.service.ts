@@ -92,8 +92,9 @@ export class NotificationsService {
     fullName: string;
     email: string;
     city: string;
+    adminRecipientIds: string[];
   }) {
-    await this.notifyAdmins({
+    await this.notifyRecipients(event.adminRecipientIds, {
       type: 'INSTRUCTOR_REGISTRATION',
       title: 'ახალი ინსტრუქტორი',
       body: `${event.fullName} (${event.city}) — ${event.email}. დაამტკიცე ანგარიში.`,
@@ -146,8 +147,9 @@ export class NotificationsService {
     studentId: string;
     studentFullName: string;
     instructorId?: string | null;
+    adminRecipientIds: string[];
   }) {
-    await this.notifyAdmins({
+    await this.notifyRecipients(event.adminRecipientIds, {
       type: 'STUDENT_REGISTRATION',
       title: 'ახალი სტუდენტი',
       body: `${event.studentFullName} დარეგისტრირდა.`,
@@ -172,6 +174,7 @@ export class NotificationsService {
     action: 'created' | 'updated' | 'catalog_sync';
     createdCount?: number;
     updatedCount?: number;
+    instructorRecipientIds: string[];
   }) {
     let title = 'მარშრუტის განახლება';
     let body = `«${event.title}»${event.city ? ` (${event.city})` : ''} განახლდა.`;
@@ -184,7 +187,7 @@ export class NotificationsService {
       body = `კატალოგი სინქრონდა: ${event.createdCount ?? 0} ახალი, ${event.updatedCount ?? 0} განახლება.`;
     }
 
-    await this.notifyActiveInstructors({
+    await this.notifyRecipients(event.instructorRecipientIds, {
       type: 'SYSTEM_ROUTE',
       title,
       body,
@@ -198,26 +201,26 @@ export class NotificationsService {
     return { ok: true };
   }
 
-  private async notifyAdmins(payload: {
-    type: Prisma.NotificationCreateManyInput['type'];
-    title: string;
-    body: string;
-    data: Prisma.InputJsonValue;
-  }) {
-    const admins = await this.prisma.user.findMany({
-      where: { role: 'ADMIN' },
-      select: { id: true },
-    });
-    if (!admins.length) {
+  private async notifyRecipients(
+    recipientUserIds: string[],
+    payload: {
+      type: Prisma.NotificationCreateManyInput['type'];
+      title: string;
+      body: string;
+      data: Prisma.InputJsonValue;
+    },
+  ) {
+    const uniqueIds = [...new Set(recipientUserIds.filter(Boolean))];
+    if (!uniqueIds.length) {
       this.logger.warn(
-        'No ADMIN users in database — registration notification skipped',
+        `No recipients for ${payload.type} notification — skipped`,
       );
       return;
     }
 
     await this.prisma.notification.createMany({
-      data: admins.map((admin) => ({
-        userId: admin.id,
+      data: uniqueIds.map((userId) => ({
+        userId,
         type: payload.type,
         title: payload.title,
         body: payload.body,
@@ -225,34 +228,7 @@ export class NotificationsService {
       })),
     });
 
-    await Promise.all(admins.map((admin) => this.publishUnread(admin.id)));
-  }
-
-  private async notifyActiveInstructors(payload: {
-    type: Prisma.NotificationCreateManyInput['type'];
-    title: string;
-    body: string;
-    data: Prisma.InputJsonValue;
-  }) {
-    const instructors = await this.prisma.user.findMany({
-      where: { role: 'INSTRUCTOR', accessStatus: 'ACTIVE' },
-      select: { id: true },
-    });
-    if (!instructors.length) return;
-
-    await this.prisma.notification.createMany({
-      data: instructors.map((instructor) => ({
-        userId: instructor.id,
-        type: payload.type,
-        title: payload.title,
-        body: payload.body,
-        data: payload.data,
-      })),
-    });
-
-    await Promise.all(
-      instructors.map((instructor) => this.publishUnread(instructor.id)),
-    );
+    await Promise.all(uniqueIds.map((userId) => this.publishUnread(userId)));
   }
 
   async listForUser(

@@ -1,4 +1,5 @@
-// Notification microservice — same DB as main backend; migrations run from backend/.
+// Dedicated notification Postgres (separate Neon from main API).
+// User identity comes from JWT; recipient lists come from API internal events.
 
 generator client {
   provider = "prisma-client-js"
@@ -16,37 +17,6 @@ enum NotificationType {
   STUDENT_LINKED
   STUDENT_REGISTRATION
   SYSTEM_ROUTE
-}
-
-enum Role {
-  ADMIN
-  INSTRUCTOR
-  USER
-}
-
-enum AccessStatus {
-  PENDING
-  ACTIVE
-  BLOCKED
-}
-
-enum AccessSource {
-  ADMIN
-  PAYMENT
-}
-
-/// Read-only subset for JWT validation (table owned by main API).
-model User {
-  id              String       @id
-  email           String
-  passwordHash    String
-  fullName        String
-  role            Role
-  accessStatus    AccessStatus
-  accessSource    AccessSource?
-  sessionVersion  Int          @default(0)
-
-  @@map("User")
 }
 
 model Notification {

@@ -9,15 +9,12 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { PrismaService } from './prisma/prisma.service';
 import { ACCESS_TOKEN_COOKIE } from './auth/auth-cookie';
+import {
+  authUserFromAccessJwt,
+  type AccessJwtPayload,
+} from './auth/jwt-payload';
 import { NotificationsRealtimeService } from './notifications-realtime.service';
-
-type SocketJwtPayload = {
-  sub: string;
-  purpose?: string;
-  sv?: number;
-};
 
 type NotificationSocketData = {
   userId?: string;
@@ -48,7 +45,6 @@ export class NotificationsGateway
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-    private readonly prisma: PrismaService,
     private readonly realtime: NotificationsRealtimeService,
   ) {}
 
@@ -57,7 +53,7 @@ export class NotificationsGateway
     this.logger.log('Notification socket gateway ready');
   }
 
-  async handleConnection(client: NotificationSocket) {
+  handleConnection(client: NotificationSocket) {
     try {
       const token = this.extractToken(client);
       if (!token) {
@@ -65,37 +61,13 @@ export class NotificationsGateway
         return;
       }
 
-      const payload = this.jwt.verify<SocketJwtPayload>(token, {
+      const payload = this.jwt.verify<AccessJwtPayload>(token, {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
       });
 
-      if (payload.purpose) {
-        client.disconnect(true);
-        return;
-      }
-
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: {
-          id: true,
-          accessStatus: true,
-          sessionVersion: true,
-        },
-      });
-
-      if (!user || user.accessStatus === 'BLOCKED') {
-        client.disconnect(true);
-        return;
-      }
-
-      const tokenVersion = payload.sv ?? 0;
-      if (tokenVersion !== user.sessionVersion) {
-        client.disconnect(true);
-        return;
-      }
-
-      client.data.userId = user.id;
-      await client.join(`user:${user.id}`);
+      const user = authUserFromAccessJwt(payload);
+      client.data.userId = user.userId;
+      void client.join(`user:${user.userId}`);
     } catch (error) {
       this.logger.debug(
         `Notification socket auth failed: ${error instanceof Error ? error.message : 'unknown'}`,
