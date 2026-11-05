@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationClientModule } from '../notification-client/notification-client.module';
 import { ExamRegionsController } from './exam-regions.controller';
 import { ExamRegionsService } from './exam-regions.service';
 import { PublicRoutesController } from './public-routes.controller';
@@ -9,7 +10,7 @@ import { RoutesService } from './routes.service';
 import { TtsService } from './tts.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationClientModule],
   controllers: [
     RoutesController,
     RoutesTtsController,

@@ -20,6 +20,12 @@ export function useUserRegistration() {
     mutationKey: ["user", "register"],
     mutationFn: (data: UserRegistrationSchema) => registerUser(data),
     onSuccess: (data, variables) => {
+      if (data.createdByAdmin) {
+        toast.success(`${data.user.fullName} დარეგისტრირდა — შეტყობინება admin ზარში`);
+        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        return;
+      }
+
       const isStudent = variables.registrationRole === "student";
       toast.success(
         isStudent

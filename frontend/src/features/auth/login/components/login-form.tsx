@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Lock, Mail, Globe, Gauge } from "lucide-react";
+import { Lock, Mail, Gauge } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,20 +158,6 @@ export function LoginForm() {
                 რეგისტრაცია
               </Link>
             </p>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between px-4 opacity-50">
-          <div className="flex items-center gap-1">
-            <span className="size-2 animate-pulse rounded-full bg-[#4ade80]" />
-            <span className="text-xs font-semibold">SimCluster Online</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-semibold">v4.8.2</span>
-            <div className="flex items-center gap-1">
-              <Globe className="size-4" />
-              <span className="text-xs font-semibold">EU-West</span>
-            </div>
           </div>
         </div>
       </div>

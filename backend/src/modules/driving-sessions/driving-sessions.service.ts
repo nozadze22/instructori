@@ -47,7 +47,7 @@ export class DrivingSessionsService {
     if (role !== 'INSTRUCTOR' && role !== 'ADMIN') {
       throw new ForbiddenException('Only instructors can start a practice session');
     }
-    await this.requireRoute(dto.routeId);
+    await this.requireRoute(dto.routeId, instructorId, role);
     if (dto.studentUserId) {
       await this.requireStudentUser(dto.studentUserId, instructorId, role);
     }
@@ -402,13 +402,32 @@ export class DrivingSessionsService {
     return session;
   }
 
-  private async requireRoute(routeId: string) {
+  private async requireRoute(
+    routeId: string,
+    instructorId: string,
+    role: string,
+  ) {
     const route = await this.prisma.route.findUnique({
       where: { id: routeId },
-      select: { id: true },
+      select: {
+        id: true,
+        visibility: true,
+        isPublished: true,
+        createdById: true,
+      },
     });
     if (!route) {
       throw new NotFoundException('Route not found');
+    }
+
+    if (role === 'ADMIN') {
+      return;
+    }
+
+    const isPublicSystem = route.visibility === 'SYSTEM' && route.isPublished;
+    const isOwnRoute = route.createdById === instructorId;
+    if (!isPublicSystem && !isOwnRoute) {
+      throw new ForbiddenException('Route is not available for this session');
     }
   }
 

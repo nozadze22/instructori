@@ -1,6 +1,12 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from "react";
 import Image from "next/image";
 import {
   Camera,
@@ -34,6 +40,7 @@ import {
   useReplaceProfileVehiclePhoto,
   useUpdateProfileVehicle,
 } from "@/features/profile/hooks/instructor-vehicles";
+import { useNearViewport } from "@/hooks/use-near-viewport";
 import { cn } from "@/lib/utils";
 
 type ProfileSectionShellProps = {
@@ -42,6 +49,7 @@ type ProfileSectionShellProps = {
   subtitle: string;
   badge?: string;
   children: ReactNode;
+  ref?: Ref<HTMLElement>;
 };
 
 function ProfileSectionShell({
@@ -50,9 +58,13 @@ function ProfileSectionShell({
   subtitle,
   badge,
   children,
+  ref,
 }: ProfileSectionShellProps) {
   return (
-    <section className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8">
+    <section
+      ref={ref}
+      className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -77,18 +89,23 @@ function ProfileSectionShell({
 type InstructorProfileFleetSectionProps = {
   mode?: "display" | "manage";
   publicVehicles?: InstructorVehicle[];
+  /** Owner preview: fetch owned vehicles only when the section is near the viewport. */
+  fetchOwned?: boolean;
 };
 
 export function InstructorProfileFleetSection({
   mode = "display",
   publicVehicles = [],
+  fetchOwned = false,
 }: InstructorProfileFleetSectionProps) {
   const isManage = mode === "manage";
+  const shouldFetchOwned = isManage || fetchOwned;
+  const { ref, isNear } = useNearViewport();
   const { data: ownerVehicles, isLoading: ownerLoading } = useProfileVehicles({
-    enabled: isManage,
+    enabled: shouldFetchOwned && isNear,
   });
 
-  const vehicles = isManage ? (ownerVehicles ?? []) : publicVehicles;
+  const vehicles = shouldFetchOwned ? (ownerVehicles ?? []) : publicVehicles;
   const countLabel =
     vehicles.length > 0
       ? `${vehicles.length} ერთეული ტექნიკა`
@@ -98,12 +115,13 @@ export function InstructorProfileFleetSection({
 
   return (
     <ProfileSectionShell
+      ref={ref}
       icon={<Car className="size-[22px]" />}
       title="სასწავლო ავტოპარკი & სიმულატორი"
       subtitle="100% იდენტური საგამოცდო ცენტრის მანქანებთან"
       badge={countLabel}
     >
-      {isManage && ownerLoading ? (
+      {shouldFetchOwned && (!isNear || ownerLoading) ? (
         <p className="text-sm text-on-surface-variant">იტვირთება...</p>
       ) : (
         <>

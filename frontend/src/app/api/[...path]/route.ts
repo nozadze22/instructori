@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 
-const DEFAULT_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
+const LOCAL_BACKEND_URL = "http://localhost:4001";
+const PRODUCTION_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
 
 function isBlockedBackendHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -17,10 +18,15 @@ function isBlockedBackendHost(hostname: string): boolean {
 
 function resolveBackendUrl(): string {
   const onVercel = process.env.VERCEL === "1";
+  const devDefault =
+    process.env.NODE_ENV === "development" && !onVercel
+      ? LOCAL_BACKEND_URL
+      : PRODUCTION_BACKEND_URL;
+
   for (const raw of [
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,
-    DEFAULT_BACKEND_URL,
+    devDefault,
   ]) {
     const value = raw?.trim().replace(/\/$/, "") ?? "";
     if (!/^https?:\/\//i.test(value)) continue;
@@ -33,7 +39,7 @@ function resolveBackendUrl(): string {
     }
     return value;
   }
-  return DEFAULT_BACKEND_URL;
+  return devDefault;
 }
 
 const FORWARD_REQUEST_HEADERS = new Set([
@@ -70,6 +76,7 @@ async function proxy(
         ? undefined
         : await request.arrayBuffer();
 
+    const backendBase = resolveBackendUrl();
     const upstream = await fetch(url, {
       method,
       headers,
@@ -78,6 +85,11 @@ async function proxy(
     });
 
     const responseHeaders = new Headers();
+    responseHeaders.set("x-backend-target", backendBase);
+    const upstreamBuild = upstream.headers.get("x-api-build");
+    if (upstreamBuild) {
+      responseHeaders.set("x-api-build", upstreamBuild);
+    }
     const contentType = upstream.headers.get("content-type");
     if (contentType) {
       responseHeaders.set("content-type", contentType);

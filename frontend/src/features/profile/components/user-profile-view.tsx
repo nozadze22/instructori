@@ -465,7 +465,8 @@ export function UserProfileView({
                   <div className="space-y-3">
                     <p className="text-sm leading-5 text-muted-foreground">
                       თუ ინსტრუქტორმა კოდი გამოგიგზავნა, შეიყვანე აქ და მის
-                      ჯგუფს შეუერთდები.
+                      ჯგუფს შეუერთდები. კოდი 8 ასო-რიცხვია — დააკოპირე
+                      ინსტრუქტორის პროფილიდან (0 და O, D არ აერიოს).
                     </p>
                     <div className="flex gap-2">
                       <Input
@@ -473,9 +474,11 @@ export function UserProfileView({
                         onChange={(event) =>
                           setInstructorCode(event.target.value.toUpperCase())
                         }
-                        placeholder="მაგ. A1B2C3D4"
-                        className="h-11 rounded-xl border-white/10 bg-surface-container/80 uppercase transition-colors focus:border-primary/50"
-                        maxLength={32}
+                        placeholder="მაგ. CDAA5FCD"
+                        className="h-11 rounded-xl border-white/10 bg-surface-container/80 font-mono uppercase tracking-widest transition-colors focus:border-primary/50"
+                        maxLength={8}
+                        autoComplete="off"
+                        spellCheck={false}
                       />
                       <Button
                         type="button"

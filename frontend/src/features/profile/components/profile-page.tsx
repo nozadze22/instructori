@@ -1,14 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useGetProfile } from "@/features/profile/hooks/profile";
-import { useProfileVehicles } from "@/features/profile/hooks/instructor-vehicles";
-import { useProfileTrainingSteps } from "@/features/profile/hooks/instructor-training-steps";
-import { useProfileCertificates } from "@/features/profile/hooks/instructor-certificates";
 import { InstructorProfileDetail } from "@/features/instructors/components/instructor-profile-detail";
 import { mapMeToInstructorDirectoryItem } from "@/features/instructors/lib/map-instructor-directory-item";
-import { isAppUser } from "@/lib/auth-paths";
+import {
+  isAdminUser,
+  isAppUser,
+  isRegisteredInstructor,
+} from "@/lib/auth-paths";
 import { UserProfileView } from "@/features/profile/components/user-profile-view";
 import Wrapper from "@/components/shared/wrapper/wrapper";
 
@@ -16,17 +20,25 @@ type ProfilePageProps = {
   variant?: "instructor" | "public";
 };
 
+function AdminProfileRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin");
+  }, [router]);
+
+  return (
+    <p className="py-16 text-center text-sm text-muted-foreground">
+      ადმინ პანელზე გადამისამართება...
+    </p>
+  );
+}
+
 function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   const { data: me, isLoading } = useGetMe();
-  const { data: profile } = useGetProfile();
-  const isInstructor = me && !isAppUser(me);
-  const { data: vehicles } = useProfileVehicles({
-    enabled: Boolean(isInstructor),
+  const { data: profile } = useGetProfile({
+    enabled: Boolean(me) && me?.role !== "ADMIN",
   });
-  const { data: trainingSteps } = useProfileTrainingSteps({
-    enabled: Boolean(isInstructor),
-  });
-  const { data: certificates } = useProfileCertificates(Boolean(isInstructor));
 
   if (isLoading) {
     return (
@@ -37,6 +49,10 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
   }
 
   if (!me) return null;
+
+  if (isAdminUser(me)) {
+    return <AdminProfileRedirect />;
+  }
 
   const body = isAppUser(me) ? (
     <UserProfileView
@@ -50,17 +66,16 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
       city={profile?.city}
       createdAt={profile?.createdAt}
     />
-  ) : (
+  ) : isRegisteredInstructor(me) ? (
     <InstructorProfileDetail
-      key={`${profile?.instructorCode ?? ""}-${profile?.updatedAt ?? me.userId}-${vehicles?.length ?? 0}-${trainingSteps?.length ?? 0}-${certificates?.length ?? 0}`}
+      key={profile?.updatedAt ?? me.userId}
       variant="preview"
-      instructor={{
-        ...mapMeToInstructorDirectoryItem(me, profile),
-        vehicles: vehicles ?? [],
-        trainingSteps: trainingSteps ?? [],
-        certificates: certificates ?? [],
-      }}
+      instructor={mapMeToInstructorDirectoryItem(me, profile)}
     />
+  ) : (
+    <p className="py-16 text-center text-sm text-muted-foreground">
+      პროფილი ამ როლისთვის მიუწვდომელია.
+    </p>
   );
 
   if (variant === "public") {
@@ -71,7 +86,9 @@ function ProfileContent({ variant = "instructor" }: ProfilePageProps) {
     );
   }
 
-  return <Wrapper className="flex flex-1 flex-col">{body}</Wrapper>;
+  return (
+    <Wrapper className="flex flex-1 flex-col py-6 lg:py-8">{body}</Wrapper>
+  );
 }
 
 export function ProfilePage({ variant = "instructor" }: ProfilePageProps) {

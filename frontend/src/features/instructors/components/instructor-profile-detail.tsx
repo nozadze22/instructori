@@ -1,26 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  BadgeCheck,
-  Bolt,
   ChevronDown,
-  GraduationCap,
-  Home,
-  Mail,
-  LayoutDashboard,
-  Pencil,
   ShieldCheck,
   Camera,
   Copy,
   Loader2,
   Sparkles,
-  Star,
-  Timer,
   UserRound,
-  Verified,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -36,7 +25,16 @@ import { InstructorProfileBiographySection } from "@/features/instructors/compon
 import { InstructorProfileFleetSection } from "@/features/instructors/components/instructor-profile-fleet-section";
 import { InstructorTrainingStepsSection } from "@/features/instructors/components/instructor-training-steps-section";
 import { InstructorCertificatesSection } from "@/features/instructors/components/instructor-certificates-section";
+import { InstructorProfileReviewsSection } from "@/features/instructors/components/instructor-profile-reviews-section";
+import { InstructorProfileOwnerGuide } from "@/features/instructors/components/instructor-profile-owner-guide";
+import { InstructorProfileBreadcrumbs } from "@/features/instructors/components/instructor-profile-breadcrumbs";
+import { InstructorProfilePreviewHeader } from "@/features/instructors/components/instructor-profile-preview-header";
 import { InstructorProfileHeroOwner } from "@/features/instructors/components/instructor-profile-hero-owner";
+import {
+  getInstructorProfileBreadcrumbs,
+  shouldShowInstructorProfileBreadcrumbBar,
+} from "@/features/instructors/lib/instructor-profile-breadcrumbs";
+import { getInstructorProfileCompleteness } from "@/features/instructors/lib/instructor-profile-completeness";
 import { InstructorMetaBadgeIcon } from "@/features/instructors/components/instructor-meta-badge-icon";
 import { cn } from "@/lib/utils";
 import { userInitials } from "@/lib/user-display";
@@ -83,12 +81,20 @@ export function InstructorProfileDetail({
   const { mutate: removeAvatar, isPending: isRemovingAvatar } =
     useRemoveProfileAvatar();
   const createCode = useCreateInstructorCode();
+  const [createdCode, setCreatedCode] = useState<string | null>(null);
+  const instructorCode =
+    createdCode ??
+    createCode.data?.instructorCode ??
+    instructor.instructorCode ??
+    null;
 
   const categoryLabel = formatInstructorCategories(
     instructor.instructorCategories,
   );
   const portrait =
-    avatarUrl ?? instructor.avatarUrl ?? mock.fallbackPortrait;
+    avatarUrl ??
+    instructor.avatarUrl ??
+    (isOwnerView ? null : mock.fallbackPortrait);
   const displayCity = instructor.city?.trim() || null;
 
   const heroTagline = useMemo(() => {
@@ -96,9 +102,9 @@ export function InstructorProfileDetail({
     if (categoryLabel) parts.push(categoryLabel);
     if (displayCity) parts.push(displayCity);
     if (parts.length > 0) return parts.join(" • ");
-    if (isEdit) return "დაამატე კატეგორიები და ქალაქი";
+    if (isOwnerView) return "დაამატე კატეგორია და ქალაქი რედაქტირებიდან";
     return mock.tagline;
-  }, [categoryLabel, displayCity, isEdit]);
+  }, [categoryLabel, displayCity, isOwnerView]);
 
   const heroMetaBadges = useMemo(() => {
     const badges: { icon: string; label: string }[] = [];
@@ -118,18 +124,27 @@ export function InstructorProfileDetail({
       });
     }
     if (badges.length > 0) return badges;
-    return isEdit ? [] : mock.metaBadges;
+    return isOwnerView ? [] : mock.metaBadges;
   }, [
     categoryLabel,
     displayCity,
     instructor.phone,
     instructor.studentCount,
-    isEdit,
+    isOwnerView,
   ]);
+
+  const profileCompleteness = useMemo(
+    () =>
+      getInstructorProfileCompleteness(instructor, {
+        hasAvatar: Boolean(avatarUrl ?? instructor.avatarUrl),
+        hasInstructorCode: Boolean(instructorCode),
+      }),
+    [instructor, avatarUrl, instructorCode],
+  );
 
   const ownerInitials = userInitials({
     fullName: instructor.fullName,
-    email: instructor.email,
+    email: instructor.fullName,
   });
 
   const handleAvatarChange = ({
@@ -143,122 +158,28 @@ export function InstructorProfileDetail({
     });
   };
 
-  const kpiIcons: Record<string, ReactNode> = {
-    verified: <Verified className="size-6 text-primary" />,
-    school: <GraduationCap className="size-6 text-primary" />,
-    timer: <Timer className="size-6 text-primary" />,
-    star: <Star className="size-6 fill-amber-400 text-amber-400" />,
-    assignment: <BadgeCheck className="size-6 text-primary" />,
-    bolt: <Bolt className="size-6 text-primary" />,
-  };
+  const showProfileSidebar = isOwnerView;
 
-  const profileKpis = [
-    {
-      icon: "school",
-      value: instructor.studentCount,
-      label: "მომზადებული სტუდენტი",
-      footnote: "რეალური მონაცემი",
-    },
-    {
-      icon: "timer",
-      value: instructor.vehicles?.length ?? 0,
-      label: "ავტომობილი",
-      footnote: "პროფილში დამატებული",
-    },
-    {
-      icon: "assignment",
-      value: instructor.trainingSteps?.length ?? 0,
-      label: "სწავლების ეტაპი",
-      footnote: "პროფილში დამატებული",
-    },
-    {
-      icon: "verified",
-      value: instructor.certificates?.length ?? 0,
-      label: "სერტიფიკატი",
-      footnote: "პროფილში დამატებული",
-    },
-    {
-      icon: "bolt",
-      value: instructor.instructorCategories.length,
-      label: "კატეგორია",
-      footnote: "არჩეული მიმართულება",
-    },
-    {
-      icon: "star",
-      value: [
-        instructor.fullName,
-        instructor.city,
-        instructor.phone,
-        instructor.bio,
-        instructor.vehicles?.length,
-        instructor.trainingSteps?.length,
-        instructor.certificates?.length,
-      ].filter(Boolean).length,
-      label: "პროფილის შევსება",
-      footnote: "შევსებული ველები",
-    },
-  ] as const;
+  const breadcrumbItems = useMemo(
+    () => getInstructorProfileBreadcrumbs(variant, instructor.fullName),
+    [variant, instructor.fullName],
+  );
+
+  const showBreadcrumbBar = shouldShowInstructorProfileBreadcrumbBar(variant);
 
   return (
     <div className="flex min-w-0 w-full flex-col overflow-x-hidden pb-16">
-      <div className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center">
-        <nav className="flex flex-wrap items-center gap-2 text-sm text-on-surface-variant">
-          {isPreview || isEdit ? (
-            <>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1 transition-colors hover:text-primary"
-              >
-                <LayoutDashboard className="size-4" />
-                დაშბორდი
-              </Link>
-              <span>/</span>
-              {isEdit ? (
-                <>
-                  <Link href="/profile" className="hover:text-primary">
-                    ჩემი პროფილი
-                  </Link>
-                  <span>/</span>
-                  <span className="font-semibold text-on-surface">
-                    რედაქტირება
-                  </span>
-                </>
-              ) : (
-                <span className="font-semibold text-on-surface">
-                  ჩემი პროფილი
-                </span>
-              )}
-            </>
-          ) : (
-            <>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1 transition-colors hover:text-primary"
-              >
-                <Home className="size-4" />
-                მთავარი
-              </Link>
-              <span>/</span>
-              <Link href="/instructors" className="hover:text-primary">
-                ინსტრუქტორები
-              </Link>
-              <span>/</span>
-              <span className="font-semibold text-on-surface">
-                {instructor.fullName}
-              </span>
-            </>
-          )}
-        </nav>
-        {isPreview ? (
-          <Button
-            className="rounded-xl shadow-md shadow-primary/20"
-            render={<Link href="/profile/edit" />}
-          >
-            <Pencil className="size-4" />
-            რედაქტირება
-          </Button>
-        ) : null}
-      </div>
+      {isPreview ? (
+        <InstructorProfilePreviewHeader
+          completenessPercent={profileCompleteness.percent}
+        />
+      ) : null}
+
+      {showBreadcrumbBar && breadcrumbItems ? (
+        <div className="py-4">
+          <InstructorProfileBreadcrumbs items={breadcrumbItems} />
+        </div>
+      ) : null}
 
       {isOwnerView ? (
         <div className="mb-4 space-y-3">
@@ -272,10 +193,10 @@ export function InstructorProfileDetail({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {instructor.instructorCode ? (
+              {instructorCode ? (
                 <>
                   <code className="rounded-lg bg-surface-container px-3 py-2 text-sm font-bold tracking-[0.18em] text-on-surface">
-                    {instructor.instructorCode}
+                    {instructorCode}
                   </code>
                   <Button
                     type="button"
@@ -284,13 +205,27 @@ export function InstructorProfileDetail({
                     className="rounded-lg"
                     aria-label="კოდის კოპირება"
                     onClick={() => {
-                      void navigator.clipboard.writeText(
-                        instructor.instructorCode ?? "",
-                      );
+                      void navigator.clipboard.writeText(instructorCode);
                       toast.success("კოდი დაკოპირდა");
                     }}
                   >
                     <Copy className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-lg text-xs"
+                    disabled={createCode.isPending}
+                    onClick={() =>
+                      createCode.mutate(true, {
+                        onSuccess: ({ instructorCode: nextCode }) => {
+                          setCreatedCode(nextCode);
+                          toast.success("ახალი კოდი შეიქმნა");
+                        },
+                      })
+                    }
+                  >
+                    {createCode.isPending ? "..." : "ახალი კოდი"}
                   </Button>
                 </>
               ) : (
@@ -298,7 +233,13 @@ export function InstructorProfileDetail({
                   type="button"
                   className="rounded-lg"
                   disabled={createCode.isPending}
-                  onClick={() => createCode.mutate()}
+                  onClick={() =>
+                    createCode.mutate(undefined, {
+                      onSuccess: ({ instructorCode: nextCode }) => {
+                        setCreatedCode(nextCode);
+                      },
+                    })
+                  }
                 >
                   {createCode.isPending ? "იქმნება..." : "კოდის შექმნა"}
                 </Button>
@@ -433,15 +374,6 @@ export function InstructorProfileDetail({
                       </span>
                     ))}
                   </div>
-                  <p className="flex items-center gap-2 text-sm text-primary">
-                    <Mail className="size-4 shrink-0" />
-                    <a
-                      href={`mailto:${instructor.email}`}
-                      className="hover:underline"
-                    >
-                      {instructor.email}
-                    </a>
-                  </p>
                 </div>
               )}
             </div>
@@ -466,7 +398,9 @@ export function InstructorProfileDetail({
                     </>
                   ) : (
                     <span className="text-sm text-on-surface-variant">
-                      {isEdit ? "მიუთითე რედაქტირებიდან" : "მითითებული არ არის"}
+                      {isOwnerView
+                        ? "დაამატე რედაქტირებიდან"
+                        : "მითითებული არ არის"}
                     </span>
                   )}
                 </div>
@@ -486,210 +420,116 @@ export function InstructorProfileDetail({
         </div>
       </section>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        {profileKpis.map((kpi) => (
-          <div
-            key={kpi.label}
-            className="flex flex-col justify-between rounded-2xl bg-surface-container-low p-5 shadow-sm transition-all hover:bg-surface-container"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              {kpiIcons[kpi.icon]}
-            </div>
-            <div>
-              <div className="text-2xl font-extrabold tracking-tight text-on-surface">
-                {kpi.value.toLocaleString("ka-GE")}
-              </div>
-              <div className="mt-0.5 text-xs text-on-surface-variant">
-                {kpi.label}
-              </div>
-            </div>
-            <p className="mt-2 text-[11px] text-primary">{kpi.footnote}</p>
-          </div>
-        ))}
-      </div>
+      {!showProfileSidebar ? (
+        <div className="mb-8">
+          <InstructorProfileContactCenter
+            instructor={instructor}
+            isOwner={false}
+            variant="inline"
+          />
+        </div>
+      ) : null}
 
-      <div className="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-12">
-        <div className="flex min-w-0 flex-col gap-8 lg:col-span-8">
+      <div
+        className={cn(
+          "grid min-w-0 grid-cols-1 items-start gap-8",
+          showProfileSidebar && "lg:grid-cols-12",
+        )}
+      >
+        <div
+          className={cn(
+            "flex min-w-0 flex-col gap-8",
+            showProfileSidebar ? "lg:col-span-8" : "w-full",
+          )}
+        >
           <InstructorProfileBiographySection
             isOwner={isOwnerView}
             instructorBio={instructor.bio}
             fallbackBody={mock.biography.body}
-            title={mock.biography.title}
-            subtitle={mock.biography.subtitle}
-            badge={mock.biography.badge}
-            stages={mock.biography.stages}
+            title={
+              isOwnerView
+                ? "ბიოგრაფია & სწავლების მიდგომა"
+                : mock.biography.title
+            }
+            subtitle={
+              isOwnerView
+                ? "აღწერე გამოცდილება და როგორ ამზადებ სტუდენტებს"
+                : mock.biography.subtitle
+            }
+            badge={isOwnerView ? undefined : mock.biography.badge}
+            stages={isOwnerView ? [] : mock.biography.stages}
             trainingSteps={instructor.trainingSteps ?? []}
           />
 
           <InstructorProfileFleetSection
             mode={isEdit ? "manage" : "display"}
             publicVehicles={instructor.vehicles ?? []}
+            fetchOwned={isPreview}
           />
 
           {isEdit ? (
             <InstructorTrainingStepsSection mode="manage" />
+          ) : isPreview ? (
+            <InstructorTrainingStepsSection
+              mode="display"
+              fetchOwned
+            />
+          ) : (instructor.trainingSteps?.length ?? 0) > 0 ? (
+            <InstructorTrainingStepsSection
+              mode="display"
+              publicSteps={instructor.trainingSteps ?? []}
+            />
           ) : null}
 
           <InstructorCertificatesSection
             manage={isEdit}
             publicCertificates={instructor.certificates ?? []}
+            fetchOwned={isPreview}
           />
 
-          <ProfileSection
-            icon={<Star className="size-[22px]" />}
-            title="სტუდენტების შეფასებები & გამოხმაურებები"
-            subtitle="384 დამოწმებული შეფასება"
-          >
-            <div className="grid grid-cols-1 items-center gap-6 rounded-xl bg-surface-container p-6 md:grid-cols-12">
-              <div className="flex flex-col items-center text-center md:col-span-4">
-                <div className="text-5xl font-black text-on-surface">4.96</div>
-                <div className="my-1 flex text-amber-400">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="size-5 fill-current" />
+          <InstructorProfileReviewsSection
+            instructorId={instructor.id}
+            isOwnerView={isOwnerView}
+          />
+
+        </div>
+
+        {showProfileSidebar ? (
+          <aside className="flex flex-col gap-6 lg:col-span-4">
+            <InstructorProfileContactCenter
+              instructor={instructor}
+              isOwner={isOwnerView}
+            />
+
+            {isOwnerView ? (
+              <InstructorProfileOwnerGuide completeness={profileCompleteness} />
+            ) : (
+              <div className="rounded-2xl bg-surface-container-low p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-semibold text-on-surface">
+                  ხშირად დასმული კითხვები
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {mock.faq.map((item) => (
+                    <details
+                      key={item.q}
+                      className="group cursor-pointer rounded-xl bg-surface-container p-3.5"
+                    >
+                      <summary className="flex list-none items-center justify-between text-sm font-semibold text-on-surface">
+                        {item.q}
+                        <ChevronDown className="size-4 text-primary transition-transform group-open:rotate-180" />
+                      </summary>
+                      <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
+                        {item.a}
+                      </p>
+                    </details>
                   ))}
                 </div>
-                <span className="text-xs text-on-surface-variant">
-                  98.2% რეკომენდაციას უწევს
-                </span>
               </div>
-              <div className="flex flex-col gap-2 md:col-span-8">
-                {mock.ratingBreakdown.map((row) => (
-                  <div key={row.stars} className="flex items-center gap-3">
-                    <span className="w-12 text-xs text-on-surface-variant">
-                      {row.stars} ვარსკ.
-                    </span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${row.percent}%` }}
-                      />
-                    </div>
-                    <span className="w-10 text-right text-xs font-semibold text-on-surface">
-                      {row.percent}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              {mock.reviews.map((review) => (
-                <article
-                  key={review.name}
-                  className="flex flex-col gap-3 rounded-xl bg-surface-container p-5"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative size-10 overflow-hidden rounded-full bg-surface-container-highest">
-                        <Image
-                          src={review.avatar}
-                          alt={review.name}
-                          fill
-                          sizes="40px"
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-sm font-bold text-on-surface">
-                          {review.name}
-                        </span>
-                        <span className="text-xs text-secondary">
-                          {review.meta}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex text-amber-400">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <Star key={index} className="size-4 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm leading-relaxed text-on-surface-variant">
-                    {review.text}
-                  </p>
-                  <p className="flex items-center gap-2 text-xs font-medium text-primary">
-                    <BadgeCheck className="size-3.5" />
-                    {review.verified}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </ProfileSection>
-
-        </div>
-
-        <aside className="flex flex-col gap-6 lg:col-span-4">
-          <InstructorProfileContactCenter
-            instructor={instructor}
-            isOwner={isOwnerView}
-          />
-
-          <div className="rounded-2xl bg-surface-container-low p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold text-on-surface">
-              ხშირად დასმული კითხვები
-            </h3>
-            <div className="flex flex-col gap-2">
-              {mock.faq.map((item) => (
-                <details
-                  key={item.q}
-                  className="group cursor-pointer rounded-xl bg-surface-container p-3.5"
-                >
-                  <summary className="flex list-none items-center justify-between text-sm font-semibold text-on-surface">
-                    {item.q}
-                    <ChevronDown className="size-4 text-primary transition-transform group-open:rotate-180" />
-                  </summary>
-                  <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
-                    {item.a}
-                  </p>
-                </details>
-              ))}
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-function ProfileSection({
-  icon,
-  title,
-  subtitle,
-  badge,
-  badgeClass,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  subtitle: string;
-  badge?: string;
-  badgeClass?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {icon}
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-on-surface">{title}</h2>
-            <span className="text-xs text-on-surface-variant">{subtitle}</span>
-          </div>
-        </div>
-        {badge ? (
-          <span
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-bold",
-              badgeClass ?? "bg-surface-container-highest text-secondary",
             )}
-          >
-            {badge}
-          </span>
+          </aside>
         ) : null}
       </div>
-      {children}
-    </section>
+    </div>
   );
 }
 

@@ -87,11 +87,14 @@ export async function getInstructorStudents(): Promise<InstructorStudent[]> {
   });
 }
 
-export async function createInstructorCode(): Promise<{
+export async function createInstructorCode(options?: {
+  rotate?: boolean;
+}): Promise<{
   instructorCode: string;
 }> {
   return apiRequest<{ instructorCode: string }>("/profile/instructor-code", {
     method: "POST",
+    body: JSON.stringify({ rotate: options?.rotate === true }),
   });
 }
 

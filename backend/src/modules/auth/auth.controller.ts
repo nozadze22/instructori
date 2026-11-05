@@ -45,9 +45,16 @@ export class AuthController {
   @Post('register/student')
   async registerStudent(
     @Body() dto: RegisterStudentDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const actor = await this.auth.tryResolveUserFromRequest(req);
     const result = await this.auth.registerStudent(dto);
+
+    if (actor?.role === 'ADMIN') {
+      return { user: result.user, createdByAdmin: true as const };
+    }
+
     setAuthCookies(res, result);
     return { user: result.user };
   }

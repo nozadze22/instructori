@@ -17,4 +17,5 @@ export interface AuthUser {
   role: Role;
   accessStatus: AccessStatus;
   accessSource: AccessSource | null;
+  instructorCode?: string | null;
 }

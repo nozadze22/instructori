@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationClientService } from '../notification-client/notification-client.service';
+import { findInstructorByCodeForStudentLink } from './instructor-code.util';
 import { S3StorageService } from '../../storage/s3-storage.service';
 import type { UploadedImageFile } from '../../storage/uploaded-image.type';
 import {
@@ -75,6 +77,7 @@ export class ProfileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: S3StorageService,
+    private readonly notificationClient: NotificationClientService,
   ) {}
 
   async createProfile(userId: string, dto: CreateProfileDto) {
@@ -128,7 +131,7 @@ export class ProfileService {
     };
   }
 
-  async createInstructorCode(userId: string) {
+  async createInstructorCode(userId: string, rotate = false) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { role: true, instructorCode: true },
@@ -138,7 +141,7 @@ export class ProfileService {
     if (user.role !== 'INSTRUCTOR') {
       throw new ForbiddenException('Only instructors can create a code');
     }
-    if (user.instructorCode) {
+    if (user.instructorCode && !rotate) {
       return { instructorCode: user.instructorCode };
     }
 
@@ -276,29 +279,34 @@ export class ProfileService {
     }
     if (currentUser.role !== 'USER') {
       throw new BadRequestException(
-        'Only student accounts can join an instructor group',
+        'ინსტრუქტორის ჯგუფს მხოლოდ სტუდენტის ანგარიშით შეგიძლია შეუერთდე',
       );
     }
     if (currentUser.linkedInstructorId) {
       throw new ConflictException('You are already linked to an instructor');
     }
 
-    const instructor = await this.prisma.user.findFirst({
-      where: {
-        instructorCode: dto.instructorCode.trim().toUpperCase(),
-        role: 'INSTRUCTOR',
-        accessStatus: 'ACTIVE',
-      },
-      select: { id: true },
-    });
+    const instructor = await findInstructorByCodeForStudentLink(
+      this.prisma,
+      dto.instructorCode,
+    );
 
-    if (!instructor) {
-      throw new BadRequestException('Invalid instructor code');
+    if (instructor.id === userId) {
+      throw new BadRequestException(
+        'საკუთარი ინსტრუქტორის კოდით ვერ შეუერთდები',
+      );
     }
 
-    await this.prisma.user.update({
+    const student = await this.prisma.user.update({
       where: { id: userId },
       data: { linkedInstructorId: instructor.id },
+      select: { id: true, fullName: true },
+    });
+
+    this.notificationClient.publishStudentLinked({
+      instructorId: instructor.id,
+      studentId: student.id,
+      studentFullName: student.fullName,
     });
 
     return this.getInstructorGroup(userId);

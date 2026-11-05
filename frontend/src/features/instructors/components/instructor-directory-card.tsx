@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, MapPin, MessageSquare, Phone, UserRound, Users } from "lucide-react";
+import { MapPin, MessageSquare, UserRound, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ export function InstructorDirectoryCard({
 }: InstructorDirectoryCardProps) {
   const initials = userInitials({
     fullName: instructor.fullName,
-    email: instructor.email,
+    email: instructor.fullName,
   });
 
   return (
@@ -67,18 +67,6 @@ export function InstructorDirectoryCard({
         <p className="line-clamp-3 min-h-18 text-sm leading-6 text-muted-foreground">
           {instructor.bio || "ინსტრუქტორს ჯერ ბიო არ აქვს დამატებული."}
         </p>
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p className="flex items-center gap-2">
-            <Mail className="size-4 text-primary" />
-            <span className="truncate">{instructor.email}</span>
-          </p>
-          {instructor.phone ? (
-            <p className="flex items-center gap-2">
-              <Phone className="size-4 text-primary" />
-              {instructor.phone}
-            </p>
-          ) : null}
-        </div>
       </CardContent>
 
       <CardFooter className="mt-auto px-5 pt-2 pb-5">

@@ -12,6 +12,8 @@ import {
 import { AccessGuard } from '../auth/auth_guard/access.guard';
 import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
+import { RolesGuard } from '../auth/auth_guard/guard';
+import { Roles } from '../auth/auth_guard/roles.decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
 import {
   CreateMistakeNoteDto,
@@ -20,7 +22,8 @@ import {
 import { MistakeNotesService } from './mistake-notes.service';
 
 @Controller('mistake-notes')
-@UseGuards(JwtAuthGuard, AccessGuard)
+@UseGuards(JwtAuthGuard, AccessGuard, RolesGuard)
+@Roles('INSTRUCTOR', 'ADMIN')
 export class MistakeNotesController {
   constructor(private readonly mistakeNotesService: MistakeNotesService) {}
 

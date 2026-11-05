@@ -6,7 +6,7 @@ import type { InstructorCertificate } from "@/features/profile/api/instructor-ce
 export type InstructorDirectoryItem = {
   id: string;
   fullName: string;
-  email: string;
+  email: string | null;
   createdAt: string;
   instructorCode?: string | null;
   instructorCategories: string[];

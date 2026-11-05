@@ -29,6 +29,11 @@ import {
   type PathPoint,
 } from './navigation-geometry';
 import { RedisService } from '../../redis/redis.service';
+import { NotificationClientService } from '../notification-client/notification-client.service';
+import type {
+  NotificationRouteEvents,
+  SystemRoutePayload,
+} from '../notification-client/notification-client.types';
 
 const routeInclude = {
   steps: {
@@ -109,11 +114,16 @@ const PUBLIC_ROUTES_CACHE_TTL_SEC = 120;
 
 @Injectable()
 export class RoutesService {
+  private readonly routeNotifications: NotificationRouteEvents;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly examRegionsService: ExamRegionsService,
     private readonly redis: RedisService,
-  ) {}
+    notificationClient: NotificationClientService,
+  ) {
+    this.routeNotifications = notificationClient;
+  }
 
   findCities() {
     return this.examRegionsService.getActiveExamCities();
@@ -371,6 +381,16 @@ export class RoutesService {
     }
 
     await this.redis.invalidatePublicRoutes();
+
+    this.emitSystemRouteEvent({
+      routeId: catalog[0]?.key ?? '00000000-0000-0000-0000-000000000001',
+      title: 'საგამოცდო კატალოგი',
+      city: null,
+      action: 'catalog_sync',
+      createdCount: created,
+      updatedCount: updated,
+    });
+
     return {
       ok: true,
       total: catalog.length,
@@ -405,6 +425,16 @@ export class RoutesService {
       include: routeInclude,
     });
     await this.redis.invalidatePublicRoutes();
+
+    if (visibility === RouteVisibilityDto.SYSTEM && (dto.isPublished ?? true)) {
+      this.emitSystemRouteEvent({
+        routeId: created.id,
+        title: created.title,
+        city: created.city,
+        action: 'created',
+      });
+    }
+
     return created;
   }
 
@@ -609,6 +639,16 @@ export class RoutesService {
       });
     });
     await this.redis.invalidatePublicRoutes();
+
+    if (updated.visibility === 'SYSTEM' && updated.isPublished) {
+      this.emitSystemRouteEvent({
+        routeId: updated.id,
+        title: updated.title,
+        city: updated.city,
+        action: 'updated',
+      });
+    }
+
     return updated;
   }
 
@@ -807,6 +847,10 @@ export class RoutesService {
           }
         : null,
     };
+  }
+
+  private emitSystemRouteEvent(payload: SystemRoutePayload): void {
+    void this.routeNotifications.publishSystemRoute(payload);
   }
 
   private async requireRoute(routeId: string) {

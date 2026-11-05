@@ -13,24 +13,32 @@ import {
   useProfileTrainingSteps,
   useUpdateProfileTrainingStep,
 } from "@/features/profile/hooks/instructor-training-steps";
+import { useNearViewport } from "@/hooks/use-near-viewport";
 
 type Props = {
   mode?: "display" | "manage";
   publicSteps?: InstructorTrainingStep[];
+  fetchOwned?: boolean;
 };
 
 export function InstructorTrainingStepsSection({
   mode = "display",
   publicSteps = [],
+  fetchOwned = false,
 }: Props) {
   const manage = mode === "manage";
+  const shouldFetchOwned = manage || fetchOwned;
+  const { ref, isNear } = useNearViewport();
   const { data: ownedSteps = [], isLoading } = useProfileTrainingSteps({
-    enabled: manage,
+    enabled: shouldFetchOwned && isNear,
   });
-  const steps = manage ? ownedSteps : publicSteps;
+  const steps = shouldFetchOwned ? ownedSteps : publicSteps;
 
   return (
-    <section className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8">
+    <section
+      ref={ref}
+      className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -50,7 +58,7 @@ export function InstructorTrainingStepsSection({
         </span>
       </div>
 
-      {manage && isLoading ? (
+      {shouldFetchOwned && (!isNear || isLoading) ? (
         <p className="text-sm text-on-surface-variant">იტვირთება...</p>
       ) : (
         <div className="flex flex-col gap-3">

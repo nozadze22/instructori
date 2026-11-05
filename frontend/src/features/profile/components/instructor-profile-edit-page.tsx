@@ -11,9 +11,11 @@ import { InstructorProfileLoading } from "@/features/profile/components/instruct
 
 function EditContent() {
   const { data: me, isLoading } = useGetMe();
-  const { data: profile, isLoading: isProfileLoading } = useGetProfile();
+  const { data: profile, isLoading: isProfileLoading } = useGetProfile({
+    enabled: Boolean(me),
+  });
 
-  if (isLoading || isProfileLoading) {
+  if (isLoading || (me && isProfileLoading)) {
     return <InstructorProfileLoading />;
   }
 
@@ -27,7 +29,7 @@ function EditContent() {
 
   return (
     <InstructorProfileDetail
-      key={`${profile?.instructorCode ?? ""}-${profile?.updatedAt ?? me.userId}`}
+      key={profile?.updatedAt ?? me.userId}
       variant="edit"
       instructor={mapMeToInstructorDirectoryItem(me, profile)}
     />

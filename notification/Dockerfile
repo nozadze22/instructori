@@ -1,0 +1,27 @@
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml .npmrc ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true --config.minimumReleaseAge=0
+RUN pnpm prisma:generate
+
+FROM node:22-alpine AS build
+WORKDIR /app
+RUN corepack enable
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN pnpm prisma:generate && pnpm build
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=8080
+COPY package.json pnpm-lock.yaml .npmrc ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+EXPOSE 8080
+CMD ["node", "dist/main.js"]

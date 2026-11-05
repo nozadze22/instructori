@@ -48,6 +48,16 @@ enum InstructorMessageStatus {
   READ
 }
 
+enum NotificationType {
+  INSTRUCTOR_REVIEW
+  INSTRUCTOR_MESSAGE
+  INSTRUCTOR_REGISTRATION
+  ACCESS_PENDING
+  STUDENT_LINKED
+  STUDENT_REGISTRATION
+  SYSTEM_ROUTE
+}
+
 model User {
   id              String           @id @default(uuid())
   email           String           @unique
@@ -85,8 +95,43 @@ model User {
   instructorVehicles         InstructorVehicle[]
   trainingSteps              InstructorTrainingStep[]
   instructorCertificates     InstructorCertificate[]
+  instructorReviewsReceived InstructorReview[] @relation("InstructorReviewsReceived")
+  instructorReviewsAuthored InstructorReview[] @relation("InstructorReviewsAuthored")
+  notifications            Notification[]
 
   @@index([linkedInstructorId])
+}
+
+/// In-app notification (bell / list). BullMQ delivery workers can be added later.
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?
+  data      Json             @default("{}")
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+/// Student rating + comment for an instructor (public on instructor profile).
+model InstructorReview {
+  id           String   @id @default(uuid())
+  instructorId String
+  instructor   User     @relation("InstructorReviewsReceived", fields: [instructorId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User     @relation("InstructorReviewsAuthored", fields: [studentId], references: [id], onDelete: Cascade)
+  rating       Int
+  comment      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([instructorId, studentId])
+  @@index([instructorId, createdAt(sort: Desc)])
 }
 
 model InstructorVehicle {

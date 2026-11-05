@@ -1,7 +1,22 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { UserShell } from "@/features/instructors/components/user-shell";
+import { AuthGate } from "@/features/auth/components/auth-gate";
+import { FORBIDDEN_PATH } from "@/lib/route-access";
 
 export default function InstructorsLayout({ children }: { children: ReactNode }) {
-  return <UserShell>{children}</UserShell>;
+  const pathname = usePathname();
+  const loginRedirect = `/login?next=${encodeURIComponent(pathname)}`;
+
+  return (
+    <AuthGate
+      roles={["USER"]}
+      redirectTo={FORBIDDEN_PATH}
+      loginRedirect={loginRedirect}
+    >
+      {children}
+    </AuthGate>
+  );
 }

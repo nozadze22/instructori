@@ -30,9 +30,7 @@ export function visibleNavbarLinks(
   if (isLoggedIn && role === "USER") {
     return navbarLinks.filter(
       (link) =>
-        link.visibility === "always" ||
-        link.visibility === "student" ||
-        (link.visibility === "guest" && link.href === "/"),
+        link.visibility === "always" || link.visibility === "student",
     );
   }
 

@@ -25,8 +25,10 @@ import {
 
 export function InstructorProfileMessageForm({
   instructorId,
+  compact = false,
 }: {
   instructorId: string;
+  compact?: boolean;
 }) {
   const { mutateAsync: sendMessage, isPending } =
     useSendInstructorMessage(instructorId);
@@ -44,13 +46,15 @@ export function InstructorProfileMessageForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="mt-5 space-y-3"
+        className={compact ? "space-y-3" : "mt-5 space-y-3"}
         noValidate
       >
         <Field data-invalid={!!form.formState.errors.message}>
-          <FieldLabel htmlFor="instructor-message">
-            შეტყობინება ინსტრუქტორს
-          </FieldLabel>
+          {!compact ? (
+            <FieldLabel htmlFor="instructor-message">
+              შეტყობინება ინსტრუქტორს
+            </FieldLabel>
+          ) : null}
           <FieldContent>
             <InputGroup className="h-auto min-h-32 items-start rounded-xl border-white/10 bg-surface-container py-2">
               <InputGroupAddon className="pt-1">

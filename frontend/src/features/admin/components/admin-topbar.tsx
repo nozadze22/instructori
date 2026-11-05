@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { NavbarUserMenu } from "@/components/shared/navbar/navbar-user-menu";
+import { NotificationsBell } from "@/features/notifications/components/notifications-bell";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 
 type AdminTopbarProps = {
@@ -27,6 +28,7 @@ export function AdminTopbar({ onOpenMobileNav }: AdminTopbarProps) {
       </Button>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
+        <NotificationsBell />
         {me ? <NavbarUserMenu user={me} /> : null}
       </div>
     </header>

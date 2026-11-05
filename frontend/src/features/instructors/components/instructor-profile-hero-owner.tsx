@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Mail, Pencil, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useGetMe } from "@/features/auth/login/hooks/login";
 import type { InstructorDirectoryItem } from "@/features/instructors/api/instructors";
 import { InstructorMetaBadgeIcon } from "@/features/instructors/components/instructor-meta-badge-icon";
 import { ProfileHeroEditDialog } from "@/features/profile/components/profile-hero-edit-dialog";
@@ -25,7 +26,9 @@ export function InstructorProfileHeroOwner({
   heroMetaBadges,
   avatarUrl,
 }: InstructorProfileHeroOwnerProps) {
+  const { data: me } = useGetMe();
   const [editOpen, setEditOpen] = useState(false);
+  const ownerEmail = me?.email ?? instructor.email ?? "";
 
   return (
     <>
@@ -78,18 +81,20 @@ export function InstructorProfileHeroOwner({
           ) : null}
         </div>
 
-        <p className="flex items-center gap-2 text-sm text-primary">
-          <Mail className="size-4 shrink-0" />
-          <a href={`mailto:${instructor.email}`} className="hover:underline">
-            {instructor.email}
-          </a>
-        </p>
+        {ownerEmail ? (
+          <p className="flex items-center gap-2 text-sm text-primary">
+            <Mail className="size-4 shrink-0" />
+            <a href={`mailto:${ownerEmail}`} className="hover:underline">
+              {ownerEmail}
+            </a>
+          </p>
+        ) : null}
       </div>
 
       <ProfileHeroEditDialog
         open={editOpen}
         onOpenChange={setEditOpen}
-        email={instructor.email}
+        email={ownerEmail}
         avatarUrl={avatarUrl}
       />
     </>

@@ -11,7 +11,7 @@ export function mapMeToInstructorDirectoryItem(
     fullName: me.fullName,
     email: me.email,
     createdAt: profile?.createdAt ?? new Date().toISOString(),
-    instructorCode: profile?.instructorCode ?? null,
+    instructorCode: profile?.instructorCode ?? me.instructorCode ?? null,
     instructorCategories: profile?.instructorCategories ?? [],
     bio: profile?.bio ?? null,
     phone: profile?.phone ?? null,
