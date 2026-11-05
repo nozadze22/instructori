@@ -25,13 +25,6 @@ import {
   type UserRegistrationSchema,
 } from "@/features/auth/user/schema/user-schema";
 import { useUserRegistration } from "@/features/auth/user/hooks/user";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarGroup,
-  AvatarGroupCount,
-  AvatarImage,
-} from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -55,14 +48,12 @@ import {
 } from "@/components/ui/input-group";
 import { useExamCities } from "@/features/routes/hooks/routes";
 import { cn } from "@/lib/utils";
-const INSTRUCTOR_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDI2vAHWB_6JA1CAE5lQnbW7wdui35EmjgBxEupcWnjvXNUknAGiAtYuPT3mxMG3EOumIoP_HzEz87dqSS84_jCdBYHL_82eP23M2YFWS8gv4asMDsZBxSPxmq4kGthQo5wSuO84dsY6SUSQ11OnwhbEMIIO-a5ezUXUXbhqqkaLNAG_aEs-18qJ-abigXi96PF73aiGD-0HFjYxE4VNy5KBj0z2emBFFgVIVaMD6r3wX1jV3Ft-A11G5dH8vIj-ua3VfF7YfcOqMay";
 
-const SOCIAL_PROOF_IMAGES = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuANhWYxFnMNbl8QNQEbT98DYl-xeifPXpY0Vqn_q3Lwi_ktmvV6AUAw0EQGayZpbuLiulto4IGhDFUiQ1dL7ZmtpEHrz4DGBDG2yoJPh_Dv8l49IuJfvb6EubNgIMegWQLaQHhPYq0AwOhFyNKwwo7ZNX2IolfxMjo3vrgWOS-rfzJFaFORckq6a9SiiDTYp2NyTgplXdwuum_gp7IbDh1qssfmeW3xiOUvukI98vAhsQqCb4UiwR7ihBA6RGxirjo7rsANG1r8S9hy",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBEvElLkoI_lyjiXVMkqa0nZTZs5eUnK-lGpVaoh_CQxvUcVVqajYaXTrUy0ytZ_IpGjCqe-e-97JRNQpDsD-7FvFlHR8IHVfrKedm3E6o5zVq10hKzkcTiG1HI_gOYxb9TIxjars2sh8l2yR1BAhbRqMw9JBaYleKHf5VcBGOY_zbDjEDELvIVWko3R_qs8nNQ3H_QNkCK8Ki1-kDlV9BOaO-D2Wt3uy8umOEb6DkYxnjar58wGbsAfysjLawXFONHS7eozkhmTa_v",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCsYCw7bquOjIy6-rIcNHuMRfL_mIg2aO3iLkjkBlhJKbrRlNL4d8Pz5ZvwG4An84MPK-DYEzUnW56r4dugkx_0CkzIO2HT4rVlvhSEmjlKwlY1uQmQ-txWCuEPIdORKEaXE9wbJ4t-IoMptEcwAjkouW96JP-9-K4GIIpbSZK7FR0u8-7qmGiPVcPOPatqNLejUSuJjRKcBkEel75pfzCDhYZ1cjir9NH1En2bnwv7FPt6fe2XV_dk8JOpIIE45CQbDN5oSTAGLTqc",
-] as const;
+// const SOCIAL_PROOF_IMAGES = [
+//   "https://lh3.googleusercontent.com/aida-public/AB6AXuANhWYxFnMNbl8QNQEbT98DYl-xeifPXpY0Vqn_q3Lwi_ktmvV6AUAw0EQGayZpbuLiulto4IGhDFUiQ1dL7ZmtpEHrz4DGBDG2yoJPh_Dv8l49IuJfvb6EubNgIMegWQLaQHhPYq0AwOhFyNKwwo7ZNX2IolfxMjo3vrgWOS-rfzJFaFORckq6a9SiiDTYp2NyTgplXdwuum_gp7IbDh1qssfmeW3xiOUvukI98vAhsQqCb4UiwR7ihBA6RGxirjo7rsANG1r8S9hy",
+//   "https://lh3.googleusercontent.com/aida-public/AB6AXuBEvElLkoI_lyjiXVMkqa0nZTZs5eUnK-lGpVaoh_CQxvUcVVqajYaXTrUy0ytZ_IpGjCqe-e-97JRNQpDsD-7FvFlHR8IHVfrKedm3E6o5zVq10hKzkcTiG1HI_gOYxb9TIxjars2sh8l2yR1BAhbRqMw9JBaYleKHf5VcBGOY_zbDjEDELvIVWko3R_qs8nNQ3H_QNkCK8Ki1-kDlV9BOaO-D2Wt3uy8umOEb6DkYxnjar58wGbsAfysjLawXFONHS7eozkhmTa_v",
+//   "https://lh3.googleusercontent.com/aida-public/AB6AXuCsYCw7bquOjIy6-rIcNHuMRfL_mIg2aO3iLkjkBlhJKbrRlNL4d8Pz5ZvwG4An84MPK-DYEzUnW56r4dugkx_0CkzIO2HT4rVlvhSEmjlKwlY1uQmQ-txWCuEPIdORKEaXE9wbJ4t-IoMptEcwAjkouW96JP-9-K4GIIpbSZK7FR0u8-7qmGiPVcPOPatqNLejUSuJjRKcBkEel75pfzCDhYZ1cjir9NH1En2bnwv7FPt6fe2XV_dk8JOpIIE45CQbDN5oSTAGLTqc",
+// ] as const;
 
 const inputGroupClassName =
   "h-12 rounded-xl border-white/10 bg-surface-low shadow-none transition-shadow focus-within:border-primary focus-within:shadow-[0_0_15px_rgb(173_198_255_/_15%)] dark:bg-surface-low";
@@ -84,12 +75,10 @@ export function RegisterForm() {
   const registrationRole = useWatch({
     control: form.control,
     name: "registrationRole",
-    defaultValue: "instructor",
   });
   const hasInstructorCode = useWatch({
     control: form.control,
     name: "hasInstructorCode",
-    defaultValue: false,
   });
   const isStudentRegistration = registrationRole === "student";
   const selectedCity = useWatch({
@@ -130,26 +119,6 @@ export function RegisterForm() {
             </p>
           </div>
 
-          <div className="glass space-y-4 rounded-xl p-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="size-12">
-                <AvatarImage src={INSTRUCTOR_IMAGE} alt="Captain Marcus Vance" />
-                <AvatarFallback>MV</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  მარკუს ვენსი
-                </p>
-                <p className="text-xs font-semibold text-muted-foreground">
-                  მთავარი ინსტრუქტორი
-                </p>
-              </div>
-            </div>
-            <p className="text-muted-foreground italic">
-              &ldquo;სიმულაცია იგივე გარემოა, რაც გამოცდის ტექნიკაზე. სიზუსტე აქ
-              იწყება.&rdquo;
-            </p>
-          </div>
         </section>
 
         <section className="flex items-center justify-center lg:col-span-7">
@@ -659,7 +628,7 @@ export function RegisterForm() {
         </section>
       </div>
 
-      <footer className="pointer-events-none absolute bottom-6 z-10 flex w-full justify-center px-6">
+      {/* <footer className="pointer-events-none absolute bottom-6 z-10 flex w-full justify-center px-6">
         <div className="glass flex items-center gap-8 rounded-full px-4 py-2">
           <AvatarGroup>
             {SOCIAL_PROOF_IMAGES.map((src, index) => (
@@ -679,7 +648,7 @@ export function RegisterForm() {
             მძღოლების ნდობა მსოფლიო მასშტაბით
           </p>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }

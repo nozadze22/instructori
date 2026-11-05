@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Home } from "lucide-react";
+import { Home } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Button } from "@/components/ui/button";
+import { NotificationsBell } from "@/features/notifications/components/notifications-bell";
 import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { NavbarUserMenu } from "@/components/shared/navbar/navbar-user-menu";
 import { useGetMe } from "@/features/auth/login/hooks/login";
@@ -41,14 +41,7 @@ export function InstructorTopbar() {
         >
           <Home className="size-5" />
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-muted-foreground hover:text-primary"
-          aria-label="შეტყობინებები"
-        >
-          <Bell className="size-5" />
-        </Button>
+        <NotificationsBell buttonClassName="text-muted-foreground hover:text-primary" />
         {me ? <NavbarUserMenu user={me} /> : null}
       </div>
     </header>

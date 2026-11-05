@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../auth/dto/auth-types';
+import { NotificationClientService } from '../notification-client/notification-client.service';
 import { CreateInstructorMessageDto } from './dto/instructor.dto';
 
 const instructorSelect = {
@@ -72,7 +73,10 @@ const instructorSelect = {
 
 @Injectable()
 export class InstructorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationClient: NotificationClientService,
+  ) {}
 
   async listActive() {
     const instructors = await this.prisma.user.findMany({
@@ -84,7 +88,9 @@ export class InstructorsService {
       orderBy: { fullName: 'asc' },
     });
 
-    return instructors.map((instructor) => this.toInstructor(instructor));
+    return instructors.map((instructor) =>
+      this.toInstructor(instructor, { exposeContact: false }),
+    );
   }
 
   async getActive(id: string) {
@@ -101,7 +107,7 @@ export class InstructorsService {
       throw new NotFoundException('Instructor not found');
     }
 
-    return this.toInstructor(instructor);
+    return this.toInstructor(instructor, { exposeContact: true });
   }
 
   async sendMessage(
@@ -126,6 +132,14 @@ export class InstructorsService {
         message,
       },
       select: this.messageSelect,
+    });
+
+    this.notificationClient.publishInstructorMessageCreated({
+      messageId: created.id,
+      instructorId: instructor.id,
+      studentId: sender.userId,
+      studentFullName: sender.fullName,
+      messagePreview: message.slice(0, 240),
     });
 
     return this.toMessage(created);
@@ -197,7 +211,8 @@ export class InstructorsService {
     },
   } as const;
 
-  private toInstructor(instructor: {
+  private toInstructor(
+    instructor: {
     id: string;
     fullName: string;
     email: string;
@@ -235,15 +250,19 @@ export class InstructorsService {
       imageUrl: string;
       sortOrder: number;
     }[];
-  }) {
+  },
+    options: { exposeContact: boolean },
+  ) {
     return {
       id: instructor.id,
       fullName: instructor.fullName,
-      email: instructor.email,
+      email: null,
       createdAt: instructor.createdAt,
       instructorCategories: instructor.instructorCategories,
       bio: instructor.profile?.bio ?? null,
-      phone: instructor.profile?.phone ?? null,
+      phone: options.exposeContact
+        ? (instructor.profile?.phone ?? null)
+        : null,
       avatarUrl: instructor.profile?.avatarUrl ?? null,
       city: instructor.profile?.city ?? null,
       workingHours: instructor.profile?.workingHours ?? null,

@@ -1,0 +1,119 @@
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
+
+export class InstructorReviewCreatedDto {
+  @IsUUID()
+  reviewId!: string;
+
+  @IsUUID()
+  instructorId!: string;
+
+  @IsUUID()
+  studentId!: string;
+
+  @IsString()
+  studentFullName!: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating!: number;
+
+  @IsOptional()
+  @IsString()
+  comment?: string | null;
+}
+
+export class InstructorMessageCreatedDto {
+  @IsUUID()
+  messageId!: string;
+
+  @IsUUID()
+  instructorId!: string;
+
+  @IsUUID()
+  studentId!: string;
+
+  @IsString()
+  studentFullName!: string;
+
+  @IsString()
+  messagePreview!: string;
+}
+
+export class InstructorRegistrationDto {
+  @IsUUID()
+  userId!: string;
+
+  @IsString()
+  fullName!: string;
+
+  @IsString()
+  email!: string;
+
+  @IsString()
+  city!: string;
+}
+
+export class AccessPendingDto {
+  @IsUUID()
+  userId!: string;
+
+  @IsString()
+  fullName!: string;
+}
+
+export class StudentLinkedDto {
+  @IsUUID()
+  instructorId!: string;
+
+  @IsUUID()
+  studentId!: string;
+
+  @IsString()
+  studentFullName!: string;
+}
+
+export class StudentRegistrationDto {
+  @IsUUID()
+  studentId!: string;
+
+  @IsString()
+  studentFullName!: string;
+
+  @IsOptional()
+  @IsUUID()
+  instructorId?: string | null;
+}
+
+export class SystemRouteDto {
+  @IsUUID()
+  routeId!: string;
+
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string | null;
+
+  @IsIn(['created', 'updated', 'catalog_sync'])
+  action!: 'created' | 'updated' | 'catalog_sync';
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  createdCount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  updatedCount?: number;
+}

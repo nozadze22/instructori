@@ -25,7 +25,7 @@ export function InstructorsPage() {
       if (city !== "all" && instructor.city !== city) return false;
       if (!query) return true;
 
-      return [instructor.fullName, instructor.city, instructor.bio, instructor.email]
+      return [instructor.fullName, instructor.city, instructor.bio]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()

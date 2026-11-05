@@ -9,6 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationClientService } from '../notification-client/notification-client.service';
+import { findInstructorByCodeForStudentLink } from '../profile/instructor-code.util';
 import {
   ChangePasswordDto,
   LoginDto,
@@ -23,7 +25,19 @@ import type {
   AuthUser,
   Role,
 } from './dto/auth-types';
+import { ACCESS_TOKEN_COOKIE } from './auth_guard/auth-cookie';
 import { refreshTokens } from './refresh-tokens';
+
+type AccessJwtPayload = {
+  sub: string;
+  email: string;
+  fullName: string;
+  role: AuthUser['role'];
+  accessStatus?: AccessStatus;
+  accessSource?: AccessSource | null;
+  sv?: number;
+  purpose?: string;
+};
 
 export type AuthTokenUser = {
   id: string;
@@ -55,6 +69,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly notificationClient: NotificationClientService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -99,6 +114,13 @@ export class AuthService {
       },
     });
 
+    this.notificationClient.publishInstructorRegistration({
+      userId: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      city,
+    });
+
     return this.issueSession(this.toAuthTokenUser(user), {
       replaceAllSessions: true,
     });
@@ -117,17 +139,10 @@ export class AuthService {
 
     let instructorId: string | undefined;
     if (instructorCode) {
-      const instructor = await this.prisma.user.findFirst({
-        where: {
-          instructorCode,
-          role: 'INSTRUCTOR',
-          accessStatus: 'ACTIVE',
-        },
-        select: { id: true },
-      });
-      if (!instructor) {
-        throw new BadRequestException('Invalid instructor code');
-      }
+      const instructor = await findInstructorByCodeForStudentLink(
+        this.prisma,
+        instructorCode,
+      );
       instructorId = instructor.id;
     }
 
@@ -151,6 +166,12 @@ export class AuthService {
         accessStatus: true,
         accessSource: true,
       },
+    });
+
+    this.notificationClient.publishStudentRegistration({
+      studentId: user.id,
+      studentFullName: user.fullName,
+      instructorId: instructorId ?? null,
     });
 
     return this.issueSession(this.toAuthTokenUser(user), {
@@ -185,9 +206,83 @@ export class AuthService {
     });
   }
 
+  async tryResolveUserFromRequest(req: {
+    cookies?: Record<string, unknown>;
+  }): Promise<AuthUser | null> {
+    const raw = req.cookies?.[ACCESS_TOKEN_COOKIE];
+    if (typeof raw !== 'string' || !raw.trim()) {
+      return null;
+    }
+
+    let payload: AccessJwtPayload;
+    try {
+      payload = this.jwt.verify(raw);
+    } catch {
+      return null;
+    }
+
+    if (payload.purpose) {
+      return null;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+        sessionVersion: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    if ((payload.sv ?? 0) !== user.sessionVersion) {
+      return null;
+    }
+
+    if (user.accessStatus === 'BLOCKED') {
+      return null;
+    }
+
+    return {
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      accessStatus: user.accessStatus,
+      accessSource: user.accessSource,
+    };
+  }
+
   async getMe(userId: string): Promise<AuthUser> {
-    const user = await this.requireActiveUser(userId);
-    return this.toAuthUser(user);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        accessSource: true,
+        instructorCode: true,
+      },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.accessStatus === 'BLOCKED') {
+      await refreshTokens(this.prisma).deleteMany({ where: { userId } });
+      throw new UnauthorizedException('Account is blocked');
+    }
+
+    return {
+      ...this.toAuthUser(this.toAuthTokenUser(user)),
+      instructorCode: user.instructorCode,
+    };
   }
 
   async updateName(userId: string, dto: UpdateNameDto): Promise<AuthUser> {

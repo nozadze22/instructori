@@ -1,11 +1,13 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -108,8 +110,19 @@ export class UpdateProfileDto {
 }
 
 export class JoinInstructorDto {
+  @Transform(({ value }: { value: unknown }): unknown =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
   @IsString()
   @IsNotEmpty()
-  @MaxLength(32)
+  @Matches(/^[A-F0-9]{8}$/, {
+    message: 'ინსტრუქტორის კოდი 8 ასო-რიცხვი უნდა იყოს (მაგ. A1B2C3D4)',
+  })
   instructorCode!: string;
+}
+
+export class CreateInstructorCodeDto {
+  @IsOptional()
+  @IsBoolean()
+  rotate?: boolean;
 }

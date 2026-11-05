@@ -4,6 +4,7 @@ import type { UserRegistrationSchema } from "../schema/user-schema";
 
 export type UserRegisterResponse = {
   user: AuthUser;
+  createdByAdmin?: true;
 };
 
 export async function registerUser(

@@ -14,6 +14,7 @@ export type AuthUser = {
   role: Role;
   accessStatus: AccessStatus;
   accessSource: AccessSource | null;
+  instructorCode?: string | null;
 };
 
 export type LoginResponse = {

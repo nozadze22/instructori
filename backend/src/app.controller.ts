@@ -18,7 +18,11 @@ export class AppController {
   async healthDb() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return { ok: true, database: 'up' };
+      return {
+        ok: true,
+        database: 'up',
+        apiBuild: '2026-11-05-instructor-join',
+      };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Database unavailable';

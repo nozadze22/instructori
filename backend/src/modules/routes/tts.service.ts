@@ -12,7 +12,7 @@ const MAX_TEXT_LENGTH = 500;
 const TTS_TIMEOUT_MS = 20_000;
 const CACHE_LIMIT = 80;
 const TTS_RATE_WINDOW_MS = 60_000;
-const TTS_RATE_MAX = 30;
+const TTS_RATE_MAX = 10;
 /** Bump when the provider/model/voice changes so cached audio is regenerated. */
 const TTS_PROFILE = 'v5-elevenlabs';
 

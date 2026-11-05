@@ -7,11 +7,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AccessGuard } from '../auth/auth_guard/access.guard';
 import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
+import { CHAT_SOCKET_TOKEN_EXPIRES_IN, getChatJwtSecret } from './chat-jwt';
 import { ChatService } from './chat.service';
 import { ChatMessagesQueryDto, SendChatMessageDto } from './dto/chat.dto';
 
@@ -21,6 +23,7 @@ export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get('socket-token')
@@ -32,7 +35,10 @@ export class ChatController {
         purpose: 'chat',
         sv: session.sessionVersion,
       },
-      { expiresIn: '2h' },
+      {
+        secret: getChatJwtSecret(this.config),
+        expiresIn: CHAT_SOCKET_TOKEN_EXPIRES_IN,
+      },
     );
     return { token };
   }

@@ -10,7 +10,9 @@ import { DrivingSessionsModule } from './modules/driving-sessions/driving-sessio
 import { InstructorsModule } from './modules/instructors/instructors.module';
 import { MistakeCatalogModule } from './modules/mistake-catalog/mistake-catalog.module';
 import { InstructorNotesModule } from './modules/instructor-notes/instructor-notes.module';
+import { InstructorReviewsModule } from './modules/instructor-reviews/instructor-reviews.module';
 import { MistakeNotesModule } from './modules/mistake-notes/mistake-notes.module';
+import { NotificationClientModule } from './modules/notification-client/notification-client.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RoutesModule } from './modules/routes/routes.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,6 +25,7 @@ import { StorageModule } from './storage/storage.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    NotificationClientModule,
     PrismaModule,
     RedisModule,
     StorageModule,
@@ -35,6 +38,7 @@ import { StorageModule } from './storage/storage.module';
     RoutesModule,
     MistakeNotesModule,
     InstructorNotesModule,
+    InstructorReviewsModule,
     DrivingSessionsModule,
     MistakeCatalogModule,
   ],

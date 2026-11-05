@@ -14,21 +14,31 @@ import {
   useReplaceProfileCertificatePhoto,
   useUpdateProfileCertificate,
 } from "@/features/profile/hooks/instructor-certificates";
+import { useNearViewport } from "@/hooks/use-near-viewport";
 
 type Props = {
   manage?: boolean;
   publicCertificates?: InstructorCertificate[];
+  fetchOwned?: boolean;
 };
 
 export function InstructorCertificatesSection({
   manage = false,
   publicCertificates = [],
+  fetchOwned = false,
 }: Props) {
-  const { data: own = [], isLoading } = useProfileCertificates(manage);
-  const certificates = manage ? own : publicCertificates;
+  const shouldFetchOwned = manage || fetchOwned;
+  const { ref, isNear } = useNearViewport();
+  const { data: own = [], isLoading } = useProfileCertificates(
+    shouldFetchOwned && isNear,
+  );
+  const certificates = shouldFetchOwned ? own : publicCertificates;
 
   return (
-    <section className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8">
+    <section
+      ref={ref}
+      className="flex flex-col gap-6 rounded-2xl bg-surface-container-low p-6 shadow-sm sm:p-8"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -48,9 +58,9 @@ export function InstructorCertificatesSection({
         </span>
       </div>
 
-      {isLoading ? <p>იტვირთება...</p> : null}
+      {shouldFetchOwned && (!isNear || isLoading) ? <p>იტვირთება...</p> : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {!isLoading &&
+        {!(shouldFetchOwned && (!isNear || isLoading)) &&
           certificates.map((certificate) => (
             <CertificateCard
               key={certificate.id}

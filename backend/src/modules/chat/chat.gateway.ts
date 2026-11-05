@@ -11,6 +11,7 @@ import {
 import type { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACCESS_TOKEN_COOKIE } from '../auth/auth_guard/auth-cookie';
+import { getChatJwtSecret } from './chat-jwt';
 import { ChatRealtimeService } from './chat-realtime.service';
 
 type SocketJwtPayload = {
@@ -70,7 +71,7 @@ export class ChatGateway
       }
 
       const payload = this.jwt.verify<SocketJwtPayload>(token, {
-        secret: this.config.getOrThrow<string>('JWT_SECRET'),
+        secret: getChatJwtSecret(this.config),
       });
 
       if (payload.purpose !== 'chat') {

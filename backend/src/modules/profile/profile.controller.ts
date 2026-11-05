@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
 import {
+  CreateInstructorCodeDto,
   CreateProfileDto,
   JoinInstructorDto,
   UpdateProfileDto,
@@ -74,8 +75,14 @@ export class ProfileController {
   }
 
   @Post('instructor-code')
-  createInstructorCode(@CurrentUser() user: AuthUser) {
-    return this.profileService.createInstructorCode(user.userId);
+  createInstructorCode(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateInstructorCodeDto,
+  ) {
+    return this.profileService.createInstructorCode(
+      user.userId,
+      dto.rotate === true,
+    );
   }
 
   @Post('instructor-group')

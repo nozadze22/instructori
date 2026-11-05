@@ -1,0 +1,64 @@
+// Notification microservice — same DB as main backend; migrations run from backend/.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum NotificationType {
+  INSTRUCTOR_REVIEW
+  INSTRUCTOR_MESSAGE
+  INSTRUCTOR_REGISTRATION
+  ACCESS_PENDING
+  STUDENT_LINKED
+  STUDENT_REGISTRATION
+  SYSTEM_ROUTE
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  USER
+}
+
+enum AccessStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+enum AccessSource {
+  ADMIN
+  PAYMENT
+}
+
+/// Read-only subset for JWT validation (table owned by main API).
+model User {
+  id              String       @id
+  email           String
+  passwordHash    String
+  fullName        String
+  role            Role
+  accessStatus    AccessStatus
+  accessSource    AccessSource?
+  sessionVersion  Int          @default(0)
+
+  @@map("User")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  data      Json             @default("{}")
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}

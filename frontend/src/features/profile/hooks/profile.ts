@@ -23,11 +23,12 @@ export function useGetProfile(options?: { enabled?: boolean }) {
   });
 }
 
-export function useGetInstructorGroup() {
+export function useGetInstructorGroup(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["profile", "instructor-group"],
     queryFn: getInstructorGroup,
     retry: false,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -45,14 +46,19 @@ export function useCreateInstructorCode() {
 
   return useMutation({
     mutationKey: ["profile", "instructor-code", "create"],
-    mutationFn: createInstructorCode,
+    mutationFn: (rotate?: boolean) =>
+      createInstructorCode({ rotate: rotate === true }),
     onSuccess: ({ instructorCode }) => {
       queryClient.setQueryData(["profile"], (profile: unknown) =>
         profile && typeof profile === "object"
           ? { ...profile, instructorCode }
-          : profile,
+          : { instructorCode },
+      );
+      queryClient.setQueryData(["me"], (me: unknown) =>
+        me && typeof me === "object" ? { ...me, instructorCode } : me,
       );
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
       void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("ინსტრუქტორის კოდი შეიქმნა");
     },
