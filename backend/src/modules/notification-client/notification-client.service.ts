@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../prisma/prisma.service';
 import type {
   NotificationRouteEvents,
   SystemRoutePayload,
@@ -52,7 +53,10 @@ export type StudentRegistrationPayload = {
 export class NotificationClientService implements NotificationRouteEvents {
   private readonly logger = new Logger(NotificationClientService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   publishInstructorReviewCreated(
     payload: InstructorReviewCreatedPayload,
@@ -67,7 +71,7 @@ export class NotificationClientService implements NotificationRouteEvents {
   }
 
   publishInstructorRegistration(payload: InstructorRegistrationPayload): void {
-    void this.post('instructor-registration', payload);
+    void this.publishInstructorRegistrationAsync(payload);
   }
 
   publishAccessPending(payload: AccessPendingPayload): void {
@@ -79,11 +83,57 @@ export class NotificationClientService implements NotificationRouteEvents {
   }
 
   publishStudentRegistration(payload: StudentRegistrationPayload): void {
-    void this.post('student-registration', payload);
+    void this.publishStudentRegistrationAsync(payload);
   }
 
   publishSystemRoute(payload: SystemRoutePayload): void {
-    void this.post('system-route', payload);
+    void this.publishSystemRouteAsync(payload);
+  }
+
+  private async publishInstructorRegistrationAsync(
+    payload: InstructorRegistrationPayload,
+  ): Promise<void> {
+    const adminRecipientIds = await this.listAdminUserIds();
+    await this.post('instructor-registration', {
+      ...payload,
+      adminRecipientIds,
+    });
+  }
+
+  private async publishStudentRegistrationAsync(
+    payload: StudentRegistrationPayload,
+  ): Promise<void> {
+    const adminRecipientIds = await this.listAdminUserIds();
+    await this.post('student-registration', {
+      ...payload,
+      adminRecipientIds,
+    });
+  }
+
+  private async publishSystemRouteAsync(
+    payload: SystemRoutePayload,
+  ): Promise<void> {
+    const instructorRecipientIds = await this.listActiveInstructorUserIds();
+    await this.post('system-route', {
+      ...payload,
+      instructorRecipientIds,
+    });
+  }
+
+  private async listAdminUserIds(): Promise<string[]> {
+    const rows = await this.prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
+  private async listActiveInstructorUserIds(): Promise<string[]> {
+    const rows = await this.prisma.user.findMany({
+      where: { role: 'INSTRUCTOR', accessStatus: 'ACTIVE' },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
   }
 
   private async post(path: string, body: unknown): Promise<void> {

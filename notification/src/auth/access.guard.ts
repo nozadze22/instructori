@@ -6,29 +6,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from './auth-types';
 
 @Injectable()
 export class AccessGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const req = context
       .switchToHttp()
       .getRequest<Request & { user?: AuthUser }>();
 
-    if (!req.user?.userId) {
+    const user = req.user;
+    if (!user?.userId) {
       throw new UnauthorizedException();
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: { accessStatus: true, role: true },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
     }
 
     if (user.accessStatus === 'BLOCKED') {

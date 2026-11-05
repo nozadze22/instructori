@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsIn,
   IsInt,
   IsOptional,
@@ -60,6 +61,10 @@ export class InstructorRegistrationDto {
 
   @IsString()
   city!: string;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  adminRecipientIds!: string[];
 }
 
 export class AccessPendingDto {
@@ -91,6 +96,10 @@ export class StudentRegistrationDto {
   @IsOptional()
   @IsUUID()
   instructorId?: string | null;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  adminRecipientIds!: string[];
 }
 
 export class SystemRouteDto {
@@ -116,4 +125,8 @@ export class SystemRouteDto {
   @IsInt()
   @Min(0)
   updatedCount?: number;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  instructorRecipientIds!: string[];
 }

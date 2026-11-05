@@ -35,7 +35,13 @@ export class InternalEventsController {
 
   @Post('instructor-registration')
   instructorRegistration(@Body() dto: InstructorRegistrationDto) {
-    return this.notifications.createFromInstructorRegistration(dto);
+    return this.notifications.createFromInstructorRegistration({
+      userId: dto.userId,
+      fullName: dto.fullName,
+      email: dto.email,
+      city: dto.city,
+      adminRecipientIds: dto.adminRecipientIds,
+    });
   }
 
   @Post('access-pending')
@@ -50,7 +56,12 @@ export class InternalEventsController {
 
   @Post('student-registration')
   studentRegistration(@Body() dto: StudentRegistrationDto) {
-    return this.notifications.createFromStudentRegistration(dto);
+    return this.notifications.createFromStudentRegistration({
+      studentId: dto.studentId,
+      studentFullName: dto.studentFullName,
+      instructorId: dto.instructorId,
+      adminRecipientIds: dto.adminRecipientIds,
+    });
   }
 
   @Post('system-route')
@@ -62,6 +73,7 @@ export class InternalEventsController {
       action: dto.action,
       createdCount: dto.createdCount,
       updatedCount: dto.updatedCount,
+      instructorRecipientIds: dto.instructorRecipientIds,
     });
   }
 }
