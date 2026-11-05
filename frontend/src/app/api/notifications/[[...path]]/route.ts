@@ -100,14 +100,12 @@ async function proxy(
   } catch (error) {
     const detail =
       error instanceof Error ? error.message : "notification proxy failed";
-    return Response.json(
-      {
-        message:
-          "notification სერვისი მიუწვდომელია. Vercel-ზე დააყენე NOTIFICATION_SERVICE_URL.",
-        detail,
-      },
-      { status: 502 },
-    );
+    const message =
+      process.env.NODE_ENV === "development"
+        ? "notification სერვისი მიუწვდომელია (localhost:4002)."
+        : "შეტყობინებების სერვისი დროებით მიუწვდომელია.";
+
+    return Response.json({ message, detail }, { status: 502 });
   }
 }
 
