@@ -1,6 +1,7 @@
-# Requires GitHub secret: FLY_API_TOKEN (Fly.io deploy token, same org for all apps).
-# Create: fly tokens create deploy  OR  Fly dashboard → Access tokens
-name: Deploy API to Fly.io
+# Requires GitHub secret: FLY_API_TOKEN — org deploy token (not single-app scoped).
+# Create: fly tokens create deploy -x 999999h
+# Or Fly dashboard → Account → Access tokens (Deploy token for your org).
+name: Deploy to Fly.io
 
 on:
   push:
@@ -8,26 +9,77 @@ on:
       - main
     paths:
       - "backend/**"
+      - "notification/**"
       - ".github/workflows/fly-deploy.yml"
   workflow_dispatch:
+    inputs:
+      deploy_backend:
+        description: Deploy API (backend)
+        type: boolean
+        default: true
+      deploy_notification:
+        description: Deploy notification service
+        type: boolean
+        default: true
 
 jobs:
-  deploy:
-    name: Deploy backend
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      notification: ${{ steps.filter.outputs.notification }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/fly-deploy.yml'
+            notification:
+              - 'notification/**'
+              - '.github/workflows/fly-deploy.yml'
+
+  deploy-backend:
+    name: Deploy API
+    needs: changes
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_backend) ||
+      (github.event_name == 'push' && needs.changes.outputs.backend == 'true')
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Install from GitHub releases (with retries) — avoids Fly CDN
-      # /flyctl_releases/.../latest timeouts that break setup-flyctl@master.
       - name: Install flyctl
         uses: ./.github/actions/install-flyctl
 
       - name: Deploy simdrive-pro-api
+        run: flyctl deploy --remote-only --config fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-notification:
+    name: Deploy notification
+    needs: changes
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_notification) ||
+      (github.event_name == 'push' && needs.changes.outputs.notification == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: notification
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: ./.github/actions/install-flyctl
+
+      - name: Deploy simdrive-pro-notification
         run: flyctl deploy --remote-only --config fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
