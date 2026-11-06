@@ -7,9 +7,25 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Inter for Latin/Cyrillic; Noto Sans Georgian for ka text */
+  --font-sans:
+    var(--font-inter), var(--font-noto-georgian), ui-sans-serif, system-ui,
+    sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+  /* AeroDrive / design-system seed colors */
+  --color-navy-deep: #0b1329;
+  --color-navy-main: #0f172a;
+  --color-navy-light: #1e293b;
+  --color-sky-brand: #0284c7;
+  --color-sky-vibrant: #0ea5e9;
+  --color-sky-light: #e0f2fe;
+  --color-green-driving: #059669;
+  --color-green-vibrant: #10b981;
+  --color-green-light: #ecfdf5;
+  --color-slate-text: #64748b;
+  --color-slate-light: #94a3b8;
+  --color-border-soft: #e2e8f0;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -56,47 +72,88 @@
   --max-width-container: 80rem;
 }
 
-:root,
+/* Light AeroDrive / Exam HUD palette (primary #0F172A, secondary #0284C7, tertiary #10B981, neutral #64748B) */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e0f2fe;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0284c7;
+  --chart-1: #0284c7;
+  --chart-2: #0ea5e9;
+  --chart-3: #10b981;
+  --chart-4: #64748b;
+  --chart-5: #0f172a;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #0284c7;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #0284c7;
+  --surface: #ffffff;
+  --surface-lowest: #f8fafc;
+  --surface-low: #f1f5f9;
+  --surface-high: #e2e8f0;
+  --surface-highest: #cbd5e1;
+  --primary-container: #e0f2fe;
+  --on-primary-container: #0c4a6e;
+}
+
 .dark {
-  --background: #10131a;
-  --foreground: #e1e2ec;
-  --card: #1d2027;
-  --card-foreground: #e1e2ec;
-  --popover: #1d2027;
-  --popover-foreground: #e1e2ec;
-  --primary: #adc6ff;
-  --primary-foreground: #002e6a;
-  --secondary: #404758;
-  --secondary-foreground: #aeb5c9;
-  --muted: #191b23;
-  --muted-foreground: #c2c6d6;
-  --accent: #32353c;
-  --accent-foreground: #e1e2ec;
-  --destructive: #ffb4ab;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 10%);
-  --ring: #adc6ff;
-  --chart-1: #adc6ff;
-  --chart-2: #4d8eff;
-  --chart-3: #c0c6db;
-  --chart-4: #8c909f;
-  --chart-5: #424754;
-  --radius: 0.75rem;
-  --sidebar: #191b23;
-  --sidebar-foreground: #e1e2ec;
-  --sidebar-primary: #adc6ff;
-  --sidebar-primary-foreground: #002e6a;
-  --sidebar-accent: #272a31;
-  --sidebar-accent-foreground: #e1e2ec;
-  --sidebar-border: rgb(255 255 255 / 10%);
-  --sidebar-ring: #adc6ff;
-  --surface: #10131a;
-  --surface-lowest: #0b0e15;
-  --surface-low: #191b23;
-  --surface-high: #272a31;
-  --surface-highest: #32353c;
-  --primary-container: #4d8eff;
-  --on-primary-container: #00285d;
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #38bdf8;
+  --primary-foreground: #0f172a;
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #334155;
+  --accent-foreground: #f8fafc;
+  --destructive: #f87171;
+  --border: rgb(255 255 255 / 12%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #38bdf8;
+  --chart-1: #38bdf8;
+  --chart-2: #10b981;
+  --chart-3: #64748b;
+  --chart-4: #f8fafc;
+  --chart-5: #0ea5e9;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #38bdf8;
+  --sidebar-primary-foreground: #0f172a;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: rgb(255 255 255 / 12%);
+  --sidebar-ring: #38bdf8;
+  --surface: #0f172a;
+  --surface-lowest: #020617;
+  --surface-low: #1e293b;
+  --surface-high: #334155;
+  --surface-highest: #475569;
+  --primary-container: #0c4a6e;
+  --on-primary-container: #e0f2fe;
 }
 
 @layer base {
@@ -109,47 +166,47 @@
   }
 
   body {
-    @apply bg-surface-lowest text-foreground overflow-x-hidden;
+    @apply bg-background text-foreground overflow-x-hidden;
   }
 }
 
 @layer utilities {
   .glass {
-    background: rgb(17 24 39 / 70%);
+    background: rgb(255 255 255 / 85%);
     backdrop-filter: blur(20px);
-    border: 1px solid rgb(255 255 255 / 10%);
+    border: 1px solid #e2e8f0;
   }
 
   .glass-card {
-    background: rgb(17 24 39 / 80%);
+    background: rgb(255 255 255 / 92%);
     backdrop-filter: blur(12px);
-    border: 1px solid rgb(255 255 255 / 10%);
+    border: 1px solid #e2e8f0;
   }
 
   .premium-gradient {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%);
   }
 
   .glow-hover:hover {
-    box-shadow: 0 0 20px rgb(59 130 246 / 30%);
+    box-shadow: 0 0 20px rgb(2 132 199 / 25%);
   }
 
   .text-glow {
-    text-shadow: 0 0 20px rgb(173 198 255 / 30%);
+    text-shadow: 0 0 16px rgb(2 132 199 / 20%);
   }
 
   .hero-gradient {
     background: radial-gradient(
       circle at 50% 50%,
-      rgb(59 130 246 / 15%) 0%,
-      transparent 70%
+      rgb(2 132 199 / 12%) 0%,
+      transparent 65%
     );
   }
 
   .glass-panel {
-    background: rgb(29 32 39 / 80%);
+    background: rgb(255 255 255 / 88%);
     backdrop-filter: blur(12px);
-    border: 1px solid rgb(255 255 255 / 5%);
+    border: 1px solid #e2e8f0;
   }
 
   .glow-border {
@@ -159,8 +216,8 @@
   }
 
   .glow-border:hover {
-    border-color: rgb(77 142 255 / 40%);
-    box-shadow: 0 0 15px rgb(77 142 255 / 10%);
+    border-color: rgb(2 132 199 / 35%);
+    box-shadow: 0 0 15px rgb(2 132 199 / 12%);
   }
 
   .status-pulse {
@@ -212,7 +269,7 @@
   }
 
   .admin-scrollbar::-webkit-scrollbar-thumb {
-    background: #32353c;
+    background: #cbd5e1;
     border-radius: 10px;
   }
 }

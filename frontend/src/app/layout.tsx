@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Noto_Sans_Georgian } from "next/font/google";
+import { Geist_Mono, Inter, Noto_Sans_Georgian } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppSerwistProvider } from "@/components/providers/serwist-provider";
 import { AppChrome } from "@/components/shared/app-chrome";
 import "./globals.css";
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+});
+
 const notoSansGeorgian = Noto_Sans_Georgian({
-  variable: "--font-sans",
+  variable: "--font-noto-georgian",
   subsets: ["georgian", "latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -40,8 +47,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#10131a",
-  colorScheme: "dark",
+  themeColor: "#0f172a",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -52,7 +59,7 @@ export default function RootLayout({
   return (
     <html
       lang="ka"
-      className={`${notoSansGeorgian.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${inter.variable} ${notoSansGeorgian.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body
