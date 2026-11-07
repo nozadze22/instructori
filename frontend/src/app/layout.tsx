@@ -3,6 +3,7 @@ import { Geist_Mono, Inter, Noto_Sans_Georgian } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppSerwistProvider } from "@/components/providers/serwist-provider";
 import { AppChrome } from "@/components/shared/app-chrome";
+import { PRODUCTION_APP_URL } from "@/lib/site-config";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,6 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(PRODUCTION_APP_URL),
   title: "SimDrive Pro | პროფესიული სიმულაციური ტრენინგი",
   description:
     "ყველაზე მოწინავე მართვის სიმულაციის პლატფორმა მაღალი სტანდარტის გამოცდებისთვის.",

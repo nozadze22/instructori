@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
-
-const LOCAL_BACKEND_URL = "http://localhost:4001";
-const PRODUCTION_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
+import {
+  LOCAL_BACKEND_URL,
+  PRODUCTION_BACKEND_URL,
+} from "@/lib/site-config";
 
 function isBlockedBackendHost(hostname: string): boolean {
   const host = hostname.toLowerCase();

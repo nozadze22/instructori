@@ -14,7 +14,27 @@ const CACHE_LIMIT = 80;
 const TTS_RATE_WINDOW_MS = 60_000;
 const TTS_RATE_MAX = 10;
 /** Bump when the provider/model/voice changes so cached audio is regenerated. */
-const TTS_PROFILE = 'v5-elevenlabs';
+const TTS_PROFILE = 'v6-clear-georgian';
+
+/** Punctuation + spacing so TTS does not run words together. */
+function prepareNavigationVoiceText(raw: string): string {
+  let text = raw.trim().replace(/\s+/g, ' ');
+  text = text.replace(/(\d+)\s*(მეტრ)/giu, '$1 $2');
+  text = text.replace(
+    /(\d+)\s*(მეტრში|სმ|კმ)/giu,
+    '$1 $2',
+  );
+  text = text.replace(
+    /\s+(მოუხვიეთ|გადადით|გაგრძელებით|გთხოვთ|მალე|შემდეგ|პირდაპირ)/giu,
+    '. $1',
+  );
+  text = text.replace(/\.{2,}/g, '.');
+  text = text.replace(/\.\s*\./g, '.');
+  if (!/[.!?]$/.test(text)) {
+    text = `${text}.`;
+  }
+  return text;
+}
 
 @Injectable()
 export class TtsService {
@@ -27,7 +47,7 @@ export class TtsService {
 
   async synthesize(userId: string, text: string): Promise<Buffer> {
     this.assertRateLimit(userId);
-    const normalized = text.trim();
+    const normalized = prepareNavigationVoiceText(text);
     if (!normalized) {
       throw new BadRequestException('ტექსტი ცარიელია');
     }
@@ -81,7 +101,7 @@ export class TtsService {
 
     try {
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_192`,
         {
           method: 'POST',
           headers: {
@@ -92,12 +112,17 @@ export class TtsService {
           signal: controller.signal,
           body: JSON.stringify({
             text,
-            model_id: process.env.ELEVENLABS_MODEL_ID?.trim() || 'eleven_v4',
+            model_id:
+              process.env.ELEVENLABS_MODEL_ID?.trim() || 'eleven_multilingual_v2',
             voice_settings: {
-              stability: 0.55,
-              similarity_boost: 0.8,
-              style: 0.15,
+              // Higher stability = clearer syllables, less “swallowed” endings.
+              stability: Number(process.env.ELEVENLABS_STABILITY ?? 0.72),
+              similarity_boost: Number(
+                process.env.ELEVENLABS_SIMILARITY ?? 0.78,
+              ),
+              style: Number(process.env.ELEVENLABS_STYLE ?? 0),
               use_speaker_boost: true,
+              speed: Number(process.env.ELEVENLABS_SPEED ?? 0.96),
             },
           }),
         },

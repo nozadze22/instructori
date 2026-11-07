@@ -1,5 +1,7 @@
-const DEFAULT_NOTIFICATION_SOCKET_URL =
-  "https://simdrive-pro-notification.fly.dev";
+import {
+  LOCAL_NOTIFICATION_URL,
+  PRODUCTION_NOTIFICATION_URL,
+} from "@/lib/site-config";
 
 export function getNotificationSocketUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_NOTIFICATION_SOCKET_URL?.trim().replace(
@@ -11,9 +13,9 @@ export function getNotificationSocketUrl(): string {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") {
-      return "http://localhost:4002";
+      return LOCAL_NOTIFICATION_URL;
     }
   }
 
-  return DEFAULT_NOTIFICATION_SOCKET_URL;
+  return PRODUCTION_NOTIFICATION_URL;
 }
