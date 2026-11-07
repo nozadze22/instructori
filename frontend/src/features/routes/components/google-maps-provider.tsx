@@ -3,6 +3,10 @@
 import { APIProvider, useApiLoadingStatus } from "@vis.gl/react-google-maps";
 import { AlertTriangle, ExternalLink, Map } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import {
+  PRODUCTION_APP_ORIGINS,
+  resolvePublicSiteUrl,
+} from "@/lib/site-config";
 
 const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 
@@ -23,7 +27,14 @@ function explainMapsError(error: unknown): MapsErrorInfo {
         : String(error ?? "");
 
   const origin =
-    typeof window !== "undefined" ? window.location.origin : "http://localhost:3001";
+    typeof window !== "undefined" ? window.location.origin : resolvePublicSiteUrl();
+
+  const referrerHints = [
+    `${origin}/*`,
+    "http://localhost:3001/*",
+    "http://127.0.0.1:3001/*",
+    ...PRODUCTION_APP_ORIGINS.map((base) => `${base}/*`),
+  ];
 
   if (/RefererNotAllowed/i.test(message)) {
     return {
@@ -32,9 +43,7 @@ function explainMapsError(error: unknown): MapsErrorInfo {
       steps: [
         "Google Cloud Console → APIs & Services → Credentials",
         "აირჩიე შენი Maps API key → Application restrictions → HTTP referrers",
-        `დაამატე: ${origin}/*`,
-        "http://localhost:3001/*",
-        "http://127.0.0.1:3001/*",
+        ...referrerHints.map((hint) => `დაამატე: ${hint}`),
         "Maps JavaScript API და Directions API უნდა ჩართული იყოს",
         "1-2 წუთში განაახლე გვერდი",
       ],

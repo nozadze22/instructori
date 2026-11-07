@@ -1,4 +1,7 @@
-const DEFAULT_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
+import {
+  LOCAL_BACKEND_URL,
+  PRODUCTION_BACKEND_URL,
+} from "@/lib/site-config";
 
 export function getChatSocketUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_BACKEND_URL?.trim().replace(/\/$/, "");
@@ -7,9 +10,9 @@ export function getChatSocketUrl(): string {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") {
-      return "http://localhost:4001";
+      return LOCAL_BACKEND_URL;
     }
   }
 
-  return DEFAULT_BACKEND_URL;
+  return PRODUCTION_BACKEND_URL;
 }

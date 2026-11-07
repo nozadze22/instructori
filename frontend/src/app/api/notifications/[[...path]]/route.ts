@@ -1,6 +1,8 @@
 import { type NextRequest } from "next/server";
-
-const DEFAULT_NOTIFICATION_URL = "https://simdrive-pro-notification.fly.dev";
+import {
+  LOCAL_NOTIFICATION_URL,
+  PRODUCTION_NOTIFICATION_URL,
+} from "@/lib/site-config";
 
 function isBlockedHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -19,7 +21,7 @@ function resolveNotificationUrl(): string {
   for (const raw of [
     process.env.NOTIFICATION_SERVICE_URL,
     process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL,
-    DEFAULT_NOTIFICATION_URL,
+    PRODUCTION_NOTIFICATION_URL,
   ]) {
     const value = raw?.trim().replace(/\/$/, "") ?? "";
     if (!/^https?:\/\//i.test(value)) continue;
@@ -33,8 +35,8 @@ function resolveNotificationUrl(): string {
     return value;
   }
   return onVercel
-    ? DEFAULT_NOTIFICATION_URL
-    : "http://localhost:4002";
+    ? PRODUCTION_NOTIFICATION_URL
+    : LOCAL_NOTIFICATION_URL;
 }
 
 const FORWARD_REQUEST_HEADERS = new Set([

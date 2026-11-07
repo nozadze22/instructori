@@ -419,7 +419,12 @@ let playbackAudioElement: HTMLAudioElement | null = null;
 
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-const MIN_PLAYED_RATIO = 0.75;
+/** Allow natural MP3 endings on mobile (avoid cutting off last syllables). */
+const MIN_PLAYED_RATIO = 0.62;
+/** Prevent GPS re-fires and fallback doubling for the same cue text. */
+const AUTO_SPEAK_DEBOUNCE_MS = 8_000;
+let lastAutoSpeakText = "";
+let lastAutoSpeakAt = 0;
 
 export class AudioBlockedError extends Error {
   constructor() {
@@ -667,8 +672,9 @@ async function speakBrowser(text: string): Promise<boolean> {
   utterance.voice = preferred;
   utterance.lang = preferred.lang;
 
-  utterance.rate = 0.92;
-  utterance.pitch = 0.95;
+  // iOS often truncates long Georgian utterances below ~1.0; use normal rate.
+  utterance.rate = 1;
+  utterance.pitch = 1;
   utterance.volume = 1;
 
   return new Promise((resolve) => {
@@ -698,6 +704,7 @@ async function prefetchTts(text: string) {
 }
 
 async function speakGeorgianMp3(text: string) {
+  const epochAtStart = speakEpoch;
   let url = ttsUrlCache.get(text);
   if (!url) {
     const response = await fetch(getApiUrl("/routes/tts"), {
@@ -731,8 +738,20 @@ async function speakGeorgianMp3(text: string) {
   audio.loop = false;
   audio.volume = 1;
   audio.muted = false;
+  audio.preload = "auto";
   audio.src = url;
   activeAudio = audio;
+
+  await new Promise<void>((resolve, reject) => {
+    const onReady = () => resolve();
+    const onLoadError = () => reject(new Error("Audio load failed"));
+    audio.addEventListener("canplaythrough", onReady, { once: true });
+    audio.addEventListener("error", onLoadError, { once: true });
+    audio.load();
+  }).catch((error) => {
+    invalidateTtsCache(text);
+    throw error instanceof Error ? error : new Error("Audio load failed");
+  });
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
@@ -744,6 +763,10 @@ async function speakGeorgianMp3(text: string) {
     };
 
     audio.onended = () => {
+      if (epochAtStart !== speakEpoch) {
+        finish(() => reject(new Error("cancelled")));
+        return;
+      }
       const duration = audio.duration;
       const playedRatio =
         duration > 0 && Number.isFinite(duration)
@@ -756,6 +779,10 @@ async function speakGeorgianMp3(text: string) {
       finish(resolve);
     };
     audio.onerror = () => {
+      if (epochAtStart !== speakEpoch) {
+        finish(() => reject(new Error("cancelled")));
+        return;
+      }
       invalidateTtsCache(text);
       finish(() => reject(new Error("Audio playback failed")));
     };
@@ -799,9 +826,24 @@ async function speakGeorgianMp3(text: string) {
 async function speakPrompt(options: {
   voiceText: string;
   action?: RouteAction;
+  /** Navigation auto-cue (debounced); manual replay skips debounce. */
+  autoCue?: boolean;
 }) {
-  const { voiceText } = options;
-  if (!voiceText.trim()) return;
+  const { voiceText, autoCue = false } = options;
+  const trimmed = voiceText.trim();
+  if (!trimmed) return;
+
+  if (autoCue) {
+    const now = Date.now();
+    if (
+      trimmed === lastAutoSpeakText &&
+      now - lastAutoSpeakAt < AUTO_SPEAK_DEBOUNCE_MS
+    ) {
+      return;
+    }
+    lastAutoSpeakText = trimmed;
+    lastAutoSpeakAt = now;
+  }
 
   const epoch = speakEpoch;
   speakChain = speakChain
@@ -811,15 +853,22 @@ async function speakPrompt(options: {
 
       let mp3Error: unknown;
       try {
-        await speakGeorgianMp3(voiceText);
+        await speakGeorgianMp3(trimmed);
         return;
       } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
         if (error instanceof AudioBlockedError) throw error;
+        if (
+          error instanceof Error &&
+          (error.message === "cancelled" ||
+            error.message === "Audio interrupted")
+        ) {
+          throw error;
+        }
         mp3Error = error;
       }
 
-      if (await speakBrowser(voiceText)) {
+      if (await speakBrowser(trimmed)) {
         return;
       }
 
@@ -873,6 +922,8 @@ export function useRouteSimulation(options: {
 
   const spokenRef = useRef<Set<string>>(new Set());
   const pendingSpeakRef = useRef<Set<string>>(new Set());
+  /** Auto navigation: one playback attempt per command until reset. */
+  const attemptedAutoSpeakRef = useRef<Set<string>>(new Set());
   const lastAlongRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const runningRef = useRef(false);
@@ -934,6 +985,9 @@ export function useRouteSimulation(options: {
     lastAlongRef.current = null;
     spokenRef.current = new Set();
     pendingSpeakRef.current = new Set();
+    attemptedAutoSpeakRef.current = new Set();
+    lastAutoSpeakText = "";
+    lastAutoSpeakAt = 0;
   }, [stop]);
 
   const unlockAudio = useCallback(async () => {
@@ -1051,6 +1105,7 @@ export function useRouteSimulation(options: {
         Boolean(upcoming.command.voiceText.trim()) &&
         !spokenRef.current.has(upcoming.command.id) &&
         !pendingSpeakRef.current.has(upcoming.command.id) &&
+        !attemptedAutoSpeakRef.current.has(upcoming.command.id) &&
         isVoiceCueDueAtPin({
           distanceToPinMeters: upcoming.distanceToPin,
           alongRemainingMeters: upcoming.remaining,
@@ -1061,10 +1116,12 @@ export function useRouteSimulation(options: {
       ) {
         const { command } = upcoming;
         pendingSpeakRef.current.add(command.id);
+        attemptedAutoSpeakRef.current.add(command.id);
         setCurrentVoice(command.voiceText);
         void speakPrompt({
           voiceText: command.voiceText,
           action: command.action,
+          autoCue: true,
         })
           .then(() => {
             spokenRef.current.add(command.id);
@@ -1078,6 +1135,14 @@ export function useRouteSimulation(options: {
             if (error instanceof Error && error.message === "cancelled") return;
             if (!unmountedRef.current && error instanceof AudioBlockedError) {
               setAudioBlocked(true);
+              attemptedAutoSpeakRef.current.delete(command.id);
+            }
+            if (
+              error instanceof Error &&
+              error.message === "Audio interrupted"
+            ) {
+              spokenRef.current.add(command.id);
+              setPassedCount(spokenRef.current.size);
             }
           })
           .finally(() => {

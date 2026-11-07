@@ -6,7 +6,7 @@ primary_region = "fra"
 
   [build.args]
     BACKEND_URL = "https://simdrive-pro-api.fly.dev"
-    NEXT_PUBLIC_APP_URL = "https://simdrive-pro-web.fly.dev"
+    NEXT_PUBLIC_APP_URL = "https://www.instructorebi.com"
     NEXT_PUBLIC_API_URL = "/api"
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "AIzaSyBBaRPn0koPQgnoXtwYE3ugR-8TJcCAx9c"
 
