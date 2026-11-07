@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   createRoute,
@@ -91,7 +92,7 @@ export function useCreateRoute() {
       toast.success("მარშრუტი შეიქმნა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "მარშრუტი ვერ შეიქმნა");
+      toastApiError(error, "მარშრუტი ვერ შეიქმნა.");
     },
   });
 }
@@ -108,7 +109,7 @@ export function useUpdateRoute(id: string) {
       toast.success("მარშრუტი განახლდა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "მარშრუტი ვერ განახლდა");
+      toastApiError(error, "მარშრუტი ვერ განახლდა.");
     },
   });
 }
@@ -124,7 +125,7 @@ export function useDeleteRoute() {
       toast.success("მარშრუტი წაიშალა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "მარშრუტი ვერ წაიშალა");
+      toastApiError(error, "მარშრუტი ვერ წაიშალა.");
     },
   });
 }
@@ -146,7 +147,7 @@ export function useSaveRoute() {
     },
     onError: (error: Error, _routeId, context) => {
       restoreRouteSavedSnapshot(queryClient, context?.snapshot);
-      toast.error(error.message || "შენახვა ვერ მოხერხდა");
+      toastApiError(error, "შენახვა ვერ მოხერხდა.");
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["routes", "saved"] });
@@ -168,7 +169,7 @@ export function useUnsaveRoute() {
     },
     onError: (error: Error, _routeId, context) => {
       restoreRouteSavedSnapshot(queryClient, context?.snapshot);
-      toast.error(error.message || "შენახვის მოხსნა ვერ მოხერხდა");
+      toastApiError(error, "შენახვის მოხსნა ვერ მოხერხდა.");
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["routes", "saved"] });
@@ -207,7 +208,7 @@ export function useSyncExamCatalog() {
       );
     },
     onError: (error: Error) => {
-      toast.error(error.message || "სინქი ვერ მოხერხდა");
+      toastApiError(error, "სინქი ვერ მოხერხდა.");
     },
   });
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   listUsers,
@@ -45,8 +46,8 @@ export function useUpdateUserAccess() {
       );
       toast.success("წვდომა განახლდა");
     },
-    onError: () => {
-      toast.error("მოხდა შეცდომა");
+    onError: (error) => {
+      toastApiError(error, "წვდომის განახლება ვერ მოხერხდა.");
     },
   });
 }

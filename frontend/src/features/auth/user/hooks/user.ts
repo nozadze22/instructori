@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import { defaultPathForUser } from "@/lib/post-auth-path";
 import {
@@ -37,7 +38,7 @@ export function useUserRegistration() {
       router.replace(defaultPathForUser(data.user));
     },
     onError: (error: Error) => {
-      toast.error(error.message || "რეგისტრაცია ვერ მოხერხდა");
+      toastApiError(error, "რეგისტრაცია ვერ მოხერხდა.");
     },
   });
 }
@@ -61,7 +62,7 @@ export function useUpdateUserName() {
       toast.success("სახელი განახლდა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "სახელი ვერ განახლდა");
+      toastApiError(error, "სახელი ვერ განახლდა.");
     },
   });
 }
@@ -74,7 +75,7 @@ export function useChangePassword() {
       toast.success("პაროლი წარმატებით შეიცვალა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "პაროლი ვერ შეიცვალა");
+      toastApiError(error, "პაროლი ვერ შეიცვალა.");
     },
   });
 }

@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { defaultPathForUser, safeNextPath } from "@/lib/post-auth-path";
+import { toastApiError } from "@/lib/toast-api";
 import { getMe, login, logout } from "../api/login";
 import type { LoginSchema } from "../schema/login.schema";
 
@@ -18,7 +19,7 @@ export function useLogin() {
       return { user };
     },
     onSuccess: (data) => {
-      toast.success("წარმატებით შესრულდა");
+      toast.success("წარმატებით შეხვიდით");
       queryClient.setQueryData(["me"], data.user);
       const params = new URLSearchParams(window.location.search);
       const next =
@@ -28,7 +29,7 @@ export function useLogin() {
       router.replace(next);
     },
     onError: (error: Error) => {
-      toast.error(error.message || "მოხდა შეცდომა");
+      toastApiError(error, "შესვლა ვერ მოხერხდა.");
     },
   });
 }

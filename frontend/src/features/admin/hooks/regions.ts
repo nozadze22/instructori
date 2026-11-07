@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   listExamRegions,
@@ -43,8 +44,8 @@ export function useUpdateExamRegionActive() {
       void queryClient.invalidateQueries({ queryKey: ["public-routes"] });
       toast.success(data.isActive ? "რეგიონი ჩართულია" : "რეგიონი გამორთულია");
     },
-    onError: () => {
-      toast.error("რეგიონის განახლება ვერ მოხერხდა");
+    onError: (error) => {
+      toastApiError(error, "რეგიონის განახლება ვერ მოხერხდა.");
     },
   });
 }

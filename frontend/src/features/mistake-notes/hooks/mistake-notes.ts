@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   createMistakeNote,
@@ -38,7 +39,7 @@ export function useCreateMistakeNote() {
       toast.success("შეცდომების ჩანაწერი შეიქმნა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "ჩანაწერი ვერ შეიქმნა");
+      toastApiError(error, "ჩანაწერი ვერ შეიქმნა.");
     },
   });
 }
@@ -55,7 +56,7 @@ export function useUpdateMistakeNote(id: string) {
       toast.success("ჩანაწერი განახლდა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "ჩანაწერი ვერ განახლდა");
+      toastApiError(error, "ჩანაწერი ვერ განახლდა.");
     },
   });
 }
@@ -72,7 +73,7 @@ export function useDeleteMistakeNote() {
       toast.success("ჩანაწერი წაიშალა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "ჩანაწერი ვერ წაიშალა");
+      toastApiError(error, "ჩანაწერი ვერ წაიშალა.");
     },
   });
 }

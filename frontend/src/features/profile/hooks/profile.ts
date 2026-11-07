@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { humanizeApiError } from "@/lib/api-errors";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   createProfile,
@@ -64,7 +66,7 @@ export function useCreateInstructorCode() {
     },
     onError: (error: Error) => {
       toast.error("კოდის შექმნა ვერ მოხერხდა", {
-        description: error.message,
+        description: humanizeApiError(error),
       });
     },
   });
@@ -81,7 +83,7 @@ export function useJoinInstructorGroup() {
       toast.success("ინსტრუქტორის ჯგუფს შეუერთდი");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "კოდის დადასტურება ვერ მოხერხდა");
+      toastApiError(error, "კოდის დადასტურება ვერ მოხერხდა.");
     },
   });
 }
@@ -107,7 +109,7 @@ export function useCreateProfile() {
     },
     onError: (error: Error) => {
       console.error("[useCreateProfile:onError]", error);
-      toast.error(error.message || "პროფილი ვერ შეიქმნა");
+      toastApiError(error, "პროფილი ვერ შეიქმნა.");
     },
   });
 }
@@ -123,7 +125,7 @@ export function useUploadProfileAvatar() {
       toast.success("პროფილის სურათი აიტვირთა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "სურათი ვერ აიტვირთა");
+      toastApiError(error, "სურათი ვერ აიტვირთა.");
     },
   });
 }
@@ -139,7 +141,7 @@ export function useRemoveProfileAvatar() {
       toast.success("პროფილის სურათი წაიშალა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "სურათი ვერ წაიშალა");
+      toastApiError(error, "სურათი ვერ წაიშალა.");
     },
   });
 }
@@ -165,7 +167,7 @@ export function useUpdateProfile() {
     },
     onError: (error: Error) => {
       console.error("[useUpdateProfile:onError]", error);
-      toast.error(error.message || "პროფილი ვერ განახლდა");
+      toastApiError(error, "პროფილი ვერ განახლდა.");
     },
   });
 }

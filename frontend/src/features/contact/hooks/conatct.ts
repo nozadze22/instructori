@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createContact, CreateContact, getAllContacts } from "../api/contact";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 export function useCreateContact() {
   return useMutation({
@@ -12,8 +13,8 @@ export function useCreateContact() {
     onSuccess: () => {
       toast.success("კონტაქტი წარმატებით გაიგზავნა");
     },
-    onError: () => {
-      toast.error("კონტაქტი ვერ გაიგზავნა");
+    onError: (error) => {
+      toastApiError(error, "კონტაქტი ვერ გაიგზავნა.");
     },
   });
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   getInstructor,
@@ -34,7 +35,7 @@ export function useSendInstructorMessage(id: string) {
       toast.success("შეტყობინება გაიგზავნა");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "შეტყობინება ვერ გაიგზავნა");
+      toastApiError(error, "შეტყობინება ვერ გაიგზავნა.");
     },
   });
 }
@@ -57,7 +58,7 @@ export function useMarkInstructorMessageRead() {
       void queryClient.invalidateQueries({ queryKey: ["instructor-messages"] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "სტატუსი ვერ განახლდა");
+      toastApiError(error, "სტატუსი ვერ განახლდა.");
     },
   });
 }
