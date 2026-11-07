@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   adminSetup,
@@ -31,7 +32,7 @@ export function useAdminSetup() {
       router.push("/admin");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "მოხდა შეცდომა");
+      toastApiError(error, "რაღაც ისე არ გამოვიდა.");
     },
   });
 }
@@ -47,7 +48,7 @@ export function useCreateAdmin() {
       void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "ადმინი ვერ შეიქმნა");
+      toastApiError(error, "ადმინი ვერ შეიქმნა.");
     },
   });
 }

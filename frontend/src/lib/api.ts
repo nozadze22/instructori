@@ -10,7 +10,9 @@ export function getApiUrl(path: string): string {
 
 export class SessionReplacedError extends Error {
   constructor() {
-    super("Logged in on another device");
+    super(
+      "სესია შეწყვეტილია — სისტემაში სხვა მოწყობიდან შესვლა მოხდა.",
+    );
     this.name = "SessionReplacedError";
   }
 }

@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   createInstructorReview,
@@ -65,7 +66,7 @@ export function useCreateInstructorReview(instructorId: string) {
       });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "შეფასება ვერ გამოქვეყნდა");
+      toastApiError(error, "შეფასება ვერ გამოქვეყნდა.");
     },
   });
 }
@@ -87,7 +88,7 @@ export function useUpdateInstructorReview(instructorId: string) {
       });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "შეფასება ვერ განახლდა");
+      toastApiError(error, "შეფასება ვერ განახლდა.");
     },
   });
 }
@@ -105,7 +106,7 @@ export function useDeleteInstructorReview(instructorId: string) {
       });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "შეფასება ვერ წაიშალა");
+      toastApiError(error, "შეფასება ვერ წაიშალა.");
     },
   });
 }

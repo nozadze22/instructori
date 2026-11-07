@@ -2,16 +2,16 @@ import { z } from "zod";
 
 export const registerSchema = z
   .object({
-    fullName: z.string().min(2, "Please enter your full name."),
-    email: z.email("Please enter a valid email."),
-    password: z.string().min(8, "Password must be at least 8 characters."),
-    repeatPassword: z.string().min(1, "Please confirm your password."),
+    fullName: z.string().min(2, "სახელი მინიმუმ 2 სიმბოლო უნდა იყოს."),
+    email: z.email("გთხოვთ, მიუთითოთ სწორი ელფოსტა."),
+    password: z.string().min(8, "პაროლი მინიმუმ 8 სიმბოლო უნდა იყოს."),
+    repeatPassword: z.string().min(1, "გაიმეორე პაროლი."),
     terms: z.boolean().refine((value) => value, {
-      message: "You must agree to the Terms of Service.",
+      message: "წესებსა და პირობებზე თანხმობა სავალდებულოა.",
     }),
   })
   .refine((data) => data.password === data.repeatPassword, {
-    message: "Passwords do not match.",
+    message: "პაროლები ერთმანეთს არ ემთხვევა.",
     path: ["repeatPassword"],
   });
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { DrivingMistake } from "@/features/driving-practice/api/driving-sessions";
@@ -97,9 +98,7 @@ export function PracticeLivePage({ sessionId }: PracticeLivePageProps) {
       setActiveMistake(created);
       setDetailOpen(true);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "შეცდომის შენახვა ვერ მოხერხდა",
-      );
+      toastApiError(error, "შეცდომის შენახვა ვერ მოხერხდა.");
     }
   };
 

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   createProfileTrainingStep,
@@ -32,7 +33,7 @@ export function useCreateProfileTrainingStep() {
       refresh(queryClient);
       toast.success("სწავლების ეტაპი დაემატა");
     },
-    onError: () => toast.error("ეტაპის დამატება ვერ მოხერხდა"),
+    onError: (error) => toastApiError(error, "ეტაპის დამატება ვერ მოხერხდა."),
   });
 }
 
@@ -50,7 +51,7 @@ export function useUpdateProfileTrainingStep() {
       refresh(queryClient);
       toast.success("სწავლების ეტაპი განახლდა");
     },
-    onError: () => toast.error("ეტაპის განახლება ვერ მოხერხდა"),
+    onError: (error) => toastApiError(error, "ეტაპის განახლება ვერ მოხერხდა."),
   });
 }
 
@@ -62,6 +63,6 @@ export function useDeleteProfileTrainingStep() {
       refresh(queryClient);
       toast.success("სწავლების ეტაპი წაიშალა");
     },
-    onError: () => toast.error("ეტაპის წაშლა ვერ მოხერხდა"),
+    onError: (error) => toastApiError(error, "ეტაპის წაშლა ვერ მოხერხდა."),
   });
 }

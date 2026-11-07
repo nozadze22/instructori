@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 import {
   createProfileCertificate,
   deleteProfileCertificate,
@@ -27,7 +28,7 @@ export function useCreateProfileCertificate() {
       refresh(client);
       toast.success("სერტიფიკატი დაემატა");
     },
-    onError: () => toast.error("სერტიფიკატის დამატება ვერ მოხერხდა"),
+    onError: (error) => toastApiError(error, "სერტიფიკატის დამატება ვერ მოხერხდა."),
   });
 }
 
@@ -40,7 +41,7 @@ export function useUpdateProfileCertificate() {
       refresh(client);
       toast.success("სერტიფიკატი განახლდა");
     },
-    onError: () => toast.error("სერტიფიკატი ვერ განახლდა"),
+    onError: (error) => toastApiError(error, "სერტიფიკატი ვერ განახლდა."),
   });
 }
 
@@ -52,7 +53,7 @@ export function useDeleteProfileCertificate() {
       refresh(client);
       toast.success("სერტიფიკატი წაიშალა");
     },
-    onError: () => toast.error("სერტიფიკატი ვერ წაიშალა"),
+    onError: (error) => toastApiError(error, "სერტიფიკატი ვერ წაიშალა."),
   });
 }
 
@@ -65,6 +66,6 @@ export function useReplaceProfileCertificatePhoto() {
       refresh(client);
       toast.success("სერტიფიკატის ფოტო განახლდა");
     },
-    onError: () => toast.error("სერტიფიკატის ფოტო ვერ განახლდა"),
+    onError: (error) => toastApiError(error, "სერტიფიკატის ფოტო ვერ განახლდა."),
   });
 }

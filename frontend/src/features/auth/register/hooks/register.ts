@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import { register } from "../api/register";
 import type { RegisterSchema } from "../schema/register.schema";
@@ -18,7 +19,7 @@ export function useRegister() {
       router.push("/pending");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "მოხდა შეცდომა");
+      toastApiError(error, "რეგისტრაცია ვერ მოხერხდა.");
     },
   });
 }

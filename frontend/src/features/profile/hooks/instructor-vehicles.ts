@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/toast-api";
 
 import {
   createProfileVehicle,
@@ -11,10 +12,8 @@ import {
   type UpdateInstructorVehicleInput,
 } from "@/features/profile/api/instructor-vehicles";
 
-function showVehicleError(description: string) {
-  toast.error("შეცდომა მოხდა", {
-    description: `${description}. გთხოვ, სცადე თავიდან.`,
-  });
+function showVehicleError(error: unknown, fallback: string) {
+  toastApiError(error, fallback);
 }
 
 export function useProfileVehicles(options?: { enabled?: boolean }) {
@@ -37,8 +36,8 @@ export function useCreateProfileVehicle() {
       void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("მანქანა დაემატა");
     },
-    onError: () => {
-      showVehicleError("მანქანის დამატება ვერ მოხერხდა");
+    onError: (error) => {
+      showVehicleError(error, "მანქანის დამატება ვერ მოხერხდა.");
     },
   });
 }
@@ -54,8 +53,8 @@ export function useDeleteProfileVehicle() {
       void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("მანქანა წაიშალა");
     },
-    onError: () => {
-      showVehicleError("მანქანის წაშლა ვერ მოხერხდა");
+    onError: (error) => {
+      showVehicleError(error, "მანქანის წაშლა ვერ მოხერხდა.");
     },
   });
 }
@@ -77,8 +76,8 @@ export function useUpdateProfileVehicle() {
       void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("მანქანის მონაცემები განახლდა");
     },
-    onError: () => {
-      showVehicleError("მანქანის განახლება ვერ მოხერხდა");
+    onError: (error) => {
+      showVehicleError(error, "მანქანის განახლება ვერ მოხერხდა.");
     },
   });
 }
@@ -95,8 +94,8 @@ export function useReplaceProfileVehiclePhoto() {
       void queryClient.invalidateQueries({ queryKey: ["instructors"] });
       toast.success("ფოტო განახლდა");
     },
-    onError: () => {
-      showVehicleError("ფოტოს განახლება ვერ მოხერხდა");
+    onError: (error) => {
+      showVehicleError(error, "ფოტოს განახლება ვერ მოხერხდა.");
     },
   });
 }
