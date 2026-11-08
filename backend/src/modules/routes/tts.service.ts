@@ -12,18 +12,17 @@ const MAX_TEXT_LENGTH = 500;
 const TTS_TIMEOUT_MS = 20_000;
 const CACHE_LIMIT = 80;
 const TTS_RATE_WINDOW_MS = 60_000;
-const TTS_RATE_MAX = 10;
+const TTS_RATE_MAX = 30;
 /** Bump when the provider/model/voice changes so cached audio is regenerated. */
-const TTS_PROFILE = 'v6-clear-georgian';
+const TTS_PROFILE = 'v7-prod-reliable';
+
+const DEFAULT_OUTPUT_FORMAT = 'mp3_44100_128';
 
 /** Punctuation + spacing so TTS does not run words together. */
 function prepareNavigationVoiceText(raw: string): string {
   let text = raw.trim().replace(/\s+/g, ' ');
   text = text.replace(/(\d+)\s*(მეტრ)/giu, '$1 $2');
-  text = text.replace(
-    /(\d+)\s*(მეტრში|სმ|კმ)/giu,
-    '$1 $2',
-  );
+  text = text.replace(/(\d+)\s*(მეტრში|სმ|კმ)/giu, '$1 $2');
   text = text.replace(
     /\s+(მოუხვიეთ|გადადით|გაგრძელებით|გთხოვთ|მალე|შემდეგ|პირდაპირ)/giu,
     '. $1',
@@ -35,6 +34,12 @@ function prepareNavigationVoiceText(raw: string): string {
   }
   return text;
 }
+
+type ElevenLabsBody = {
+  text: string;
+  model_id: string;
+  voice_settings: Record<string, number | boolean>;
+};
 
 @Injectable()
 export class TtsService {
@@ -65,43 +70,106 @@ export class TtsService {
     const elevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID?.trim();
     if (!elevenLabsKey || !elevenLabsVoiceId) {
       throw new ServiceUnavailableException(
-        'ElevenLabs TTS კონფიგურირებული არ არის: დაამატე ELEVENLABS_API_KEY და ELEVENLABS_VOICE_ID backend/.env-ში.',
+        'ElevenLabs TTS კონფიგურირებული არ არის (Fly: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID).',
       );
     }
 
-    try {
-      const buffer = await this.synthesizeElevenLabs(
-        normalized,
-        elevenLabsKey,
-        elevenLabsVoiceId,
-      );
-      this.remember(key, buffer);
-      this.logger.log(
-        `ElevenLabs TTS ok (${normalized.length} chars → ${buffer.length} bytes)`,
-      );
-      return buffer;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `ElevenLabs TTS failed (${normalized.length} chars): ${msg}`,
-      );
+    const attempts = this.buildElevenLabsAttempts(normalized);
+    let lastError: string | null = null;
+
+    for (const attempt of attempts) {
+      try {
+        const buffer = await this.synthesizeElevenLabs(
+          elevenLabsKey,
+          elevenLabsVoiceId,
+          attempt,
+        );
+        this.remember(key, buffer);
+        this.logger.log(
+          `ElevenLabs TTS ok [${attempt.label}] (${normalized.length} chars → ${buffer.length} bytes)`,
+        );
+        return buffer;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `ElevenLabs TTS attempt failed [${attempt.label}]: ${lastError}`,
+        );
+      }
     }
+
+    this.logger.error(
+      `ElevenLabs TTS exhausted (${normalized.length} chars): ${lastError ?? 'unknown'}`,
+    );
     throw new ServiceUnavailableException(
       'ElevenLabs-ის ხმის გენერაცია დროებით ვერ მოხერხდა. სცადე ხელახლა.',
     );
   }
 
+  private buildElevenLabsAttempts(text: string): Array<{
+    label: string;
+    body: ElevenLabsBody;
+    outputFormat: string;
+  }> {
+    const modelPrimary =
+      process.env.ELEVENLABS_MODEL_ID?.trim() || 'eleven_multilingual_v2';
+    const modelFallback =
+      process.env.ELEVENLABS_MODEL_FALLBACK?.trim() || 'eleven_v2';
+
+    const voiceFull: Record<string, number | boolean> = {
+      stability: Number(process.env.ELEVENLABS_STABILITY ?? 0.72),
+      similarity_boost: Number(process.env.ELEVENLABS_SIMILARITY ?? 0.78),
+      use_speaker_boost: true,
+    };
+    const style = Number(process.env.ELEVENLABS_STYLE ?? 0);
+    if (style > 0) {
+      voiceFull.style = style;
+    }
+    const speedRaw = process.env.ELEVENLABS_SPEED?.trim();
+    if (speedRaw) {
+      voiceFull.speed = Number(speedRaw);
+    }
+
+    const voiceSafe: Record<string, number | boolean> = {
+      stability: Number(process.env.ELEVENLABS_STABILITY ?? 0.65),
+      similarity_boost: Number(process.env.ELEVENLABS_SIMILARITY ?? 0.75),
+      use_speaker_boost: true,
+    };
+
+    return [
+      {
+        label: modelPrimary,
+        body: { text, model_id: modelPrimary, voice_settings: voiceFull },
+        outputFormat:
+          process.env.ELEVENLABS_OUTPUT_FORMAT?.trim() || DEFAULT_OUTPUT_FORMAT,
+      },
+      {
+        label: `${modelPrimary}-safe`,
+        body: { text, model_id: modelPrimary, voice_settings: voiceSafe },
+        outputFormat: DEFAULT_OUTPUT_FORMAT,
+      },
+      {
+        label: modelFallback,
+        body: { text, model_id: modelFallback, voice_settings: voiceSafe },
+        outputFormat: DEFAULT_OUTPUT_FORMAT,
+      },
+    ];
+  }
+
   private async synthesizeElevenLabs(
-    text: string,
     apiKey: string,
     voiceId: string,
+    attempt: {
+      label: string;
+      body: ElevenLabsBody;
+      outputFormat: string;
+    },
   ): Promise<Buffer> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
 
     try {
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_192`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=${encodeURIComponent(attempt.outputFormat)}`,
         {
           method: 'POST',
           headers: {
@@ -110,21 +178,7 @@ export class TtsService {
             'xi-api-key': apiKey,
           },
           signal: controller.signal,
-          body: JSON.stringify({
-            text,
-            model_id:
-              process.env.ELEVENLABS_MODEL_ID?.trim() || 'eleven_multilingual_v2',
-            voice_settings: {
-              // Higher stability = clearer syllables, less “swallowed” endings.
-              stability: Number(process.env.ELEVENLABS_STABILITY ?? 0.72),
-              similarity_boost: Number(
-                process.env.ELEVENLABS_SIMILARITY ?? 0.78,
-              ),
-              style: Number(process.env.ELEVENLABS_STYLE ?? 0),
-              use_speaker_boost: true,
-              speed: Number(process.env.ELEVENLABS_SPEED ?? 0.96),
-            },
-          }),
+          body: JSON.stringify(attempt.body),
         },
       );
 
@@ -169,5 +223,4 @@ export class TtsService {
     }
     this.cache.set(key, buffer);
   }
-
 }
