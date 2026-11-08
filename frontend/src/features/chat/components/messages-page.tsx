@@ -15,6 +15,7 @@ import {
   CheckCheck,
   ChevronLeft,
   LoaderCircle,
+  Megaphone,
   MessageSquare,
   SendHorizontal,
   Trash2,
@@ -58,6 +59,17 @@ import {
   PageFrame,
   PageHeader,
 } from "@/features/instructor/components/page-frame";
+import { isSystemChatPeerId } from "@/features/chat/lib/chat-system-peer";
+import {
+  systemMessageChatAvatar,
+  systemMessageChatBubble,
+  systemMessageChatBubbleHeader,
+  systemMessageChatFooter,
+  systemMessageChatIconBox,
+  systemMessageChatListSelected,
+  systemMessageChatMutedText,
+  systemMessageChatText,
+} from "@/lib/system-message-ui";
 import { userInitials } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 
@@ -97,12 +109,59 @@ function sameMinute(a: string, b: string) {
   );
 }
 
+function SystemMessageBubble({ message }: { message: { title?: string; body: string; createdAt: string } }) {
+  return (
+    <article
+      className={cn(
+        "w-full max-w-md rounded-2xl border px-4 py-3.5",
+        systemMessageChatBubble,
+      )}
+    >
+      <header
+        className={cn(
+          "mb-2.5 flex items-center gap-2",
+          systemMessageChatBubbleHeader,
+        )}
+      >
+        <span
+          className={cn(
+            "inline-flex size-7 shrink-0 items-center justify-center rounded-lg",
+            systemMessageChatIconBox,
+          )}
+        >
+          <Megaphone className="size-3.5" aria-hidden />
+        </span>
+        <span className="text-[10px] font-semibold tracking-[0.12em] text-white uppercase">
+          სისტემური შეტყობინება
+        </span>
+      </header>
+      {message.title ? (
+        <p className={cn("text-sm font-semibold", systemMessageChatText)}>
+          {message.title}
+        </p>
+      ) : null}
+      <p
+        className={cn(
+          "text-[13px] leading-5 whitespace-pre-wrap text-white/90",
+          message.title && "mt-1",
+        )}
+      >
+        {message.body}
+      </p>
+      <p className="mt-2.5 text-right text-[10px] text-white/40">
+        {formatTime(message.createdAt)}
+      </p>
+    </article>
+  );
+}
+
 function peerRelationLabel(
-  relation: "instructor" | "student" | "classmate" | undefined,
+  relation: "instructor" | "student" | "classmate" | "system" | undefined,
 ) {
   if (relation === "instructor") return "ინსტრუქტორი";
   if (relation === "classmate") return "თანაკლასელი";
   if (relation === "student") return "სტუდენტი";
+  if (relation === "system") return "სისტემური შეტყობინებები";
   return null;
 }
 
@@ -138,6 +197,7 @@ export function MessagesPanel({
   );
 
   const activePeerId = useMemo(() => {
+    if (peerId && isSystemChatPeerId(peerId)) return peerId;
     if (peerId && conversations.some((c) => c.peer.id === peerId)) {
       return peerId;
     }
@@ -160,6 +220,9 @@ export function MessagesPanel({
 
   const activeConversation = conversations.find(
     (c) => c.peer.id === activePeerId,
+  );
+  const isSystemThread = Boolean(
+    activePeerId && isSystemChatPeerId(activePeerId),
   );
   const peer =
     messagesQuery.data?.pages[0]?.peer ?? activeConversation?.peer ?? null;
@@ -192,16 +255,29 @@ export function MessagesPanel({
     me?.role === "INSTRUCTOR" || me?.role === "ADMIN";
 
   const groupedConversations = useMemo(() => {
-    if (isInstructor) {
-      return [{ key: "students", title: "სტუდენტები", items: conversations }];
+    const system = conversations.filter(
+      (item) => item.peer.relation === "system",
+    );
+    const direct = conversations.filter(
+      (item) => item.peer.relation !== "system",
+    );
+    const groups: { key: string; title: string; items: typeof conversations }[] =
+      [];
+    if (system.length > 0) {
+      groups.push({ key: "system", title: "სისტემა", items: system });
     }
-    const instructor = conversations.filter(
+    if (isInstructor) {
+      if (direct.length > 0) {
+        groups.push({ key: "students", title: "სტუდენტები", items: direct });
+      }
+      return groups;
+    }
+    const instructor = direct.filter(
       (item) => item.peer.relation === "instructor",
     );
-    const classmates = conversations.filter(
+    const classmates = direct.filter(
       (item) => item.peer.relation === "classmate",
     );
-    const groups = [];
     if (instructor.length > 0) {
       groups.push({
         key: "instructor",
@@ -216,8 +292,8 @@ export function MessagesPanel({
         items: classmates,
       });
     }
-    if (groups.length === 0 && conversations.length > 0) {
-      groups.push({ key: "all", title: "საუბრები", items: conversations });
+    if (groups.length === 0 && direct.length > 0) {
+      groups.push({ key: "all", title: "საუბრები", items: direct });
     }
     return groups;
   }, [conversations, isInstructor]);
@@ -325,7 +401,14 @@ export function MessagesPanel({
               <div className="space-y-4">
                 {groupedConversations.map((group) => (
                   <div key={group.key}>
-                    <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-[0.16em] text-white/35 uppercase">
+                    <p
+                      className={cn(
+                        "mb-1.5 px-3 text-[10px] font-semibold tracking-[0.16em] uppercase",
+                        group.key === "system"
+                          ? "text-white/55"
+                          : "text-white/35",
+                      )}
+                    >
                       {group.title}
                     </p>
                     <ul className="space-y-1">
@@ -338,25 +421,46 @@ export function MessagesPanel({
                               onClick={() => void setPeerId(item.peer.id)}
                               className={cn(
                                 "flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-all",
-                                selected
-                                  ? "bg-primary/18 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]"
-                                  : "hover:bg-white/5",
+                                selected &&
+                                  item.peer.relation === "system" &&
+                                  systemMessageChatListSelected,
+                                selected &&
+                                  item.peer.relation !== "system" &&
+                                  "bg-primary/18 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
+                                !selected && "hover:bg-white/5",
                               )}
                             >
                               <Avatar className="size-11 shrink-0">
-                                {item.peer.avatarUrl ? (
-                                  <AvatarImage
-                                    src={item.peer.avatarUrl}
-                                    alt={item.peer.fullName}
-                                  />
-                                ) : null}
-                                <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
-                                  {userInitials(item.peer)}
-                                </AvatarFallback>
+                                {item.peer.relation === "system" ? (
+                                  <AvatarFallback
+                                    className={systemMessageChatAvatar}
+                                  >
+                                    <Megaphone className="size-4" />
+                                  </AvatarFallback>
+                                ) : (
+                                  <>
+                                    {item.peer.avatarUrl ? (
+                                      <AvatarImage
+                                        src={item.peer.avatarUrl}
+                                        alt={item.peer.fullName}
+                                      />
+                                    ) : null}
+                                    <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+                                      {userInitials(item.peer)}
+                                    </AvatarFallback>
+                                  </>
+                                )}
                               </Avatar>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-2">
-                                  <p className="truncate text-sm font-semibold text-foreground">
+                                  <p
+                                    className={cn(
+                                      "truncate text-sm font-semibold",
+                                      item.peer.relation === "system"
+                                        ? systemMessageChatText
+                                        : "text-foreground",
+                                    )}
+                                  >
                                     {item.peer.fullName}
                                   </p>
                                   {item.lastMessage ? (
@@ -366,7 +470,14 @@ export function MessagesPanel({
                                   ) : null}
                                 </div>
                                 <div className="mt-0.5 flex items-center gap-2">
-                                  <p className="min-w-0 flex-1 truncate text-xs text-white/45">
+                                  <p
+                                    className={cn(
+                                      "min-w-0 flex-1 truncate text-xs",
+                                      item.peer.relation === "system"
+                                        ? systemMessageChatMutedText
+                                        : "text-white/45",
+                                    )}
+                                  >
                                     {item.lastMessage?.body ??
                                       "საუბრი ჯერ ცარიელია"}
                                   </p>
@@ -442,18 +553,38 @@ export function MessagesPanel({
                   </button>
                 ) : null}
                 <Avatar className="size-9 shrink-0 sm:size-10">
-                  {peer.avatarUrl ? (
-                    <AvatarImage src={peer.avatarUrl} alt={peer.fullName} />
-                  ) : null}
-                  <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
-                    {userInitials(peer)}
-                  </AvatarFallback>
+                  {peer.relation === "system" ? (
+                    <AvatarFallback className={systemMessageChatAvatar}>
+                      <Megaphone className="size-4" />
+                    </AvatarFallback>
+                  ) : (
+                    <>
+                      {peer.avatarUrl ? (
+                        <AvatarImage src={peer.avatarUrl} alt={peer.fullName} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+                        {userInitials(peer)}
+                      </AvatarFallback>
+                    </>
+                  )}
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold tracking-tight">
+                  <p
+                    className={cn(
+                      "truncate text-sm font-semibold tracking-tight",
+                      peer.relation === "system" && systemMessageChatText,
+                    )}
+                  >
                     {peer.fullName}
                   </p>
-                  <p className="truncate text-[11px] text-white/40">
+                  <p
+                    className={cn(
+                      "truncate text-[11px]",
+                      peer.relation === "system"
+                        ? systemMessageChatMutedText
+                        : "text-white/40",
+                    )}
+                  >
                     {peerRelationLabel(peer.relation) ??
                       (peer.role === "INSTRUCTOR"
                         ? "ინსტრუქტორი"
@@ -461,6 +592,7 @@ export function MessagesPanel({
                   </p>
                 </div>
 
+                {peer.relation === "system" ? null : (
                 <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
                   <AlertDialogTrigger
                     render={
@@ -499,12 +631,16 @@ export function MessagesPanel({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                )}
               </header>
 
               <div
                 ref={scrollerRef}
                 onScroll={handleScroll}
-                className="relative z-10 flex-1 overflow-y-auto overscroll-contain px-2.5 py-3 sm:px-5 sm:py-4"
+                className={cn(
+                  "relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-3 sm:px-5 sm:py-4",
+                  isSystemThread && "pb-2",
+                )}
               >
                 {messagesQuery.isLoading ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
@@ -512,12 +648,34 @@ export function MessagesPanel({
                   </p>
                 ) : messages.length === 0 ? (
                   <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 text-center sm:min-h-52">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <MessageSquare className="size-5" />
+                    <div
+                      className={cn(
+                        "flex size-12 items-center justify-center rounded-2xl",
+                        isSystemThread
+                          ? cn(systemMessageChatIconBox, "size-12")
+                          : "bg-primary/10 text-primary",
+                      )}
+                    >
+                      {isSystemThread ? (
+                        <Megaphone className="size-5" />
+                      ) : (
+                        <MessageSquare className="size-5" />
+                      )}
                     </div>
-                    <p className="text-sm font-medium">საუბარი ცარიელია</p>
+                    <p
+                      className={cn(
+                        "text-sm font-medium",
+                        isSystemThread && systemMessageChatText,
+                      )}
+                    >
+                      {isSystemThread
+                        ? "სისტემური შეტყობინებები ჯერ არ არის"
+                        : "საუბარი ცარიელია"}
+                    </p>
                     <p className="max-w-xs text-xs text-white/45">
-                      დაწერე პირველი შეტყობინება.
+                      {isSystemThread
+                        ? "ადმინისტრაციის განცხადებები აქ გამოჩნდება."
+                        : "დაწერე პირველი შეტყობინება."}
                     </p>
                   </div>
                 ) : (
@@ -541,6 +699,20 @@ export function MessagesPanel({
                       ) : null}
 
                       {messages.map((message, index) => {
+                        const isSystemMessage =
+                          message.kind === "system" ||
+                          isSystemChatPeerId(message.senderId);
+                        if (isSystemMessage) {
+                          return (
+                            <div
+                              key={message.id}
+                              className="mt-3 flex w-full justify-center px-1 first:mt-0"
+                            >
+                              <SystemMessageBubble message={message} />
+                            </div>
+                          );
+                        }
+
                         const mine = message.senderId === me?.userId;
                         const prev = messages[index - 1];
                         const next = messages[index + 1];
@@ -640,38 +812,58 @@ export function MessagesPanel({
                 )}
               </div>
 
-              <footer
-                className={cn(
-                  "relative z-10 border-t border-white/8 bg-[#0b1220]/85 p-2.5 backdrop-blur-xl sm:p-4",
-                  "pb-[max(0.65rem,env(safe-area-inset-bottom))] sm:pb-4",
-                )}
-              >
-                <div className="mx-auto flex w-full max-w-2xl items-end gap-2 rounded-[1.25rem] border border-white/10 bg-white/4 p-1.5 shadow-inner sm:rounded-[1.35rem]">
-                  <Textarea
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    placeholder="დაწერე შეტყობინება..."
-                    rows={1}
-                    className="max-h-28 min-h-10 flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey) {
-                        event.preventDefault();
-                        void handleSend();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="size-10 shrink-0 rounded-full"
-                    disabled={!draft.trim() || sendMutation.isPending}
-                    onClick={() => void handleSend()}
-                  >
-                    <SendHorizontal className="size-4" />
-                    <span className="sr-only">გაგზავნა</span>
-                  </Button>
-                </div>
-              </footer>
+              {isSystemThread ? (
+                <footer
+                  className={cn(
+                    "relative z-20 shrink-0 border-t px-4 py-3 sm:py-3.5",
+                    "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+                    systemMessageChatFooter,
+                  )}
+                >
+                  <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 text-center text-xs leading-relaxed">
+                    <Megaphone
+                      className="size-3.5 shrink-0 text-white/75"
+                      aria-hidden
+                    />
+                    <span>
+                      სისტემურ შეტყობინებებზე პასუხის გაცემა შეუძლებელია.
+                    </span>
+                  </div>
+                </footer>
+              ) : (
+                <footer
+                  className={cn(
+                    "relative z-10 border-t border-white/8 bg-[#0b1220]/85 p-2.5 backdrop-blur-xl sm:p-4",
+                    "pb-[max(0.65rem,env(safe-area-inset-bottom))] sm:pb-4",
+                  )}
+                >
+                  <div className="mx-auto flex w-full max-w-2xl items-end gap-2 rounded-[1.25rem] border border-white/10 bg-white/4 p-1.5 shadow-inner sm:rounded-[1.35rem]">
+                    <Textarea
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      placeholder="დაწერე შეტყობინება..."
+                      rows={1}
+                      className="max-h-28 min-h-10 flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          void handleSend();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="size-10 shrink-0 rounded-full"
+                      disabled={!draft.trim() || sendMutation.isPending}
+                      onClick={() => void handleSend()}
+                    >
+                      <SendHorizontal className="size-4" />
+                      <span className="sr-only">გაგზავნა</span>
+                    </Button>
+                  </div>
+                </footer>
+              )}
             </>
           )}
         </section>

@@ -38,4 +38,10 @@ export class ChatRealtimeService {
     this.server.to(`user:${payload.userLowId}`).emit(event, payload);
     this.server.to(`user:${payload.userHighId}`).emit(event, payload);
   }
+
+  /** New system inbox row — clients refetch conversations/messages. */
+  emitSystemInbox(userId: string) {
+    if (!this.server) return;
+    this.server.to(`user:${userId}`).emit('chat:system', {});
+  }
 }

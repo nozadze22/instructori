@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 import type { AccessSource, AccessStatus } from '../dto/auth-types';
@@ -40,4 +41,16 @@ export class UpdateUserAccessDto {
   @IsOptional()
   @IsIn(['ADMIN', 'PAYMENT'])
   accessSource?: AccessSource;
+}
+
+export class BroadcastSystemMessageDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4000)
+  body!: string;
 }

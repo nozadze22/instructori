@@ -1,6 +1,10 @@
 import { apiRequest } from "@/lib/api";
 
-export type ChatPeerRelation = "instructor" | "student" | "classmate";
+export type ChatPeerRelation =
+  | "instructor"
+  | "student"
+  | "classmate"
+  | "system";
 
 export type ChatPeer = {
   id: string;
@@ -17,6 +21,8 @@ export type ChatMessage = {
   senderId: string;
   readAt: string | null;
   createdAt: string;
+  title?: string;
+  kind?: "user" | "system";
 };
 
 export type ChatConversation = {

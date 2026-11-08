@@ -41,6 +41,9 @@ type PwaInstallContextValue = {
   isInstalled: boolean;
   canDirectInstall: boolean;
   showInstallButton: boolean;
+  /** True while the bottom install promo strip is on screen (for FAB offset). */
+  promoBannerVisible: boolean;
+  setPromoBannerVisible: (visible: boolean) => void;
   installStep: PwaInstallStep | null;
   openInstallInstructions: () => void;
   closeInstallInstructions: () => void;
@@ -54,6 +57,8 @@ const defaultPwaInstallContextValue: PwaInstallContextValue = {
   isInstalled: false,
   canDirectInstall: false,
   showInstallButton: false,
+  promoBannerVisible: false,
+  setPromoBannerVisible: () => {},
   installStep: null,
   openInstallInstructions: () => {},
   closeInstallInstructions: () => {},
@@ -97,6 +102,7 @@ function PwaInstallProviderInner({ children }: { children: ReactNode }) {
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [installStep, setInstallStep] = useQueryState("install", installQueryOptions);
+  const [promoBannerVisible, setPromoBannerVisible] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -152,6 +158,8 @@ function PwaInstallProviderInner({ children }: { children: ReactNode }) {
       isInstalled,
       canDirectInstall,
       showInstallButton,
+      promoBannerVisible,
+      setPromoBannerVisible,
       installStep,
       openInstallInstructions,
       closeInstallInstructions,
@@ -164,6 +172,7 @@ function PwaInstallProviderInner({ children }: { children: ReactNode }) {
       isInstalled,
       openInstallInstructions,
       platform,
+      promoBannerVisible,
       requestDirectInstall,
       showInstallButton,
     ],

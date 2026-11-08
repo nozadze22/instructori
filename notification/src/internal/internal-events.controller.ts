@@ -6,6 +6,7 @@ import {
   InstructorReviewCreatedDto,
   StudentLinkedDto,
   StudentRegistrationDto,
+  SystemMessageDto,
   SystemRouteDto,
 } from '../dto/internal-events.dto';
 import { NotificationsService } from '../notifications.service';
@@ -74,6 +75,16 @@ export class InternalEventsController {
       createdCount: dto.createdCount,
       updatedCount: dto.updatedCount,
       instructorRecipientIds: dto.instructorRecipientIds,
+    });
+  }
+
+  @Post('system-message')
+  systemMessage(@Body() dto: SystemMessageDto) {
+    return this.notifications.createFromSystemMessage({
+      title: dto.title,
+      body: dto.body,
+      adminUserId: dto.adminUserId,
+      recipientUserIds: dto.recipientUserIds,
     });
   }
 }

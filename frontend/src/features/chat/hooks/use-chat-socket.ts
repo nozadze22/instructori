@@ -142,6 +142,11 @@ export function useChatSocket() {
           );
         });
 
+        socket.on("chat:system", () => {
+          void queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] });
+          void queryClient.invalidateQueries({ queryKey: ["chat", "messages"] });
+        });
+
         socket.on("chat:read", (payload: ChatReadEvent) => {
           const peerId = peerIdForUser(
             me.userId,

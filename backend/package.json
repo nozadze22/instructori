@@ -24,6 +24,7 @@
     "prisma:studio": "prisma studio",
     "scrape:sa-routes": "node scripts/scrape-sa-route-sources.mjs",
     "sync:to-production": "tsx scripts/sync-to-production.mjs",
+    "sync:from-production": "tsx scripts/sync-from-production.mjs",
     "clone:to-production": "tsx scripts/clone-database.mjs",
     "clone:to-dev": "tsx scripts/clone-database.mjs --to-dev",
     "seed:demo-route": "node scripts/seed-demo-route.mjs",
