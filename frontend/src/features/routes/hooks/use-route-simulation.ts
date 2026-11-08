@@ -684,6 +684,41 @@ async function speakBrowser(text: string): Promise<boolean> {
   });
 }
 
+async function waitForAudioReady(audio: HTMLAudioElement, timeoutMs = 12_000) {
+  if (audio.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const done = (handler: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      audio.removeEventListener("canplaythrough", onReady);
+      audio.removeEventListener("loadeddata", onReady);
+      audio.removeEventListener("error", onError);
+      handler();
+    };
+    const onReady = () => done(resolve);
+    const onError = () =>
+      done(() => reject(new Error("Audio load failed")));
+
+    const timer = window.setTimeout(() => {
+      if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        done(resolve);
+        return;
+      }
+      done(() => reject(new Error("Audio load timeout")));
+    }, timeoutMs);
+
+    audio.addEventListener("canplaythrough", onReady, { once: true });
+    audio.addEventListener("loadeddata", onReady, { once: true });
+    audio.addEventListener("error", onError, { once: true });
+    audio.load();
+  });
+}
+
 async function prefetchTts(text: string) {
   const key = text.trim();
   if (!key || ttsUrlCache.has(key)) return;
@@ -699,6 +734,7 @@ async function prefetchTts(text: string) {
     const contentType = response.headers.get("content-type") ?? "";
     if (!contentType.includes("audio")) return;
     const blob = await response.blob();
+    if (blob.size < 64) return;
     ttsUrlCache.set(key, URL.createObjectURL(blob));
   } catch {}
 }
@@ -716,7 +752,8 @@ async function speakGeorgianMp3(text: string) {
 
     if (!response.ok) {
       invalidateTtsCache(text);
-      throw new Error(`TTS failed: ${response.status}`);
+      const detail = (await response.text()).slice(0, 200);
+      throw new Error(`TTS failed: ${response.status} ${detail}`);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -726,6 +763,10 @@ async function speakGeorgianMp3(text: string) {
     }
 
     const blob = await response.blob();
+    if (blob.size < 64) {
+      invalidateTtsCache(text);
+      throw new Error("TTS returned empty audio");
+    }
     url = URL.createObjectURL(blob);
     ttsUrlCache.set(text, url);
   }
@@ -742,16 +783,12 @@ async function speakGeorgianMp3(text: string) {
   audio.src = url;
   activeAudio = audio;
 
-  await new Promise<void>((resolve, reject) => {
-    const onReady = () => resolve();
-    const onLoadError = () => reject(new Error("Audio load failed"));
-    audio.addEventListener("canplaythrough", onReady, { once: true });
-    audio.addEventListener("error", onLoadError, { once: true });
-    audio.load();
-  }).catch((error) => {
+  try {
+    await waitForAudioReady(audio);
+  } catch (error) {
     invalidateTtsCache(text);
     throw error instanceof Error ? error : new Error("Audio load failed");
-  });
+  }
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
@@ -858,10 +895,12 @@ async function speakPrompt(options: {
       } catch (error) {
         if (epoch !== speakEpoch) throw new Error("cancelled");
         if (error instanceof AudioBlockedError) throw error;
+        if (error instanceof Error && error.message === "cancelled") {
+          throw error;
+        }
         if (
           error instanceof Error &&
-          (error.message === "cancelled" ||
-            error.message === "Audio interrupted")
+          error.message === "Audio interrupted"
         ) {
           throw error;
         }
