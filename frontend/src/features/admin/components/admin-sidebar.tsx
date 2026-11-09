@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Map,
   MapPinned,
+  Megaphone,
   ShieldPlus,
   TriangleAlert,
   Users,
@@ -33,6 +34,11 @@ const navItems = [
     href: "/admin/mistake-catalog",
     label: "შეცდომები",
     icon: TriangleAlert,
+  },
+  {
+    href: "/admin/system-messages",
+    label: "სისტემური შეტყობინება",
+    icon: Megaphone,
   },
   { href: "/admin/create", label: "ადმინის შექმნა", icon: ShieldPlus },
 ] as const;

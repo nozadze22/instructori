@@ -44,6 +44,9 @@ export const searchParams = {
   notesEntrySort: parseAsStringEnum(["newest", "oldest"] as const).withDefault(
     "newest",
   ),
+  notificationsFilter: parseAsStringEnum(["all", "unread"] as const).withDefault(
+    "all",
+  ),
 };
 
 /** Server Components: parse searchParams once per request */

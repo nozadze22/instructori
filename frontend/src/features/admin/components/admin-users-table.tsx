@@ -59,7 +59,8 @@ const statusLabel: Record<AccessStatus, string> = {
 
 const statusBadgeClass: Record<AccessStatus, string> = {
   ACTIVE: "border-primary/25 bg-primary/12 text-primary",
-  PENDING: "border-amber-500/25 bg-amber-500/12 text-amber-200",
+  PENDING:
+    "border-amber-500/35 bg-amber-100 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/12 dark:text-amber-200",
   BLOCKED: "border-destructive/25 bg-destructive/12 text-destructive",
 };
 

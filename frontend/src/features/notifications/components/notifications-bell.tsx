@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
+import { ArrowRight, Bell, CheckCheck, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,15 +13,14 @@ import {
 } from "@/components/ui/popover";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import {
+  NOTIFICATIONS_BELL_PAGE_SIZE,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotificationsList,
   useNotificationUnreadCount,
 } from "@/features/notifications/hooks/notifications";
-import {
-  formatNotificationWhen,
-  notificationHref,
-} from "@/features/notifications/lib/notification-links";
+import { NotificationListItem } from "@/features/notifications/components/notification-list-item";
+import { notificationHref } from "@/features/notifications/lib/notification-links";
 import { notificationLoadErrorCopy } from "@/features/notifications/lib/notification-load-error";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +87,7 @@ export function NotificationsBell({
           </Button>
         </div>
 
-        <div className="max-h-80 overflow-y-auto bg-surface-low">
+        <div className="popover-scrollbar max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain bg-surface-low">
           {listQuery.isLoading ? (
             <div className="flex justify-center py-8 text-muted-foreground">
               <Loader2 className="size-5 animate-spin" />
@@ -125,53 +124,48 @@ export function NotificationsBell({
             </p>
           ) : null}
 
-          {listQuery.data?.items.map((item) => {
+          {(listQuery.data?.items.length ?? 0) > 0 ? (
+          <ul className="divide-y-2 divide-white/10">
+          {listQuery.data!.items.map((item) => {
             const href = notificationHref(item);
             const unreadItem = !item.readAt;
 
             return (
-              <button
-                key={item.id}
-                type="button"
-                className="block w-full"
-                onClick={() => {
-                  if (unreadItem) markRead.mutate(item.id);
-                  setOpen(false);
-                  if (href) router.push(href);
-                }}
-              >
-                <div
-                  className={cn(
-                    "border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-white/5",
-                    unreadItem && "bg-primary/5",
-                  )}
-                >
-                  <p className="text-sm font-medium text-foreground">
-                    {item.title}
-                  </p>
-                  {item.body ? (
-                    <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
-                      {item.body}
-                    </p>
-                  ) : null}
-                  <p className="mt-1.5 text-[10px] text-muted-foreground/80">
-                    {formatNotificationWhen(item.createdAt)}
-                  </p>
-                </div>
-              </button>
+              <li key={item.id}>
+                <NotificationListItem
+                  item={item}
+                  className="hover:[&>div]:bg-white/5"
+                  onClick={() => {
+                    if (unreadItem) markRead.mutate(item.id);
+                    setOpen(false);
+                    if (href) router.push(href);
+                  }}
+                />
+              </li>
             );
           })}
+          </ul>
+          ) : null}
         </div>
 
-        {listQuery.data && listQuery.data.totalPages > 1 ? (
-          <div className="border-t border-white/10 px-3 py-2 text-center">
-            <Link
-              href="/profile"
-              className="text-xs text-primary hover:underline"
-              onClick={() => setOpen(false)}
+        {!loadError && !listQuery.isLoading ? (
+          <div className="border-t border-white/10 bg-surface-low p-2.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-9 w-full gap-2 rounded-xl text-xs font-semibold"
+              render={
+                <Link href="/notifications" onClick={() => setOpen(false)} />
+              }
             >
               ყველას ნახვა
-            </Link>
+              {(listQuery.data?.total ?? 0) > NOTIFICATIONS_BELL_PAGE_SIZE ? (
+                <span className="text-muted-foreground">
+                  ({listQuery.data?.total})
+                </span>
+              ) : null}
+              <ArrowRight className="size-3.5 opacity-70" aria-hidden />
+            </Button>
           </div>
         ) : null}
       </PopoverContent>

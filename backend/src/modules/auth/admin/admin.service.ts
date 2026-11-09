@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -7,10 +8,14 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { SystemInboxService } from '../../chat/system-inbox.service';
+import { NotificationClientService } from '../../notification-client/notification-client.service';
 import { AuthService } from '../auth.service';
+import type { AuthUser } from '../dto/auth-types';
 import {
   AdminCreateDto,
   AdminLoginDto,
+  BroadcastSystemMessageDto,
   UpdateUserAccessDto,
 } from './admin.dto';
 
@@ -19,6 +24,8 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
+    private readonly notifications: NotificationClientService,
+    private readonly systemInbox: SystemInboxService,
   ) {}
 
   async getSetupStatus() {
@@ -205,6 +212,24 @@ export class AdminService {
         updatedAt: route.updatedAt.toISOString(),
       })),
     };
+  }
+
+  async broadcastSystemMessage(admin: AuthUser, dto: BroadcastSystemMessageDto) {
+    const title = dto.title.trim();
+    const body = dto.body.trim();
+    if (!title || !body) {
+      throw new BadRequestException('Title and body are required');
+    }
+
+    const inboxPromise = this.systemInbox.fanOutFromBroadcast(title, body);
+    const notifyPromise = this.notifications.publishSystemMessage({
+      title,
+      body,
+      adminUserId: admin.userId,
+    });
+    const [inboxResult] = await Promise.all([inboxPromise, notifyPromise]);
+
+    return { ok: true, recipientCount: inboxResult.recipientCount };
   }
 
   async updateUserAccess(userId: string, dto: UpdateUserAccessDto) {

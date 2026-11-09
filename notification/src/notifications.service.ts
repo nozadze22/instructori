@@ -201,6 +201,25 @@ export class NotificationsService {
     return { ok: true };
   }
 
+  async createFromSystemMessage(event: {
+    title: string;
+    body: string;
+    adminUserId: string;
+    recipientUserIds: string[];
+  }) {
+    await this.notifyRecipients(event.recipientUserIds, {
+      type: 'SYSTEM_MESSAGE',
+      title: event.title,
+      body: event.body,
+      data: {
+        kind: 'system_message',
+        sentByAdminId: event.adminUserId,
+      },
+    });
+
+    return { ok: true, recipientCount: event.recipientUserIds.length };
+  }
+
   private async notifyRecipients(
     recipientUserIds: string[],
     payload: {

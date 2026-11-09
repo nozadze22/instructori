@@ -201,7 +201,7 @@ export function AdminDashboardOverview() {
                 {publishedRoutes} გამოქვეყნებული
               </span>
               {draftRoutes > 0 ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-500/15 dark:text-amber-400">
                   <span className="size-1.5 rounded-full bg-amber-500" />
                   {draftRoutes} დრაფტი
                 </span>

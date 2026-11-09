@@ -9,6 +9,7 @@ export const notificationTypeSchema = z.enum([
   "STUDENT_LINKED",
   "STUDENT_REGISTRATION",
   "SYSTEM_ROUTE",
+  "SYSTEM_MESSAGE",
 ]);
 
 export type NotificationType = z.infer<typeof notificationTypeSchema>;

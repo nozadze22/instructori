@@ -17,6 +17,7 @@ enum NotificationType {
   STUDENT_LINKED
   STUDENT_REGISTRATION
   SYSTEM_ROUTE
+  SYSTEM_MESSAGE
 }
 
 model Notification {

@@ -272,4 +272,31 @@
     background: #cbd5e1;
     border-radius: 10px;
   }
+
+  .popover-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 20%, transparent)
+      transparent;
+  }
+
+  .popover-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .popover-scrollbar::-webkit-scrollbar-track {
+    margin: 6px 2px;
+    background: transparent;
+  }
+
+  .popover-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--foreground) 22%, transparent);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .popover-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--foreground) 32%, transparent);
+    background-clip: padding-box;
+  }
 }

@@ -2,10 +2,12 @@ import {
   IsArray,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -129,4 +131,23 @@ export class SystemRouteDto {
   @IsArray()
   @IsUUID('4', { each: true })
   instructorRecipientIds!: string[];
+}
+
+export class SystemMessageDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4000)
+  body!: string;
+
+  @IsUUID()
+  adminUserId!: string;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  recipientUserIds!: string[];
 }

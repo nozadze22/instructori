@@ -38,7 +38,15 @@ export function notificationHref(item: NotificationItem): string | null {
     return "/profile/students";
   }
 
+  if (item.type === "SYSTEM_MESSAGE") {
+    return null;
+  }
+
   return null;
+}
+
+export function isSystemNotification(item: NotificationItem): boolean {
+  return item.type === "SYSTEM_MESSAGE";
 }
 
 export function formatNotificationWhen(iso: string): string {

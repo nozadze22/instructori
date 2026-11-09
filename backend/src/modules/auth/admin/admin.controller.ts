@@ -13,9 +13,12 @@ import { setAuthCookies } from '../auth_guard/auth-cookie';
 import { JwtAuthGuard } from '../auth_guard/auth_guard';
 import { RolesGuard } from '../auth_guard/guard';
 import { Roles } from '../auth_guard/roles.decorator';
+import { CurrentUser } from '../auth_guard/current_user_decorator';
+import type { AuthUser } from '../dto/auth-types';
 import {
   AdminCreateDto,
   AdminLoginDto,
+  BroadcastSystemMessageDto,
   UpdateUserAccessDto,
 } from './admin.dto';
 import { AdminService } from './admin.service';
@@ -78,5 +81,15 @@ export class AdminController {
     @Body() dto: UpdateUserAccessDto,
   ) {
     return this.adminService.updateUserAccess(id, dto);
+  }
+
+  @Post('system-messages')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  broadcastSystemMessage(
+    @CurrentUser() admin: AuthUser,
+    @Body() dto: BroadcastSystemMessageDto,
+  ) {
+    return this.adminService.broadcastSystemMessage(admin, dto);
   }
 }

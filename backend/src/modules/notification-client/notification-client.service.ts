@@ -90,6 +90,14 @@ export class NotificationClientService implements NotificationRouteEvents {
     void this.publishSystemRouteAsync(payload);
   }
 
+  publishSystemMessage(payload: {
+    title: string;
+    body: string;
+    adminUserId: string;
+  }): Promise<void> {
+    return this.publishSystemMessageAsync(payload);
+  }
+
   private async publishInstructorRegistrationAsync(
     payload: InstructorRegistrationPayload,
   ): Promise<void> {
@@ -118,6 +126,28 @@ export class NotificationClientService implements NotificationRouteEvents {
       ...payload,
       instructorRecipientIds,
     });
+  }
+
+  private async publishSystemMessageAsync(payload: {
+    title: string;
+    body: string;
+    adminUserId: string;
+  }): Promise<void> {
+    const recipientUserIds = await this.listBroadcastUserIds();
+    await this.post('system-message', {
+      title: payload.title,
+      body: payload.body,
+      adminUserId: payload.adminUserId,
+      recipientUserIds,
+    });
+  }
+
+  private async listBroadcastUserIds(): Promise<string[]> {
+    const rows = await this.prisma.user.findMany({
+      where: { accessStatus: { not: 'BLOCKED' } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
   }
 
   private async listAdminUserIds(): Promise<string[]> {

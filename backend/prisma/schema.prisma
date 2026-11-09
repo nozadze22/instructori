@@ -48,16 +48,6 @@ enum InstructorMessageStatus {
   READ
 }
 
-enum NotificationType {
-  INSTRUCTOR_REVIEW
-  INSTRUCTOR_MESSAGE
-  INSTRUCTOR_REGISTRATION
-  ACCESS_PENDING
-  STUDENT_LINKED
-  STUDENT_REGISTRATION
-  SYSTEM_ROUTE
-}
-
 model User {
   id              String           @id @default(uuid())
   email           String           @unique
@@ -97,26 +87,26 @@ model User {
   instructorCertificates     InstructorCertificate[]
   instructorReviewsReceived InstructorReview[] @relation("InstructorReviewsReceived")
   instructorReviewsAuthored InstructorReview[] @relation("InstructorReviewsAuthored")
-  notifications            Notification[]
+  systemInboxMessages      SystemInboxMessage[]
 
   @@index([linkedInstructorId])
 }
 
-/// In-app notification (bell / list). BullMQ delivery workers can be added later.
-model Notification {
-  id        String           @id @default(uuid())
+/// Admin broadcast — shown in the in-app chat under the system thread.
+model SystemInboxMessage {
+  id        String    @id @default(uuid())
   userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
-  body      String?
-  data      Json             @default("{}")
+  body      String
   readAt    DateTime?
-  createdAt DateTime         @default(now())
+  createdAt DateTime  @default(now())
 
-  @@index([userId, readAt, createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, readAt])
 }
+
+/// In-app notifications live in the notification microservice DB, not here.
 
 /// Student rating + comment for an instructor (public on instructor profile).
 model InstructorReview {

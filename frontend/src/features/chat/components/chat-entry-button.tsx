@@ -6,6 +6,7 @@ import { type ReactNode } from "react";
 import { MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { usePwaInstall } from "@/components/shared/pwa-install-provider";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useChatDrawer } from "@/features/chat/components/chat-drawer-context";
 import { useChatConversations } from "@/features/chat/hooks/chat";
@@ -64,6 +65,7 @@ export function ChatFloatingButton() {
   const canChat = useCanChat();
   const unread = useChatUnreadTotal(canChat);
   const { openChat } = useChatDrawer();
+  const { promoBannerVisible } = usePwaInstall();
 
   if (!canChat) return null;
   if (pathname === "/messages" || pathname.startsWith("/messages/")) {
@@ -85,8 +87,10 @@ export function ChatFloatingButton() {
       className={cn(
         "fixed z-40 inline-flex size-14 cursor-pointer items-center justify-center rounded-full",
         "bg-primary text-primary-foreground shadow-[0_16px_40px_-12px_color-mix(in_oklch,var(--primary)_70%,transparent)]",
-        "transition-transform hover:scale-105 active:scale-95",
-        "right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6",
+        "transition-[transform,bottom] duration-300 hover:scale-105 active:scale-95",
+        promoBannerVisible
+          ? "right-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6"
+          : "right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6",
       )}
     >
       <MessageSquare className="size-6" />

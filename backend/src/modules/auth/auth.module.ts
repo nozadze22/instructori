@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { ChatModule } from '../chat/chat.module';
+import { NotificationClientModule } from '../notification-client/notification-client.module';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { AuthController } from './auth.controller';
@@ -14,6 +16,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
+    forwardRef(() => ChatModule),
+    NotificationClientModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -6,13 +6,17 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatRealtimeService } from './chat-realtime.service';
+import {
+  isSystemChatPeerId,
+  SYSTEM_CHAT_PEER_ID,
+} from './chat-system-peer';
 
 type ChatActor = {
   userId: string;
   role: 'ADMIN' | 'INSTRUCTOR' | 'USER';
 };
 
-type ChatPeerRelation = 'instructor' | 'student' | 'classmate';
+type ChatPeerRelation = 'instructor' | 'student' | 'classmate' | 'system';
 
 type ConversationPair = {
   userLowId: string;
@@ -67,9 +71,6 @@ export class ChatService {
 
   async listConversations(actor: ChatActor) {
     const peers = await this.listAllowedPeers(actor);
-    if (peers.length === 0) {
-      return { items: [] };
-    }
 
     const items = await Promise.all(
       peers.map(async (peer) => {
@@ -127,14 +128,17 @@ export class ChatService {
       }),
     );
 
-    items.sort((a, b) => {
+    const systemItem = await this.buildSystemConversation(actor.userId);
+    const allItems = systemItem ? [...items, systemItem] : items;
+
+    allItems.sort((a, b) => {
       const aTime = a.lastMessage?.createdAt ?? '';
       const bTime = b.lastMessage?.createdAt ?? '';
       if (aTime !== bTime) return bTime.localeCompare(aTime);
       return a.peer.fullName.localeCompare(b.peer.fullName, 'ka');
     });
 
-    return { items };
+    return { items: allItems };
   }
 
   async listMessages(
@@ -142,6 +146,10 @@ export class ChatService {
     peerId: string,
     options: { limit?: number; beforeId?: string } = {},
   ) {
+    if (isSystemChatPeerId(peerId)) {
+      return this.listSystemMessages(actor.userId, options);
+    }
+
     const pair = await this.resolvePair(actor, peerId);
     const limit = Math.min(
       Math.max(options.limit ?? DEFAULT_PAGE_SIZE, 1),
@@ -206,6 +214,9 @@ export class ChatService {
   }
 
   async sendMessage(actor: ChatActor, peerId: string, body: string) {
+    if (isSystemChatPeerId(peerId)) {
+      throw new BadRequestException('Cannot reply to system messages');
+    }
     const pair = await this.resolvePair(actor, peerId);
     const trimmed = body.trim();
     if (!trimmed) {
@@ -238,6 +249,14 @@ export class ChatService {
   }
 
   async markRead(actor: ChatActor, peerId: string) {
+    if (isSystemChatPeerId(peerId)) {
+      const result = await this.prisma.systemInboxMessage.updateMany({
+        where: { userId: actor.userId, readAt: null },
+        data: { readAt: new Date() },
+      });
+      return { updated: result.count };
+    }
+
     const pair = await this.resolvePair(actor, peerId);
     const clearedAt = await this.getClearedAt(
       pair.userLowId,
@@ -265,6 +284,13 @@ export class ChatService {
   }
 
   async clearForMe(actor: ChatActor, peerId: string) {
+    if (isSystemChatPeerId(peerId)) {
+      await this.prisma.systemInboxMessage.deleteMany({
+        where: { userId: actor.userId },
+      });
+      return { clearedAt: new Date().toISOString() };
+    }
+
     const pair = await this.resolvePair(actor, peerId);
     const clearedAt = new Date();
 
@@ -457,6 +483,119 @@ export class ChatService {
       senderId: row.senderId,
       readAt: row.readAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
+      kind: 'user' as const,
+    };
+  }
+
+  private systemPeer() {
+    return {
+      id: SYSTEM_CHAT_PEER_ID,
+      fullName: 'სისტემა',
+      email: '',
+      avatarUrl: null,
+      role: 'USER' as const,
+      relation: 'system' as const,
+    };
+  }
+
+  private async buildSystemConversation(userId: string) {
+    const [last, unreadCount] = await Promise.all([
+      this.prisma.systemInboxMessage.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.systemInboxMessage.count({
+        where: { userId, readAt: null },
+      }),
+    ]);
+
+    if (!last) return null;
+
+    const preview = last.title.trim()
+      ? `${last.title}: ${last.body}`
+      : last.body;
+
+    return {
+      peer: this.systemPeer(),
+      lastMessage: {
+        id: last.id,
+        body: preview,
+        senderId: SYSTEM_CHAT_PEER_ID,
+        createdAt: last.createdAt.toISOString(),
+      },
+      unreadCount,
+    };
+  }
+
+  private async listSystemMessages(
+    userId: string,
+    options: { limit?: number; beforeId?: string } = {},
+  ) {
+    const limit = Math.min(
+      Math.max(options.limit ?? DEFAULT_PAGE_SIZE, 1),
+      100,
+    );
+
+    let beforeCreatedAt: Date | undefined;
+    if (options.beforeId) {
+      const before = await this.prisma.systemInboxMessage.findFirst({
+        where: { id: options.beforeId, userId },
+        select: { createdAt: true },
+      });
+      if (!before) {
+        throw new NotFoundException('Message not found');
+      }
+      beforeCreatedAt = before.createdAt;
+    }
+
+    const rows = await this.prisma.systemInboxMessage.findMany({
+      where: {
+        userId,
+        ...(beforeCreatedAt ? { createdAt: { lt: beforeCreatedAt } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        readAt: true,
+        createdAt: true,
+      },
+    });
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+
+    return {
+      peer: this.systemPeer(),
+      items: page.reverse().map((row) => this.mapSystemMessage(row)),
+      hasMore,
+      pageSize: limit,
+    };
+  }
+
+  private mapSystemMessage(row: {
+    id: string;
+    title: string;
+    body: string;
+    readAt: Date | null;
+    createdAt: Date;
+  }) {
+    return {
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      senderId: SYSTEM_CHAT_PEER_ID,
+      readAt: row.readAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+      kind: 'system' as const,
     };
   }
 }

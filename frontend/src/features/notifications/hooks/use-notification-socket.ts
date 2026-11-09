@@ -66,12 +66,19 @@ export function useNotificationSocket() {
               }
               return {
                 ...current,
-                items: [payload.item, ...current.items],
+                items: [payload.item, ...current.items].slice(
+                  0,
+                  current.pageSize,
+                ),
                 unreadCount: payload.unreadCount,
                 total: current.total + 1,
               };
             },
           );
+
+          void queryClient.invalidateQueries({
+            queryKey: ["notifications", "infinite"],
+          });
         });
 
         socket.on("notification:unread", (payload: NotificationUnreadEvent) => {
@@ -79,7 +86,7 @@ export function useNotificationSocket() {
             unreadCount: payload.unreadCount,
           });
           void queryClient.invalidateQueries({
-            queryKey: ["notifications", "list"],
+            queryKey: notificationQueryKeys.all,
           });
         });
       } catch {
