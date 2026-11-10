@@ -13,9 +13,12 @@ export const PRODUCTION_BACKEND_URL = "https://simdrive-pro-api.fly.dev";
 export const PRODUCTION_NOTIFICATION_URL =
   "https://simdrive-pro-notification.fly.dev";
 
+export const PRODUCTION_CHAT_URL = "https://simdrive-pro-chat.fly.dev";
+
 export const LOCAL_APP_URL = "http://localhost:3001";
 export const LOCAL_BACKEND_URL = "http://localhost:4001";
 export const LOCAL_NOTIFICATION_URL = "http://localhost:4002";
+export const LOCAL_CHAT_URL = "http://localhost:4003";
 
 /** Comma-separated value for Fly `CORS_ORIGIN` on API + notification apps. */
 export const PRODUCTION_CORS_ORIGIN = PRODUCTION_APP_ORIGINS.join(",");

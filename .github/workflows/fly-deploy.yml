@@ -3,6 +3,8 @@
 # Or Fly dashboard → Account → Access tokens (Deploy token for your org).
 name: Deploy to Fly.io
 
+run-name: Fly deploy (${{ github.event_name }})
+
 on:
   push:
     branches:
@@ -10,15 +12,20 @@ on:
     paths:
       - "backend/**"
       - "notification/**"
+      - "chat/**"
       - ".github/workflows/fly-deploy.yml"
   workflow_dispatch:
     inputs:
       deploy_backend:
-        description: Deploy API (backend)
+        description: Deploy API (simdrive-pro-api)
         type: boolean
         default: true
       deploy_notification:
-        description: Deploy notification service
+        description: Deploy notification (simdrive-pro-notification)
+        type: boolean
+        default: true
+      deploy_chat:
+        description: Deploy chat (simdrive-pro-chat)
         type: boolean
         default: true
 
@@ -29,6 +36,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       notification: ${{ steps.filter.outputs.notification }}
+      chat: ${{ steps.filter.outputs.chat }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -40,6 +48,9 @@ jobs:
               - '.github/workflows/fly-deploy.yml'
             notification:
               - 'notification/**'
+              - '.github/workflows/fly-deploy.yml'
+            chat:
+              - 'chat/**'
               - '.github/workflows/fly-deploy.yml'
 
   deploy-backend:
@@ -83,3 +94,49 @@ jobs:
         run: flyctl deploy --remote-only --config fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-chat:
+    name: Deploy chat
+    needs: changes
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_chat) ||
+      (github.event_name == 'push' && needs.changes.outputs.chat == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chat
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flyctl
+        uses: ./.github/actions/install-flyctl
+
+      - name: Deploy simdrive-pro-chat
+        run: flyctl deploy --remote-only --config fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  summary:
+    name: Deploy summary
+    needs:
+      - deploy-backend
+      - deploy-notification
+      - deploy-chat
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write job summary
+        env:
+          API: ${{ needs.deploy-backend.result }}
+          NOTIFICATION: ${{ needs.deploy-notification.result }}
+          CHAT: ${{ needs.deploy-chat.result }}
+        run: |
+          {
+            echo "## Fly.io deploy"
+            echo ""
+            echo "| App | Job | Result |"
+            echo "|-----|-----|--------|"
+            echo "| simdrive-pro-api | Deploy API | ${API} |"
+            echo "| simdrive-pro-notification | Deploy notification | ${NOTIFICATION} |"
+            echo "| simdrive-pro-chat | Deploy chat | ${CHAT} |"
+          } >> "$GITHUB_STEP_SUMMARY"

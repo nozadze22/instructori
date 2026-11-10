@@ -3,7 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
-import { ChatModule } from './modules/chat/chat.module';
+import { ChatClientModule } from './modules/chat-client/chat-client.module';
+import { ChatInternalModule } from './modules/chat-internal/chat-internal.module';
 import { ContactModule } from './modules/conatct/contanct.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DrivingSessionsModule } from './modules/driving-sessions/driving-sessions.module';
@@ -26,12 +27,13 @@ import { StorageModule } from './storage/storage.module';
       envFilePath: ['.env'],
     }),
     NotificationClientModule,
+    ChatClientModule,
     PrismaModule,
     RedisModule,
     StorageModule,
     ContactModule,
     AuthModule,
-    ChatModule,
+    ChatInternalModule,
     DashboardModule,
     InstructorsModule,
     ProfileModule,

@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from './prisma/prisma.service';
 import { ChatRealtimeService } from './chat-realtime.service';
+import { MainApiClient, type MainApiPeer } from './main-api/main-api.client';
 import {
   isSystemChatPeerId,
   SYSTEM_CHAT_PEER_ID,
@@ -31,14 +32,7 @@ type ConversationPair = {
   };
 };
 
-type PeerUser = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: 'ADMIN' | 'INSTRUCTOR' | 'USER';
-  avatarUrl: string | null;
-  relation: ChatPeerRelation;
-};
+type PeerUser = MainApiPeer;
 
 const DEFAULT_PAGE_SIZE = 30;
 
@@ -53,18 +47,16 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: ChatRealtimeService,
+    private readonly mainApi: MainApiClient,
   ) {}
 
   async createSocketToken(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, sessionVersion: true, accessStatus: true },
-    });
+    const user = await this.mainApi.getUserSession(userId);
     if (!user || user.accessStatus !== 'ACTIVE') {
       throw new ForbiddenException('Chat socket unavailable');
     }
     return {
-      userId: user.id,
+      userId: user.userId,
       sessionVersion: user.sessionVersion,
     };
   }
@@ -325,103 +317,7 @@ export class ChatService {
   }
 
   private async listAllowedPeers(actor: ChatActor): Promise<PeerUser[]> {
-    if (actor.role === 'INSTRUCTOR' || actor.role === 'ADMIN') {
-      const students = await this.prisma.user.findMany({
-        where: {
-          role: 'USER',
-          linkedInstructorId: actor.userId,
-          accessStatus: 'ACTIVE',
-        },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          role: true,
-          profile: { select: { avatarUrl: true } },
-        },
-        orderBy: { fullName: 'asc' },
-      });
-
-      return students.map((student) => ({
-        id: student.id,
-        fullName: student.fullName,
-        email: student.email,
-        role: student.role,
-        avatarUrl: student.profile?.avatarUrl ?? null,
-        relation: 'student' as const,
-      }));
-    }
-
-    if (actor.role === 'USER') {
-      const me = await this.prisma.user.findUnique({
-        where: { id: actor.userId },
-        select: {
-          linkedInstructorId: true,
-          linkedInstructor: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              role: true,
-              accessStatus: true,
-              profile: { select: { avatarUrl: true } },
-            },
-          },
-        },
-      });
-
-      if (!me?.linkedInstructorId) {
-        return [];
-      }
-
-      const peers: PeerUser[] = [];
-
-      if (
-        me.linkedInstructor &&
-        me.linkedInstructor.accessStatus === 'ACTIVE'
-      ) {
-        peers.push({
-          id: me.linkedInstructor.id,
-          fullName: me.linkedInstructor.fullName,
-          email: me.linkedInstructor.email,
-          role: me.linkedInstructor.role,
-          avatarUrl: me.linkedInstructor.profile?.avatarUrl ?? null,
-          relation: 'instructor',
-        });
-      }
-
-      const classmates = await this.prisma.user.findMany({
-        where: {
-          role: 'USER',
-          linkedInstructorId: me.linkedInstructorId,
-          accessStatus: 'ACTIVE',
-          id: { not: actor.userId },
-        },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          role: true,
-          profile: { select: { avatarUrl: true } },
-        },
-        orderBy: { fullName: 'asc' },
-      });
-
-      for (const mate of classmates) {
-        peers.push({
-          id: mate.id,
-          fullName: mate.fullName,
-          email: mate.email,
-          role: mate.role,
-          avatarUrl: mate.profile?.avatarUrl ?? null,
-          relation: 'classmate',
-        });
-      }
-
-      return peers;
-    }
-
-    return [];
+    return this.mainApi.getAllowedPeers(actor.userId, actor.role);
   }
 
   private async getClearedAt(
