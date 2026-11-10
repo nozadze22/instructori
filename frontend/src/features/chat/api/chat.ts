@@ -1,4 +1,5 @@
-import { apiRequest } from "@/lib/api";
+/** Proxied to chat microservice via Next `/api/chat/*`. */
+export const CHAT_API_BASE = "/api/chat";
 
 export type ChatPeerRelation =
   | "instructor"
@@ -49,8 +50,38 @@ export type ChatMessagesResponse = {
 
 export const CHAT_PAGE_SIZE = 30;
 
+async function chatRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const response = await fetch(`${CHAT_API_BASE}${normalized}`, {
+    ...init,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const text = (await response.text()).trim();
+    let message = text || `Request failed: ${response.status}`;
+    try {
+      const json = JSON.parse(text) as { message?: string };
+      if (json.message) message = json.message;
+    } catch {
+      /* keep raw */
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
 export function getChatConversations() {
-  return apiRequest<ChatConversationsResponse>("/chat/conversations", {
+  return chatRequest<ChatConversationsResponse>("/conversations", {
     method: "GET",
   });
 }
@@ -63,15 +94,15 @@ export function getChatMessages(
   params.set("limit", String(options?.limit ?? CHAT_PAGE_SIZE));
   if (options?.beforeId) params.set("beforeId", options.beforeId);
   const qs = params.toString();
-  return apiRequest<ChatMessagesResponse>(
-    `/chat/conversations/${encodeURIComponent(peerId)}/messages?${qs}`,
+  return chatRequest<ChatMessagesResponse>(
+    `/conversations/${encodeURIComponent(peerId)}/messages?${qs}`,
     { method: "GET" },
   );
 }
 
 export function sendChatMessage(peerId: string, body: string) {
-  return apiRequest<ChatMessage>(
-    `/chat/conversations/${encodeURIComponent(peerId)}/messages`,
+  return chatRequest<ChatMessage>(
+    `/conversations/${encodeURIComponent(peerId)}/messages`,
     {
       method: "POST",
       body: JSON.stringify({ body }),
@@ -80,15 +111,19 @@ export function sendChatMessage(peerId: string, body: string) {
 }
 
 export function markChatRead(peerId: string) {
-  return apiRequest<{ updated: number }>(
-    `/chat/conversations/${encodeURIComponent(peerId)}/read`,
+  return chatRequest<{ updated: number }>(
+    `/conversations/${encodeURIComponent(peerId)}/read`,
     { method: "POST" },
   );
 }
 
 export function clearChatForMe(peerId: string) {
-  return apiRequest<{ clearedAt: string }>(
-    `/chat/conversations/${encodeURIComponent(peerId)}/clear`,
+  return chatRequest<{ clearedAt: string }>(
+    `/conversations/${encodeURIComponent(peerId)}/clear`,
     { method: "POST" },
   );
+}
+
+export function getChatSocketToken() {
+  return chatRequest<{ token: string }>("/socket-token", { method: "GET" });
 }

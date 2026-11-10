@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { SystemInboxService } from '../../chat/system-inbox.service';
+import { ChatClientService } from '../../chat-client/chat-client.service';
 import { NotificationClientService } from '../../notification-client/notification-client.service';
 import { AuthService } from '../auth.service';
 import type { AuthUser } from '../dto/auth-types';
@@ -25,7 +25,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
     private readonly notifications: NotificationClientService,
-    private readonly systemInbox: SystemInboxService,
+    private readonly chatClient: ChatClientService,
   ) {}
 
   async getSetupStatus() {
@@ -221,7 +221,17 @@ export class AdminService {
       throw new BadRequestException('Title and body are required');
     }
 
-    const inboxPromise = this.systemInbox.fanOutFromBroadcast(title, body);
+    const recipientRows = await this.prisma.user.findMany({
+      where: { accessStatus: { not: 'BLOCKED' } },
+      select: { id: true },
+    });
+    const recipientUserIds = recipientRows.map((row) => row.id);
+
+    const inboxPromise = this.chatClient.publishSystemBroadcast({
+      title,
+      body,
+      recipientUserIds,
+    });
     const notifyPromise = this.notifications.publishSystemMessage({
       title,
       body,
@@ -229,7 +239,12 @@ export class AdminService {
     });
     const [inboxResult] = await Promise.all([inboxPromise, notifyPromise]);
 
-    return { ok: true, recipientCount: inboxResult.recipientCount };
+    const recipientCount =
+      inboxResult && typeof inboxResult === 'object' && 'recipientCount' in inboxResult
+        ? inboxResult.recipientCount
+        : recipientUserIds.length;
+
+    return { ok: true, recipientCount };
   }
 
   async updateUserAccess(userId: string, dto: UpdateUserAccessDto) {

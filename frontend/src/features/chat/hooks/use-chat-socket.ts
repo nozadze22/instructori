@@ -8,14 +8,14 @@ import {
 } from "@tanstack/react-query";
 import { io, type Socket } from "socket.io-client";
 
-import type {
-  ChatConversation,
-  ChatConversationsResponse,
-  ChatMessage,
-  ChatMessagesResponse,
+import {
+  getChatSocketToken,
+  type ChatConversation,
+  type ChatConversationsResponse,
+  type ChatMessage,
+  type ChatMessagesResponse,
 } from "@/features/chat/api/chat";
 import { getChatSocketUrl } from "@/features/chat/lib/socket-url";
-import { apiRequest } from "@/lib/api";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 
 type ChatMessageEvent = {
@@ -111,10 +111,7 @@ export function useChatSocket() {
 
     const connect = async () => {
       try {
-        const { token } = await apiRequest<{ token: string }>(
-          "/chat/socket-token",
-          { method: "GET" },
-        );
+        const { token } = await getChatSocketToken();
         if (cancelled) return;
 
         socket = io(`${getChatSocketUrl()}/chat`, {

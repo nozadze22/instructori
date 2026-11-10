@@ -9,10 +9,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AccessGuard } from '../auth/auth_guard/access.guard';
-import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
-import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
-import type { AuthUser } from '../auth/dto/auth-types';
+import { AccessGuard } from './auth/access.guard';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { CurrentUser } from './auth/current-user.decorator';
+import type { AuthUser } from './auth/auth-types';
 import { CHAT_SOCKET_TOKEN_EXPIRES_IN, getChatJwtSecret } from './chat-jwt';
 import { ChatService } from './chat.service';
 import { ChatMessagesQueryDto, SendChatMessageDto } from './dto/chat.dto';
