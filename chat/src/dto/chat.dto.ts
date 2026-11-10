@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsInt,
   IsOptional,
   IsString,
@@ -28,4 +29,20 @@ export class ChatMessagesQueryDto {
   @IsOptional()
   @IsUUID()
   beforeId?: string;
+}
+
+export class SystemBroadcastDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  title!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(8000)
+  body!: string;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  recipientUserIds!: string[];
 }

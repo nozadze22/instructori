@@ -9,10 +9,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ACCESS_TOKEN_COOKIE } from '../auth/auth_guard/auth-cookie';
+import { ACCESS_TOKEN_COOKIE } from './auth/auth-cookie';
 import { getChatJwtSecret } from './chat-jwt';
 import { ChatRealtimeService } from './chat-realtime.service';
+import { MainApiClient } from './main-api/main-api.client';
 
 type SocketJwtPayload = {
   sub: string;
@@ -53,7 +53,7 @@ export class ChatGateway
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-    private readonly prisma: PrismaService,
+    private readonly mainApi: MainApiClient,
     private readonly realtime: ChatRealtimeService,
   ) {}
 
@@ -79,15 +79,7 @@ export class ChatGateway
         return;
       }
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: {
-          id: true,
-          accessStatus: true,
-          sessionVersion: true,
-        },
-      });
-
+      const user = await this.mainApi.getUserSession(payload.sub);
       if (!user || user.accessStatus === 'BLOCKED') {
         client.disconnect(true);
         return;
@@ -104,8 +96,8 @@ export class ChatGateway
         return;
       }
 
-      client.data.userId = user.id;
-      await client.join(`user:${user.id}`);
+      client.data.userId = user.userId;
+      await client.join(`user:${user.userId}`);
     } catch (error) {
       this.logger.debug(
         `Socket auth failed: ${error instanceof Error ? error.message : 'unknown'}`,

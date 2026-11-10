@@ -1,0 +1,50 @@
+// Dedicated chat Postgres (separate Neon from main API).
+// User identity and peer rules come from main API internal endpoints.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Bidirectional chat between two users (ordered pair userLowId < userHighId)
+model ChatMessage {
+  id         String    @id @default(uuid())
+  userLowId  String
+  userHighId String
+  senderId   String
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userLowId, userHighId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+/// Per-user "delete for me" — hides history only for that user
+model ChatThreadClear {
+  id         String   @id @default(uuid())
+  userLowId  String
+  userHighId String
+  userId     String
+  clearedAt  DateTime @default(now())
+
+  @@unique([userLowId, userHighId, userId])
+  @@index([userId])
+  @@index([userLowId, userHighId])
+}
+
+/// Admin broadcast — shown in the in-app chat under the system thread.
+model SystemInboxMessage {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, readAt])
+}
