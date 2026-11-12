@@ -6,13 +6,16 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ChatClientService } from '../../chat-client/chat-client.service';
+import { EmailClientService } from '../../email-client/email-client.service';
 import { NotificationClientService } from '../../notification-client/notification-client.service';
 import { AuthService } from '../auth.service';
 import type { AuthUser } from '../dto/auth-types';
 import {
+  AdminBroadcastEmailDto,
   AdminCreateDto,
   AdminLoginDto,
   BroadcastSystemMessageDto,
@@ -26,7 +29,15 @@ export class AdminService {
     private readonly auth: AuthService,
     private readonly notifications: NotificationClientService,
     private readonly chatClient: ChatClientService,
+    private readonly emailClient: EmailClientService,
+    private readonly config: ConfigService,
   ) {}
+
+  private appUrlForEmail(): string {
+    const fromEnv = this.config.get<string>('FRONTEND_URL')?.trim();
+    if (fromEnv) return fromEnv.replace(/\/$/, '');
+    return 'https://www.instructorebi.com';
+  }
 
   async getSetupStatus() {
     const adminCount = await this.prisma.user.count({
@@ -214,6 +225,118 @@ export class AdminService {
     };
   }
 
+  async listEmailRecipients() {
+    const users = await this.prisma.user.findMany({
+      where: {
+        role: { in: ['INSTRUCTOR', 'USER'] },
+        accessStatus: { not: 'BLOCKED' },
+      },
+      orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        accessStatus: true,
+        profile: { select: { avatarUrl: true } },
+      },
+    });
+
+    return {
+      users: users.map((user) => ({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        accessStatus: user.accessStatus,
+        avatarUrl: user.profile?.avatarUrl ?? null,
+      })),
+    };
+  }
+
+  async broadcastAdminEmail(dto: AdminBroadcastEmailDto) {
+    const subject = dto.subject.trim();
+    const body = dto.body.trim();
+    if (!subject || !body) {
+      throw new BadRequestException('Subject and body are required');
+    }
+
+    if (!this.emailClient.isEnabled()) {
+      throw new BadRequestException(
+        'Email queue is not configured (set EVENT_TRANSPORT=amqp and AMQP_URL)',
+      );
+    }
+
+    const recipients = await this.resolveEmailRecipients(dto);
+    if (recipients.length === 0) {
+      throw new BadRequestException('No recipients match this audience');
+    }
+
+    const siteUrl = this.appUrlForEmail();
+
+    await this.emailClient.queueAdminBroadcast({
+      subject,
+      body,
+      siteUrl,
+      recipients: recipients.map((user) => ({
+        email: user.email,
+        fullName: user.fullName,
+      })),
+    });
+
+    return {
+      ok: true,
+      queued: true,
+      recipientCount: recipients.length,
+    };
+  }
+
+  private async resolveEmailRecipients(dto: AdminBroadcastEmailDto) {
+    const baseWhere = {
+      accessStatus: { not: 'BLOCKED' as const },
+    };
+
+    if (dto.audience === 'SELECTED') {
+      if (!dto.userIds?.length) {
+        throw new BadRequestException('userIds required for SELECTED audience');
+      }
+      const rows = await this.prisma.user.findMany({
+        where: {
+          ...baseWhere,
+          id: { in: dto.userIds },
+          role: { in: ['INSTRUCTOR', 'USER'] },
+        },
+        select: { id: true, email: true, fullName: true },
+      });
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      return dto.userIds
+        .map((id) => byId.get(id))
+        .filter((row): row is (typeof rows)[number] => !!row);
+    }
+
+    if (dto.audience === 'INSTRUCTORS') {
+      return this.prisma.user.findMany({
+        where: { ...baseWhere, role: 'INSTRUCTOR' },
+        select: { id: true, email: true, fullName: true },
+        orderBy: { fullName: 'asc' },
+      });
+    }
+
+    if (dto.audience === 'USERS') {
+      return this.prisma.user.findMany({
+        where: { ...baseWhere, role: 'USER' },
+        select: { id: true, email: true, fullName: true },
+        orderBy: { fullName: 'asc' },
+      });
+    }
+
+    return this.prisma.user.findMany({
+      where: { ...baseWhere, role: { in: ['INSTRUCTOR', 'USER'] } },
+      select: { id: true, email: true, fullName: true },
+      orderBy: { fullName: 'asc' },
+    });
+  }
+
   async broadcastSystemMessage(admin: AuthUser, dto: BroadcastSystemMessageDto) {
     const title = dto.title.trim();
     const body = dto.body.trim();
@@ -275,6 +398,13 @@ export class AdminService {
         createdAt: true,
       },
     });
+
+    if (isActive) {
+      void this.emailClient.sendAccessGranted({
+        email: user.email,
+        fullName: user.fullName,
+      });
+    }
 
     return { user };
   }

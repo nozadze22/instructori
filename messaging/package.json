@@ -1,0 +1,28 @@
+{
+  "name": "@instructor/messaging",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./broadcast-email": {
+      "types": "./dist/broadcast-email.template.d.ts",
+      "default": "./dist/broadcast-email.template.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.8",
+    "typescript": "^5.7.3"
+  }
+}

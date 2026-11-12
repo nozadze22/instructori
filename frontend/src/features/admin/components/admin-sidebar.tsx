@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Map,
   MapPinned,
+  Mail,
   Megaphone,
   ShieldPlus,
   TriangleAlert,
@@ -40,6 +41,7 @@ const navItems = [
     label: "სისტემური შეტყობინება",
     icon: Megaphone,
   },
+  { href: "/admin/emails", label: "ელფოსტა", icon: Mail },
   { href: "/admin/create", label: "ადმინის შექმნა", icon: ShieldPlus },
 ] as const;
 

@@ -16,6 +16,7 @@ import { Roles } from '../auth_guard/roles.decorator';
 import { CurrentUser } from '../auth_guard/current_user_decorator';
 import type { AuthUser } from '../dto/auth-types';
 import {
+  AdminBroadcastEmailDto,
   AdminCreateDto,
   AdminLoginDto,
   BroadcastSystemMessageDto,
@@ -91,5 +92,22 @@ export class AdminController {
     @Body() dto: BroadcastSystemMessageDto,
   ) {
     return this.adminService.broadcastSystemMessage(admin, dto);
+  }
+
+  @Get('email-recipients')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  listEmailRecipients() {
+    return this.adminService.listEmailRecipients();
+  }
+
+  @Post('emails/broadcast')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  broadcastEmail(
+    @CurrentUser() _admin: AuthUser,
+    @Body() dto: AdminBroadcastEmailDto,
+  ) {
+    return this.adminService.broadcastAdminEmail(dto);
   }
 }
