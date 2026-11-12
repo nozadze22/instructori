@@ -1,5 +1,12 @@
-node_modules
-dist
-.env
-.env.*
-*.tsbuildinfo
+**/node_modules
+**/.git
+**/.env
+**/.env.*
+**/dist
+frontend
+.cursor
+.claude
+.windsurf
+.agents
+**/*.md
+**/coverage
