@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import type { Contact } from '../../generated/prisma/client';
+import type { Contact } from '@prisma/client';
 import { ContactService } from './contact.service';
 import { CreateContactDto } from './dto/contact.dto';
 
