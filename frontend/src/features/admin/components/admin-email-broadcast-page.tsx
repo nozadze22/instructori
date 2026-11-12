@@ -144,7 +144,7 @@ function countForAudience(
 export function AdminEmailBroadcastPage() {
   const { data, isLoading } = useAdminEmailRecipients();
   const broadcast = useBroadcastAdminEmail();
-  const users = data?.users ?? [];
+  const users = useMemo(() => data?.users ?? [], [data?.users]);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, setPending] = useState<AdminBroadcastEmailSchema | null>(null);
@@ -159,7 +159,11 @@ export function AdminEmailBroadcastPage() {
   });
 
   const audience = useWatch({ control: form.control, name: "audience" });
-  const selectedIds = useWatch({ control: form.control, name: "userIds" }) ?? [];
+  const watchedUserIds = useWatch({ control: form.control, name: "userIds" });
+  const selectedIds = useMemo(
+    () => watchedUserIds ?? [],
+    [watchedUserIds],
+  );
   const subject = useWatch({ control: form.control, name: "subject" });
   const body = useWatch({ control: form.control, name: "body" });
   const subjectLen = subject?.length ?? 0;
@@ -584,6 +588,7 @@ export function AdminEmailBroadcastPage() {
       </ContentPanel>
 
       <AdminEmailRecipientPickerDialog
+        key={pickerModalRole}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         role={pickerModalRole}

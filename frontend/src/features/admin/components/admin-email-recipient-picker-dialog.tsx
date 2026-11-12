@@ -90,7 +90,6 @@ export function AdminEmailRecipientPickerDialog({
 
   useEffect(() => {
     if (!open) return;
-    setSearch("");
     const t = window.setTimeout(() => searchRef.current?.focus(), 50);
     return () => window.clearTimeout(t);
   }, [open, role]);
