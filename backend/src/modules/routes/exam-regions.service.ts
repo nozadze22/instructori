@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
-import type { ExamRegion } from '../../generated/prisma/client';
+import type { ExamRegion } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { DEFAULT_EXAM_REGIONS } from './exam-regions.defaults';

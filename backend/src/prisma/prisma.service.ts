@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const PRODUCTION_DB_HOST_MARKERS = [
   'ep-still-violet-asdr91ls',

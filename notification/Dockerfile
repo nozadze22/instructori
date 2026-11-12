@@ -19,7 +19,7 @@ ENV PORT=8080
 COPY package.json pnpm-lock.yaml .npmrc ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-COPY --from=build /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 EXPOSE 8080
 CMD ["node", "dist/main.js"]

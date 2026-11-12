@@ -19,7 +19,7 @@ import {
   RegisterStudentDto,
   UpdateNameDto,
 } from './dto/auth.dto';
-import type { Role as PrismaRole } from '../../generated/prisma/enums';
+import type { Role as PrismaRole } from '@prisma/client';
 import type {
   AccessSource,
   AccessStatus,

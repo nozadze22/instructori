@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Contact } from '../../generated/prisma/client';
+import type { Contact } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailClientService } from '../email-client/email-client.service';
 import { CreateContactDto } from './dto/contact.dto';
