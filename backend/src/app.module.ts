@@ -13,6 +13,8 @@ import { MistakeCatalogModule } from './modules/mistake-catalog/mistake-catalog.
 import { InstructorNotesModule } from './modules/instructor-notes/instructor-notes.module';
 import { InstructorReviewsModule } from './modules/instructor-reviews/instructor-reviews.module';
 import { MistakeNotesModule } from './modules/mistake-notes/mistake-notes.module';
+import { EmailClientModule } from './modules/email-client/email-client.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { NotificationClientModule } from './modules/notification-client/notification-client.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RoutesModule } from './modules/routes/routes.module';
@@ -26,6 +28,8 @@ import { StorageModule } from './storage/storage.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    MessagingModule,
+    EmailClientModule,
     NotificationClientModule,
     ChatClientModule,
     PrismaModule,

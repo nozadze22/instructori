@@ -43,6 +43,7 @@
     "export:simulatori:browser:batumi": "node scripts/export-simulatori-batumi-browser.mjs"
   },
   "dependencies": {
+    "@instructor/messaging": "file:../messaging",
     "@aws-sdk/client-s3": "^3.1100.0",
     "@aws-sdk/s3-request-presigner": "^3.1100.0",
     "@nestjs/common": "^11.0.1",

@@ -4,6 +4,6 @@ import { Controller, Get } from '@nestjs/common';
 export class HealthController {
   @Get()
   health() {
-    return { ok: true, service: 'notification' };
+    return { ok: true, service: 'notification', email: 'resend+amqp' };
   }
 }

@@ -1,6 +1,8 @@
+import type { NotificationEventPath } from '@instructor/messaging';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EventPublisherService } from '../messaging/event-publisher.service';
 import type {
   NotificationRouteEvents,
   SystemRoutePayload,
@@ -56,6 +58,7 @@ export class NotificationClientService implements NotificationRouteEvents {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly eventPublisher: EventPublisherService,
   ) {}
 
   publishInstructorReviewCreated(
@@ -167,6 +170,15 @@ export class NotificationClientService implements NotificationRouteEvents {
   }
 
   private async post(path: string, body: unknown): Promise<void> {
+    await this.eventPublisher.publishNotification(
+      path as NotificationEventPath,
+      body,
+    );
+
+    if (!this.eventPublisher.shouldPublishHttp()) {
+      return;
+    }
+
     const baseUrl = this.config.get<string>('NOTIFICATION_SERVICE_URL')?.trim();
     const secret = this.config
       .get<string>('NOTIFICATION_INTERNAL_SECRET')
@@ -174,7 +186,7 @@ export class NotificationClientService implements NotificationRouteEvents {
 
     if (!baseUrl) {
       this.logger.debug(
-        'NOTIFICATION_SERVICE_URL unset — skipping notification publish',
+        'NOTIFICATION_SERVICE_URL unset — skipping notification HTTP publish',
       );
       return;
     }

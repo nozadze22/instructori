@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventPublisherService } from '../messaging/event-publisher.service';
 
 @Injectable()
 export class ChatClientService {
   private readonly logger = new Logger(ChatClientService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly eventPublisher: EventPublisherService,
+  ) {}
 
   publishSystemBroadcast(payload: {
     title: string;
@@ -19,12 +23,20 @@ export class ChatClientService {
     path: string,
     body: unknown,
   ): Promise<{ recipientCount: number } | void> {
+    if (path === 'system-broadcast') {
+      await this.eventPublisher.publishChat('system-broadcast', body);
+    }
+
+    if (!this.eventPublisher.shouldPublishHttp()) {
+      return;
+    }
+
     const baseUrl = this.config.get<string>('CHAT_SERVICE_URL')?.trim();
     const secret = this.config.get<string>('CHAT_INTERNAL_SECRET')?.trim();
 
     if (!baseUrl) {
       this.logger.debug(
-        'CHAT_SERVICE_URL unset — skipping chat system broadcast',
+        'CHAT_SERVICE_URL unset — skipping chat HTTP publish',
       );
       return;
     }

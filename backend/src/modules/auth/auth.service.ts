@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailClientService } from '../email-client/email-client.service';
 import { NotificationClientService } from '../notification-client/notification-client.service';
 import { findInstructorByCodeForStudentLink } from '../profile/instructor-code.util';
 import {
@@ -70,6 +71,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly notificationClient: NotificationClientService,
+    private readonly emailClient: EmailClientService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -119,6 +121,11 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       city,
+    });
+
+    void this.emailClient.sendAccessPending({
+      email: user.email,
+      fullName: user.fullName,
     });
 
     return this.issueSession(this.toAuthTokenUser(user), {
