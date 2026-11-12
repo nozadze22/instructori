@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AmqpConsumer, CHAT_QUEUE, chatRoutingKey } from '@instructor/messaging';
+import { AmqpConsumer, CHAT_QUEUE, chatRoutingKey } from '../lib/messaging/index.js';
 import { SystemInboxService } from '../system-inbox.service';
 
 @Injectable()

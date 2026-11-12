@@ -10,7 +10,7 @@ import {
   notificationRoutingKey,
   NOTIFICATION_QUEUE,
   type NotificationEventPath,
-} from '@instructor/messaging';
+} from '../lib/messaging/index.js';
 import { NotificationsService } from '../notifications.service';
 import { resolveAmqpUrl } from './amqp-url';
 

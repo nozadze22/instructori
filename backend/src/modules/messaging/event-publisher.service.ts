@@ -14,7 +14,7 @@ import {
   type EmailEventPath,
   type EventTransport,
   type NotificationEventPath,
-} from '@instructor/messaging';
+} from '../../lib/messaging/index.js';
 
 @Injectable()
 export class EventPublisherService implements OnModuleDestroy {

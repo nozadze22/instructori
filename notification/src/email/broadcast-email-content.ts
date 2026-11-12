@@ -1,4 +1,4 @@
-/** Admin broadcast HTML/text — keep in sync with `messaging/src/broadcast-email.template.ts`. */
+/** Admin broadcast HTML/text template for Resend. */
 export type BroadcastEmailContentInput = {
   recipientName: string;
   subject: string;

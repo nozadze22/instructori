@@ -1,27 +1,25 @@
 FROM node:22-alpine AS deps
-WORKDIR /app/chat
+WORKDIR /app
 RUN corepack enable
-COPY messaging /app/messaging
-COPY chat/package.json chat/pnpm-lock.yaml chat/.npmrc ./
-COPY chat/prisma ./prisma
-COPY chat/prisma.config.ts ./
+COPY package.json pnpm-lock.yaml .npmrc ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true --config.minimumReleaseAge=0
 RUN pnpm prisma:generate
 
 FROM deps AS build
-WORKDIR /app/chat
-COPY chat/src ./src
-COPY chat/tsconfig.json chat/tsconfig.build.json chat/nest-cli.json ./
+COPY src ./src
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 RUN ./node_modules/.bin/nest build
 
 FROM node:22-alpine AS runner
-WORKDIR /app/chat
+WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
-COPY chat/package.json chat/pnpm-lock.yaml chat/.npmrc ./
-COPY chat/prisma ./prisma
-COPY chat/prisma.config.ts ./
-COPY --from=build /app/chat/node_modules ./node_modules
-COPY --from=build /app/chat/dist ./dist
+COPY package.json pnpm-lock.yaml .npmrc ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
 EXPOSE 8080
 CMD ["node", "dist/main.js"]

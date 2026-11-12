@@ -13,7 +13,6 @@ on:
       - "backend/**"
       - "notification/**"
       - "chat/**"
-      - "messaging/**"
       - ".github/workflows/fly-deploy.yml"
   workflow_dispatch:
     inputs:
@@ -46,15 +45,12 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
-              - 'messaging/**'
               - '.github/workflows/fly-deploy.yml'
             notification:
               - 'notification/**'
-              - 'messaging/**'
               - '.github/workflows/fly-deploy.yml'
             chat:
               - 'chat/**'
-              - 'messaging/**'
               - '.github/workflows/fly-deploy.yml'
 
   deploy-backend:
