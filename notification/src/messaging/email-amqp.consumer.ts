@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AmqpConsumer, EMAIL_QUEUE } from '@instructor/messaging';
+import { AmqpConsumer, EMAIL_QUEUE } from '../lib/messaging/index.js';
 import { EmailDispatchService } from '../email/email-dispatch.service';
 import { resolveAmqpUrl } from './amqp-url';
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { emailRoutingKey, type EmailEventPath } from '@instructor/messaging';
+import { emailRoutingKey, type EmailEventPath } from '../lib/messaging/index.js';
 import { buildBroadcastEmailContent } from './broadcast-email-content';
 import { ResendMailService } from './resend/resend-mail.service';
 

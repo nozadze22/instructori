@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@instructor/messaging':
-        specifier: file:../messaging
-        version: file:../messaging
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.2.8(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -41,6 +38,9 @@ importers:
       '@prisma/client':
         specifier: ^7.9.1
         version: 7.10.1(prisma@7.10.1(@types/node@24.19.2)(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@5.9.3))(typescript@5.9.3)
+      amqplib:
+        specifier: ^0.10.9
+        version: 0.10.9
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -81,6 +81,9 @@ importers:
       '@nestjs/schematics':
         specifier: ^11.0.0
         version: 11.1.0(chokidar@4.0.3)(prettier@3.10.1)(typescript@5.9.3)
+      '@types/amqplib':
+        specifier: ^0.10.8
+        version: 0.10.8
       '@types/cookie-parser':
         specifier: ^1.4.10
         version: 1.4.10(@types/express@5.0.6)
@@ -375,9 +378,6 @@ packages:
       '@types/node':
         optional: true
 
-  '@instructor/messaging@file:../messaging':
-    resolution: {directory: ../messaging, type: directory}
-
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -656,6 +656,9 @@ packages:
 
   '@tokenizer/token@0.3.0':
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
+
+  '@types/amqplib@0.10.8':
+    resolution: {integrity: sha512-vtDp8Pk1wsE/AuQ8/Rgtm6KUZYqcnTgNvEHwzCkX8rL7AGsC6zqAfKAAJhUZXFhM/Pp++tbnUHiam/8vVpPztA==}
 
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
@@ -2853,10 +2856,6 @@ snapshots:
     optionalDependencies:
       '@types/node': 24.19.2
 
-  '@instructor/messaging@file:../messaging':
-    dependencies:
-      amqplib: 0.10.9
-
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
@@ -3195,6 +3194,10 @@ snapshots:
       - supports-color
 
   '@tokenizer/token@0.3.0': {}
+
+  '@types/amqplib@0.10.8':
+    dependencies:
+      '@types/node': 24.19.2
 
   '@types/body-parser@1.19.6':
     dependencies:

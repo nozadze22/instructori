@@ -3,8 +3,6 @@ primary_region = "fra"
 
 [build]
   dockerfile = "Dockerfile"
-  build-context = ".."
-  ignorefile = ".dockerignore"
 
 [deploy]
   release_command = "./node_modules/.bin/prisma migrate deploy"
