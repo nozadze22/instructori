@@ -37,6 +37,10 @@ export class RegisterStudentDto {
   @IsOptional()
   @IsString()
   instructorCode!: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }
 
 export class RegisterDto {
@@ -65,6 +69,10 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }
 
 export class LoginDto {
@@ -75,6 +83,10 @@ export class LoginDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }
 
 export class ChangePasswordDto {

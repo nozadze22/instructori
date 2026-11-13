@@ -22,6 +22,7 @@ import {
   type LoginSchema,
 } from "@/features/auth/login/schema/login.schema";
 import { defaultPathForUser, safeNextPath } from "@/lib/post-auth-path";
+import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
 import { useGetMe, useLogin } from "../hooks/login";
 
 export function LoginForm() {
@@ -31,6 +32,14 @@ export function LoginForm() {
     searchParams.get("reason") === "session_replaced";
   const { data: me, isLoading: isMeLoading, isSuccess } = useGetMe();
   const { mutate: login, isPending } = useLogin();
+  const {
+    TurnstileField,
+    turnstileProps,
+    turnstileToken,
+    submitBlocked,
+    ensureTurnstileToken,
+    resetTurnstile,
+  } = useTurnstileSubmit();
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: defaultLoginValues,
@@ -47,7 +56,11 @@ export function LoginForm() {
   }, [isMeLoading, isSuccess, me, router, searchParams]);
 
   const onSubmit = async (values: LoginSchema) => {
-    login(values);
+    if (!ensureTurnstileToken()) return;
+    login(
+      { ...values, turnstileToken: turnstileToken ?? undefined },
+      { onError: resetTurnstile },
+    );
   };
 
   return (
@@ -138,10 +151,12 @@ export function LoginForm() {
                 </Field>
               </FieldGroup>
 
+              <TurnstileField {...turnstileProps} />
+
               <Button
                 type="submit"
                 className="h-12 w-full rounded-lg bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-container hover:text-on-primary-container active:scale-[0.98]"
-                disabled={isPending}
+                disabled={isPending || submitBlocked}
               >
                 შესვლა
               </Button>

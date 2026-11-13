@@ -12,7 +12,11 @@ export type Contact = {
   createdAt: string;
 };
 
-export async function createContact(body: CreateContact): Promise<Contact> {
+export type CreateContactRequest = CreateContact & {
+  turnstileToken?: string;
+};
+
+export async function createContact(body: CreateContactRequest): Promise<Contact> {
   return apiRequest<Contact>("/contact", {
     method: "POST",
     body: JSON.stringify(body),

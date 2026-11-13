@@ -25,6 +25,7 @@ import {
   InputGroupInput,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
+import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
 import { useCreateContact } from "../hooks/conatct";
 
 const defaultValues: ContactSchema = {
@@ -42,6 +43,14 @@ const addonClassName = "pl-3 pr-2";
 export function ContactForm() {
   const { mutateAsync: createContact, isPending: isCreating } =
     useCreateContact();
+  const {
+    TurnstileField,
+    turnstileProps,
+    turnstileToken,
+    submitBlocked,
+    ensureTurnstileToken,
+    resetTurnstile,
+  } = useTurnstileSubmit();
 
   const form = useForm<ContactSchema>({
     resolver: zodResolver(contactSchema),
@@ -50,8 +59,17 @@ export function ContactForm() {
   });
 
   const onSubmit = async (values: ContactSchema) => {
-    await createContact(values);
-    form.reset(defaultValues);
+    if (!ensureTurnstileToken()) return;
+    try {
+      await createContact({
+        ...values,
+        turnstileToken: turnstileToken ?? undefined,
+      });
+      form.reset(defaultValues);
+      resetTurnstile();
+    } catch {
+      resetTurnstile();
+    }
   };
 
   return (
@@ -164,10 +182,14 @@ export function ContactForm() {
           </FieldContent>
         </Field>
 
+        <TurnstileField {...turnstileProps} />
+
         <Button
           type="submit"
           className="h-14 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]"
-          disabled={form.formState.isSubmitting || isCreating}
+          disabled={
+            form.formState.isSubmitting || isCreating || submitBlocked
+          }
         >
           გაგზავნა
           <Send data-icon="inline-end" className="size-4" />

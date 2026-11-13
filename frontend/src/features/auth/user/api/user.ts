@@ -9,7 +9,11 @@ export type UserRegisterResponse = {
 
 export async function registerUser(
   data: UserRegistrationSchema,
+  turnstileToken?: string,
 ): Promise<UserRegisterResponse> {
+  const captcha =
+    turnstileToken !== undefined ? { turnstileToken } : {};
+
   if (data.registrationRole === "student") {
     return apiRequest<UserRegisterResponse>("/auth/register/student", {
       method: "POST",
@@ -22,6 +26,7 @@ export async function registerUser(
         ...(data.hasInstructorCode
           ? { instructorCode: data.instructorCode.trim() }
           : {}),
+        ...captcha,
       }),
     });
   }
@@ -33,8 +38,9 @@ export async function registerUser(
       email: data.email,
       phone: data.phone,
       password: data.password,
-        city: data.city,
-        instructorCategories: data.instructorCategories,
+      city: data.city,
+      instructorCategories: data.instructorCategories,
+      ...captcha,
     }),
   });
 }

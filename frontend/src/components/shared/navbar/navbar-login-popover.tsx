@@ -26,18 +26,48 @@ import {
   loginSchema,
   type LoginSchema,
 } from "@/features/auth/login/schema/login.schema";
+import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
 
 export function NavbarLoginPopover() {
   const [open, setOpen] = useState(false);
   const { mutate: login, isPending } = useLogin();
+  const {
+    TurnstileField,
+    turnstileProps,
+    turnstileToken,
+    submitBlocked,
+    ensureTurnstileToken,
+    resetTurnstile,
+    clearTurnstileToken,
+  } = useTurnstileSubmit();
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: defaultLoginValues,
     mode: "onSubmit",
   });
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      form.reset(defaultLoginValues);
+      resetTurnstile();
+      clearTurnstileToken();
+    }
+  };
+
+  const onSubmit = (values: LoginSchema) => {
+    if (!ensureTurnstileToken()) return;
+    login(
+      { ...values, turnstileToken: turnstileToken ?? undefined },
+      {
+        onSuccess: () => handleOpenChange(false),
+        onError: resetTurnstile,
+      },
+    );
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
           <Button
@@ -74,7 +104,7 @@ export function NavbarLoginPopover() {
                 ანგარიში არ გაქვს?{" "}
                 <Link
                   href="/register"
-                  onClick={() => setOpen(false)}
+                  onClick={() => handleOpenChange(false)}
                   className="font-semibold text-primary hover:underline"
                 >
                   რეგისტრაცია
@@ -85,7 +115,7 @@ export function NavbarLoginPopover() {
 
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) => login(values))}
+              onSubmit={form.handleSubmit(onSubmit)}
               className="relative space-y-4"
               noValidate
             >
@@ -133,10 +163,12 @@ export function NavbarLoginPopover() {
                 </FieldContent>
               </Field>
 
+              <TurnstileField {...turnstileProps} size="compact" />
+
               <Button
                 type="submit"
                 className="h-11 w-full rounded-xl font-semibold shadow-lg shadow-primary/25"
-                disabled={isPending}
+                disabled={isPending || submitBlocked}
               >
                 გაგრძელება
               </Button>
@@ -147,7 +179,7 @@ export function NavbarLoginPopover() {
             ანგარიში არ გაქვს?{" "}
             <Link
               href="/register"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
               className="font-semibold text-primary hover:underline"
             >
               შექმენი

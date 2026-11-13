@@ -47,6 +47,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { useExamCities } from "@/features/routes/hooks/routes";
+import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
 import { cn } from "@/lib/utils";
 
 // const SOCIAL_PROOF_IMAGES = [
@@ -64,6 +65,14 @@ export function RegisterForm() {
   const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const { mutate: registerUser, isPending } = useUserRegistration();
+  const {
+    TurnstileField,
+    turnstileProps,
+    turnstileToken,
+    submitBlocked,
+    ensureTurnstileToken,
+    resetTurnstile,
+  } = useTurnstileSubmit();
   const { data: examCities, isLoading: citiesLoading } = useExamCities();
 
   const form = useForm<UserRegistrationSchema>({
@@ -91,7 +100,11 @@ export function RegisterForm() {
   );
 
   const onSubmit = (data: UserRegistrationSchema) => {
-    registerUser(data);
+    if (!ensureTurnstileToken()) return;
+    registerUser(
+      { data, turnstileToken: turnstileToken ?? undefined },
+      { onError: resetTurnstile },
+    );
   };
 
   return (
@@ -604,10 +617,12 @@ export function RegisterForm() {
                   )}
                 />
 
+                <TurnstileField {...turnstileProps} />
+
                 <Button
                   type="submit"
                   className="h-14 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]"
-                  disabled={isPending}
+                  disabled={isPending || submitBlocked}
                 >
                   {isPending ? "იქმნება..." : "ანგარიშის შექმნა"}
                   <ArrowRight className="size-5" />

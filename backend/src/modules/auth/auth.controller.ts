@@ -26,17 +26,23 @@ import {
   RegisterStudentDto,
   UpdateNameDto,
 } from './dto/auth.dto';
+import { TurnstileService } from '../../lib/turnstile/turnstile.service';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly turnstile: TurnstileService,
+  ) {}
 
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    await this.turnstile.verify(dto.turnstileToken, req.ip);
     const result = await this.auth.register(dto);
     setAuthCookies(res, result);
     return { user: result.user };
@@ -49,6 +55,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const actor = await this.auth.tryResolveUserFromRequest(req);
+    if (actor?.role !== 'ADMIN') {
+      await this.turnstile.verify(dto.turnstileToken, req.ip);
+    }
     const result = await this.auth.registerStudent(dto);
 
     if (actor?.role === 'ADMIN') {
@@ -62,8 +71,10 @@ export class AuthController {
   @Post('login')
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    await this.turnstile.verify(dto.turnstileToken, req.ip);
     const result = await this.auth.login(dto);
     setAuthCookies(res, result);
     return { user: result.user };

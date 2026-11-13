@@ -19,7 +19,13 @@ export function useUserRegistration() {
 
   return useMutation({
     mutationKey: ["user", "register"],
-    mutationFn: (data: UserRegistrationSchema) => registerUser(data),
+    mutationFn: ({
+      data,
+      turnstileToken,
+    }: {
+      data: UserRegistrationSchema;
+      turnstileToken?: string;
+    }) => registerUser(data, turnstileToken),
     onSuccess: (data, variables) => {
       if (data.createdByAdmin) {
         toast.success(`${data.user.fullName} დარეგისტრირდა — შეტყობინება admin ზარში`);
@@ -27,7 +33,7 @@ export function useUserRegistration() {
         return;
       }
 
-      const isStudent = variables.registrationRole === "student";
+      const isStudent = variables.data.registrationRole === "student";
       toast.success(
         isStudent
           ? "მომხმარებლად წარმატებით დარეგისტრირდი"

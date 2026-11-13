@@ -33,6 +33,10 @@ const EXACT_API_MESSAGES: Record<string, string> = {
   "image file is required": "აირჩიე სურათი.",
   "image file is too large": "სურათის ფაილი ძალიან დიდია.",
   "message is too short": "შეტყობინება ძალიან მოკლეა.",
+  "captcha verification required":
+    "გთხოვთ, დაადასტუროთ, რომ რობოტი არ ხართ.",
+  "captcha verification failed":
+    "დაცვის შემოწმება ვერ მოხერხდა. სცადე ხელახლა.",
   "you already own this route": "ეს მარშრუტი უკვე გაქვს შენახული.",
   "session is already finished": "სესია უკვე დასრულებულია.",
   "route not found": "მარშრუტი ვერ მოიძებნა.",

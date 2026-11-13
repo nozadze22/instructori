@@ -15,11 +15,14 @@ export async function getAdminSetupStatus(): Promise<AdminSetupStatus> {
   });
 }
 
-export async function adminSetup(data: {
+export type AdminSetupInput = {
   fullName: string;
   email: string;
   password: string;
-}): Promise<AdminSetupResponse> {
+  turnstileToken?: string;
+};
+
+export async function adminSetup(data: AdminSetupInput): Promise<AdminSetupResponse> {
   return apiRequest<AdminSetupResponse>("/admin/setup", {
     method: "POST",
     body: JSON.stringify(data),

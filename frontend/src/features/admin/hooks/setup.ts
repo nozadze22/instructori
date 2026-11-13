@@ -24,7 +24,13 @@ export function useAdminSetup() {
 
   return useMutation({
     mutationKey: ["admin", "setup"],
-    mutationFn: (data: AdminSetupSchema) => adminSetup(data),
+    mutationFn: ({
+      data,
+      turnstileToken,
+    }: {
+      data: AdminSetupSchema;
+      turnstileToken?: string;
+    }) => adminSetup({ ...data, turnstileToken }),
     onSuccess: (data) => {
       toast.success("ადმინი შეიქმნა");
       queryClient.setQueryData(["me"], data.user);
