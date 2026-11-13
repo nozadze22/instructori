@@ -74,7 +74,8 @@ export function ChatFloatingButton() {
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/register")
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/verify-email")
   ) {
     return null;
   }

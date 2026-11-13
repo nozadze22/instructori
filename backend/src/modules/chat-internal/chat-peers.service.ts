@@ -10,6 +10,15 @@ export type ChatPeerDto = {
   relation: 'instructor' | 'student' | 'classmate' | 'system';
 };
 
+const userPeerSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+  role: true,
+  accessStatus: true,
+  profile: { select: { avatarUrl: true } },
+} as const;
+
 @Injectable()
 export class ChatPeersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -37,102 +46,109 @@ export class ChatPeersService {
     userId: string,
     role: 'ADMIN' | 'INSTRUCTOR' | 'USER',
   ): Promise<ChatPeerDto[]> {
+    const peers = new Map<string, ChatPeerDto>();
+
+    const addPeer = (peer: ChatPeerDto) => {
+      peers.set(peer.id, peer);
+    };
+
     if (role === 'INSTRUCTOR' || role === 'ADMIN') {
-      const students = await this.prisma.user.findMany({
+      const accepted = await this.prisma.instructorMessage.findMany({
         where: {
-          role: 'USER',
-          linkedInstructorId: userId,
-          accessStatus: 'ACTIVE',
+          instructorId: userId,
+          status: 'ACCEPTED',
         },
         select: {
-          id: true,
-          fullName: true,
-          email: true,
-          role: true,
-          profile: { select: { avatarUrl: true } },
+          sender: { select: userPeerSelect },
         },
-        orderBy: { fullName: 'asc' },
+        orderBy: { respondedAt: 'desc' },
       });
 
-      return students.map((student) => ({
-        id: student.id,
-        fullName: student.fullName,
-        email: student.email,
-        role: student.role,
-        avatarUrl: student.profile?.avatarUrl ?? null,
-        relation: 'student' as const,
-      }));
+      const seenStudents = new Set<string>();
+      for (const row of accepted) {
+        const student = row.sender;
+        if (seenStudents.has(student.id)) continue;
+        seenStudents.add(student.id);
+        if (student.role !== 'USER' || student.accessStatus !== 'ACTIVE') {
+          continue;
+        }
+        addPeer({
+          id: student.id,
+          fullName: student.fullName,
+          email: student.email,
+          role: student.role,
+          avatarUrl: student.profile?.avatarUrl ?? null,
+          relation: 'student',
+        });
+      }
     }
 
     if (role === 'USER') {
-      const me = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          linkedInstructorId: true,
-          linkedInstructor: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              role: true,
-              accessStatus: true,
-              profile: { select: { avatarUrl: true } },
-            },
-          },
+      const accepted = await this.prisma.instructorMessage.findMany({
+        where: {
+          senderId: userId,
+          status: 'ACCEPTED',
         },
+        select: {
+          instructor: { select: userPeerSelect },
+        },
+        orderBy: { respondedAt: 'desc' },
       });
 
-      if (!me?.linkedInstructorId) {
-        return [];
-      }
-
-      const peers: ChatPeerDto[] = [];
-
-      if (
-        me.linkedInstructor &&
-        me.linkedInstructor.accessStatus === 'ACTIVE'
-      ) {
-        peers.push({
-          id: me.linkedInstructor.id,
-          fullName: me.linkedInstructor.fullName,
-          email: me.linkedInstructor.email,
-          role: me.linkedInstructor.role,
-          avatarUrl: me.linkedInstructor.profile?.avatarUrl ?? null,
+      const seenInstructors = new Set<string>();
+      for (const row of accepted) {
+        const instructor = row.instructor;
+        if (seenInstructors.has(instructor.id)) continue;
+        seenInstructors.add(instructor.id);
+        if (
+          instructor.role !== 'INSTRUCTOR' ||
+          instructor.accessStatus !== 'ACTIVE'
+        ) {
+          continue;
+        }
+        addPeer({
+          id: instructor.id,
+          fullName: instructor.fullName,
+          email: instructor.email,
+          role: instructor.role,
+          avatarUrl: instructor.profile?.avatarUrl ?? null,
           relation: 'instructor',
         });
       }
 
-      const classmates = await this.prisma.user.findMany({
-        where: {
-          role: 'USER',
-          linkedInstructorId: me.linkedInstructorId,
-          accessStatus: 'ACTIVE',
-          id: { not: userId },
-        },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          role: true,
-          profile: { select: { avatarUrl: true } },
-        },
-        orderBy: { fullName: 'asc' },
+      const me = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { linkedInstructorId: true },
       });
 
-      for (const mate of classmates) {
-        peers.push({
-          id: mate.id,
-          fullName: mate.fullName,
-          email: mate.email,
-          role: mate.role,
-          avatarUrl: mate.profile?.avatarUrl ?? null,
-          relation: 'classmate',
+      if (me?.linkedInstructorId) {
+        const classmates = await this.prisma.user.findMany({
+          where: {
+            role: 'USER',
+            linkedInstructorId: me.linkedInstructorId,
+            accessStatus: 'ACTIVE',
+            id: { not: userId },
+          },
+          select: userPeerSelect,
+          orderBy: { fullName: 'asc' },
         });
-      }
 
-      return peers;
+        for (const mate of classmates) {
+          if (peers.has(mate.id)) continue;
+          addPeer({
+            id: mate.id,
+            fullName: mate.fullName,
+            email: mate.email,
+            role: mate.role,
+            avatarUrl: mate.profile?.avatarUrl ?? null,
+            relation: 'classmate',
+          });
+        }
+      }
     }
 
-    return [];
+    return Array.from(peers.values()).sort((a, b) =>
+      a.fullName.localeCompare(b.fullName, 'ka'),
+    );
   }
 }

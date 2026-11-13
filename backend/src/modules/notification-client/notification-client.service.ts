@@ -45,6 +45,12 @@ export type StudentLinkedPayload = {
   studentFullName: string;
 };
 
+export type ChatRequestAcceptedPayload = {
+  studentId: string;
+  instructorId: string;
+  instructorFullName: string;
+};
+
 export type StudentRegistrationPayload = {
   studentId: string;
   studentFullName: string;
@@ -83,6 +89,10 @@ export class NotificationClientService implements NotificationRouteEvents {
 
   publishStudentLinked(payload: StudentLinkedPayload): void {
     void this.post('student-linked', payload);
+  }
+
+  publishChatRequestAccepted(payload: ChatRequestAcceptedPayload): void {
+    void this.post('chat-request-accepted', payload);
   }
 
   publishStudentRegistration(payload: StudentRegistrationPayload): void {

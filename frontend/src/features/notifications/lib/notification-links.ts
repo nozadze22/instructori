@@ -4,7 +4,7 @@ export function notificationHref(item: NotificationItem): string | null {
   const data = item.data ?? {};
 
   if (item.type === "INSTRUCTOR_MESSAGE") {
-    return "/profile?tab=messages";
+    return "/dashboard";
   }
 
   if (item.type === "INSTRUCTOR_REVIEW") {
@@ -36,6 +36,14 @@ export function notificationHref(item: NotificationItem): string | null {
 
   if (item.type === "STUDENT_LINKED") {
     return "/profile/students";
+  }
+
+  if (item.type === "CHAT_REQUEST_ACCEPTED") {
+    const instructorId = data.instructorId;
+    if (typeof instructorId === "string") {
+      return `/messages?with=${encodeURIComponent(instructorId)}`;
+    }
+    return "/messages";
   }
 
   if (item.type === "SYSTEM_MESSAGE") {

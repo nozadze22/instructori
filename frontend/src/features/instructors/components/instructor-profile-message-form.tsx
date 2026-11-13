@@ -52,12 +52,12 @@ export function InstructorProfileMessageForm({
         <Field data-invalid={!!form.formState.errors.message}>
           {!compact ? (
             <FieldLabel htmlFor="instructor-message">
-              შეტყობინება ინსტრუქტორს
+              მოთხოვნა საუბარზე
             </FieldLabel>
           ) : null}
           <FieldContent>
-            <InputGroup className="h-auto min-h-32 items-start rounded-xl border-white/10 bg-surface-container py-2">
-              <InputGroupAddon className="pt-1">
+            <InputGroup className="h-auto min-h-32 items-start rounded-xl border border-border/80 bg-background py-2 shadow-sm ring-1 ring-primary/15 focus-within:border-primary/40 focus-within:ring-primary/25">
+              <InputGroupAddon className="pt-1 text-primary">
                 <Send />
               </InputGroupAddon>
               <InputGroupTextarea
@@ -76,7 +76,7 @@ export function InstructorProfileMessageForm({
           disabled={isPending}
           className="h-10 w-full rounded-xl"
         >
-          {isPending ? "იგზავნება..." : "შეტყობინების გაგზავნა"}
+          {isPending ? "იგზავნება..." : "მოთხოვნის გაგზავნა"}
         </Button>
       </form>
     </Form>

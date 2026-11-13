@@ -33,11 +33,28 @@ export class InstructorsController {
     return this.instructorsService.listMessages(user);
   }
 
-  @Patch('messages/:id/read')
+  @Patch('messages/:id/accept')
   @UseGuards(RolesGuard)
   @Roles('INSTRUCTOR')
-  markRead(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.instructorsService.markRead(user, id);
+  acceptMessage(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.instructorsService.acceptMessage(user, id);
+  }
+
+  @Patch('messages/:id/reject')
+  @UseGuards(RolesGuard)
+  @Roles('INSTRUCTOR')
+  rejectMessage(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.instructorsService.rejectMessage(user, id);
+  }
+
+  @Get(':id/conversation-status')
+  @UseGuards(RolesGuard)
+  @Roles('USER')
+  getConversationStatus(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.instructorsService.getConversationStatus(user, id);
   }
 
   @Get(':id')

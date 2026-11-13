@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
@@ -36,13 +37,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthGate } from "@/features/auth/components/auth-gate";
 import { useGetMe } from "@/features/auth/login/hooks/login";
@@ -163,6 +157,54 @@ function peerRelationLabel(
   if (relation === "student") return "სტუდენტი";
   if (relation === "system") return "სისტემური შეტყობინებები";
   return null;
+}
+
+function ChatEmptyState({
+  icon,
+  title,
+  description,
+  compact,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "text-center",
+        compact
+          ? "px-1 py-2"
+          : "mx-auto max-w-sm rounded-2xl border border-primary/15 bg-gradient-to-b from-primary/[0.07] to-transparent px-5 py-8",
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto flex items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/20",
+          compact ? "mb-3 size-11" : "mb-4 size-14",
+        )}
+      >
+        {icon}
+      </div>
+      <p
+        className={cn(
+          "font-semibold tracking-tight text-foreground",
+          compact ? "text-sm" : "text-base",
+        )}
+      >
+        {title}
+      </p>
+      <p
+        className={cn(
+          "mt-2 text-muted-foreground leading-relaxed",
+          compact ? "text-xs" : "text-sm",
+        )}
+      >
+        {description}
+      </p>
+    </div>
+  );
 }
 
 export type MessagesPanelProps = {
@@ -347,7 +389,7 @@ export function MessagesPanel({
   const shell = (
       <div
         className={cn(
-          "grid overflow-hidden border border-white/10 bg-[#0b1220]/80 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.8)]",
+          "grid overflow-hidden border border-border/70 bg-surface text-foreground shadow-xl shadow-black/5",
           isDrawer
             ? cn(
                 "h-full min-h-0 rounded-none border-0 shadow-none",
@@ -364,7 +406,7 @@ export function MessagesPanel({
       >
         <aside
           className={cn(
-            "flex min-h-0 flex-col border-white/8 bg-black/20",
+            "flex min-h-0 flex-col border-border/60 bg-surface-lowest/95",
             showListPanel ? "flex" : "hidden",
             (isDrawer || !isCompact) && "border-r",
             !isDrawer && !isCompact && "border-b-0",
@@ -372,8 +414,8 @@ export function MessagesPanel({
             isDrawer && "h-full",
           )}
         >
-          <div className="flex items-center gap-2 px-3 py-3 text-[11px] font-semibold tracking-[0.18em] text-white/45 uppercase sm:px-4 sm:py-4">
-            <Users className="size-3.5 text-primary" />
+          <div className="flex items-center gap-2 border-b border-border/50 px-3 py-3.5 text-xs font-semibold tracking-wide text-muted-foreground sm:px-4">
+            <Users className="size-4 text-primary" aria-hidden />
             საუბრები
           </div>
           <div className="flex-1 overflow-y-auto overscroll-contain px-2 pb-3">
@@ -382,20 +424,17 @@ export function MessagesPanel({
                 იტვირთება...
               </p>
             ) : conversations.length === 0 ? (
-              <div className="px-2 py-8">
-                <Empty className="border-0 bg-transparent p-0">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <MessageSquare className="size-5" />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-sm">ჯერ არავინაა</EmptyTitle>
-                    <EmptyDescription className="text-xs">
-                      {isInstructor
-                        ? "სტუდენტები კოდით რომ დაკავშირდებიან, აქ გამოჩნდებიან."
-                        : "ჯერ ინსტრუქტორთან დაკავშირება გჭირდება."}
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+              <div className="px-2 py-6">
+                <ChatEmptyState
+                  compact
+                  icon={<MessageSquare className="size-5" />}
+                  title="ჯერ არავინაა"
+                  description={
+                    isInstructor
+                      ? "მოთხოვნა რომ დამტკიცებ, აქ გამოჩნდება საუბარი — პირველი ტექსტიც ჩატში ჩანს."
+                      : "ინსტრუქტორმა მოთხოვნა რომ დაამტკიცოს, აქ გამოჩნდება საუბარი."
+                  }
+                />
               </div>
             ) : (
               <div className="space-y-4">
@@ -405,8 +444,8 @@ export function MessagesPanel({
                       className={cn(
                         "mb-1.5 px-3 text-[10px] font-semibold tracking-[0.16em] uppercase",
                         group.key === "system"
-                          ? "text-white/55"
-                          : "text-white/35",
+                          ? "text-muted-foreground"
+                          : "text-muted-foreground/75",
                       )}
                     >
                       {group.title}
@@ -427,7 +466,7 @@ export function MessagesPanel({
                                 selected &&
                                   item.peer.relation !== "system" &&
                                   "bg-primary/18 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--primary)_35%,transparent)]",
-                                !selected && "hover:bg-white/5",
+                                !selected && "hover:bg-surface-container-high/70",
                               )}
                             >
                               <Avatar className="size-11 shrink-0">
@@ -464,7 +503,7 @@ export function MessagesPanel({
                                     {item.peer.fullName}
                                   </p>
                                   {item.lastMessage ? (
-                                    <span className="shrink-0 text-[10px] text-white/35">
+                                    <span className="shrink-0 text-[10px] text-muted-foreground/80">
                                       {formatTime(item.lastMessage.createdAt)}
                                     </span>
                                   ) : null}
@@ -475,7 +514,7 @@ export function MessagesPanel({
                                       "min-w-0 flex-1 truncate text-xs",
                                       item.peer.relation === "system"
                                         ? systemMessageChatMutedText
-                                        : "text-white/45",
+                                        : "text-muted-foreground",
                                     )}
                                   >
                                     {item.lastMessage?.body ??
@@ -502,41 +541,26 @@ export function MessagesPanel({
 
         <section
           className={cn(
-            "relative flex min-h-0 flex-col",
+            "relative flex min-h-0 flex-col bg-surface",
             showThreadPanel ? "flex" : "hidden",
             !isDrawer && !isCompact && "min-h-[480px]",
             !isDrawer && isCompact && "min-h-[calc(100dvh-4rem)]",
             isDrawer && "h-full",
           )}
         >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)",
-              backgroundSize: "18px 18px",
-            }}
-          />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--primary)_14%,transparent),transparent_50%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_60%)]" />
 
           {!activePeerId || !peer ? (
-            <div className="relative z-10 flex flex-1 items-center justify-center p-6 sm:p-8">
-              <Empty className="border-0 bg-transparent">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <MessageSquare className="size-6" />
-                  </EmptyMedia>
-                  <EmptyTitle>აირჩიე საუბარი</EmptyTitle>
-                  <EmptyDescription>
-                    აირჩიე კონტაქტი და დაიწყე ჩატი.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
+            <div className="relative z-10 flex flex-1 items-center justify-center p-6 sm:p-10">
+              <ChatEmptyState
+                icon={<MessageSquare className="size-6" />}
+                title="აირჩიე საუბარი"
+                description="მარცხნივ აირჩიე კონტაქტი ან დაელოდე ინსტრუქტორს — შემდეგ აქ გაგრძელდება ჩატი."
+              />
             </div>
           ) : (
             <>
-              <header className="relative z-10 flex items-center gap-2 border-b border-white/8 bg-[#0b1220]/80 px-2 py-2.5 backdrop-blur-xl sm:gap-3 sm:px-4 sm:py-3">
+              <header className="relative z-10 flex items-center gap-2 border-b border-border/70 bg-surface-low/90 px-2 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4 sm:py-3">
                 {isCompact ? (
                   <button
                     type="button"
@@ -544,8 +568,8 @@ export function MessagesPanel({
                     aria-label="უკან საუბრებთან"
                     className={cn(
                       "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1 rounded-full",
-                      "border border-white/12 bg-white/6 px-3 text-xs font-semibold text-foreground",
-                      "transition-colors hover:bg-white/12 active:scale-[0.98]",
+                      "border border-border/80 bg-surface-container-high/80 px-3 text-xs font-semibold text-foreground",
+                      "transition-colors hover:bg-surface-container-high active:scale-[0.98]",
                     )}
                   >
                     <ChevronLeft className="size-4 opacity-80" />
@@ -582,7 +606,7 @@ export function MessagesPanel({
                       "truncate text-[11px]",
                       peer.relation === "system"
                         ? systemMessageChatMutedText
-                        : "text-white/40",
+                        : "text-muted-foreground",
                     )}
                   >
                     {peerRelationLabel(peer.relation) ??
@@ -647,36 +671,27 @@ export function MessagesPanel({
                     შეტყობინებები იტვირთება...
                   </p>
                 ) : messages.length === 0 ? (
-                  <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 text-center sm:min-h-52">
-                    <div
-                      className={cn(
-                        "flex size-12 items-center justify-center rounded-2xl",
+                  <div className="flex h-full min-h-40 items-center justify-center py-8 sm:min-h-52">
+                    <ChatEmptyState
+                      compact
+                      icon={
+                        isSystemThread ? (
+                          <Megaphone className="size-5" />
+                        ) : (
+                          <MessageSquare className="size-5" />
+                        )
+                      }
+                      title={
                         isSystemThread
-                          ? cn(systemMessageChatIconBox, "size-12")
-                          : "bg-primary/10 text-primary",
-                      )}
-                    >
-                      {isSystemThread ? (
-                        <Megaphone className="size-5" />
-                      ) : (
-                        <MessageSquare className="size-5" />
-                      )}
-                    </div>
-                    <p
-                      className={cn(
-                        "text-sm font-medium",
-                        isSystemThread && systemMessageChatText,
-                      )}
-                    >
-                      {isSystemThread
-                        ? "სისტემური შეტყობინებები ჯერ არ არის"
-                        : "საუბარი ცარიელია"}
-                    </p>
-                    <p className="max-w-xs text-xs text-white/45">
-                      {isSystemThread
-                        ? "ადმინისტრაციის განცხადებები აქ გამოჩნდება."
-                        : "დაწერე პირველი შეტყობინება."}
-                    </p>
+                          ? "სისტემური შეტყობინებები ჯერ არ არის"
+                          : "საუბარი ცარიელია"
+                      }
+                      description={
+                        isSystemThread
+                          ? "ადმინისტრაციის განცხადებები აქ გამოჩნდება."
+                          : "დაწერე პირველი შეტყობინება და დაიწყე საუბარი."
+                      }
+                    />
                   </div>
                 ) : (
                   <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-end">
@@ -685,12 +700,12 @@ export function MessagesPanel({
                       messagesQuery.isFetchingNextPage ? (
                         <div className="mb-2 flex justify-center py-2">
                           {messagesQuery.isFetchingNextPage ? (
-                            <LoaderCircle className="size-4 animate-spin text-white/40" />
+                            <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
                           ) : (
                             <button
                               type="button"
                               onClick={() => void handleLoadOlder()}
-                              className="cursor-pointer rounded-full px-3 py-1 text-[11px] text-white/45 transition-colors hover:bg-white/5 hover:text-white/70"
+                              className="cursor-pointer rounded-full px-3 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-surface-container-high hover:text-foreground"
                             >
                               ძველი შეტყობინებები
                             </button>
@@ -749,7 +764,7 @@ export function MessagesPanel({
                                           alt={peer.fullName}
                                         />
                                       ) : null}
-                                      <AvatarFallback className="bg-white/10 text-[9px] font-semibold">
+                                      <AvatarFallback className="bg-surface-container-high text-[9px] font-semibold">
                                         {userInitials(peer)}
                                       </AvatarFallback>
                                     </Avatar>
@@ -770,7 +785,7 @@ export function MessagesPanel({
                                             : "rounded-2xl rounded-br-md",
                                       )
                                     : cn(
-                                        "bg-[#1a2333] text-foreground ring-1 ring-white/6",
+                                        "bg-surface-container-high text-foreground ring-1 ring-border/80",
                                         prevSame && nextSame
                                           ? "rounded-2xl"
                                           : prevSame
@@ -788,7 +803,7 @@ export function MessagesPanel({
                                       "mt-1 flex items-center gap-1 text-[10px] leading-none",
                                       mine
                                         ? "justify-end text-primary-foreground/70"
-                                        : "justify-end text-white/35",
+                                        : "justify-end text-muted-foreground/80",
                                     )}
                                   >
                                     <span>{formatTime(message.createdAt)}</span>
@@ -833,35 +848,78 @@ export function MessagesPanel({
               ) : (
                 <footer
                   className={cn(
-                    "relative z-10 border-t border-white/8 bg-[#0b1220]/85 p-2.5 backdrop-blur-xl sm:p-4",
-                    "pb-[max(0.65rem,env(safe-area-inset-bottom))] sm:pb-4",
+                    "relative z-10 shrink-0 border-t border-border/60",
+                    "bg-linear-to-t from-surface-low via-surface-low/98 to-surface-low/90",
+                    "px-3 pt-3 backdrop-blur-md sm:px-4 sm:pt-4",
+                    "pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4",
                   )}
                 >
-                  <div className="mx-auto flex w-full max-w-2xl items-end gap-2 rounded-[1.25rem] border border-white/10 bg-white/4 p-1.5 shadow-inner sm:rounded-[1.35rem]">
-                    <Textarea
-                      value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
-                      placeholder="დაწერე შეტყობინება..."
-                      rows={1}
-                      className="max-h-28 min-h-10 flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.shiftKey) {
-                          event.preventDefault();
-                          void handleSend();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      className="size-10 shrink-0 rounded-full"
-                      disabled={!draft.trim() || sendMutation.isPending}
-                      onClick={() => void handleSend()}
+                  <form
+                    className="mx-auto w-full max-w-2xl"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleSend();
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        "flex items-end gap-2 rounded-2xl border border-border/70",
+                        "bg-surface-container-lowest/90 p-1.5 shadow-[0_-1px_24px_rgba(0,0,0,0.04)]",
+                        "transition-shadow focus-within:border-primary/35",
+                        "focus-within:shadow-[0_0_0_3px_color-mix(in_oklch,var(--primary)_18%,transparent),0_-1px_24px_rgba(0,0,0,0.06)]",
+                      )}
                     >
-                      <SendHorizontal className="size-4" />
-                      <span className="sr-only">გაგზავნა</span>
-                    </Button>
-                  </div>
+                      <div className="flex min-h-10 flex-1 items-center gap-2 pl-1.5 sm:pl-2">
+                        <MessageSquare
+                          className="mb-2.5 hidden size-4 shrink-0 text-primary/70 sm:mb-0 sm:block"
+                          aria-hidden
+                        />
+                        <Textarea
+                          value={draft}
+                          onChange={(event) => setDraft(event.target.value)}
+                          placeholder="დაწერე შეტყობინება…"
+                          rows={1}
+                          className={cn(
+                            "max-h-32 min-h-10 flex-1 resize-none border-0 bg-transparent",
+                            "px-1 py-2.5 text-sm leading-relaxed shadow-none",
+                            "placeholder:text-muted-foreground/65",
+                            "focus-visible:ring-0",
+                          )}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && !event.shiftKey) {
+                              event.preventDefault();
+                              void handleSend();
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className={cn(
+                          "mb-0.5 size-11 shrink-0 rounded-xl shadow-sm",
+                          "transition-[transform,box-shadow,opacity]",
+                          draft.trim() && !sendMutation.isPending
+                            ? "bg-primary shadow-primary/25 hover:scale-[1.02] active:scale-[0.98]"
+                            : "opacity-60",
+                        )}
+                        disabled={!draft.trim() || sendMutation.isPending}
+                      >
+                        {sendMutation.isPending ? (
+                          <LoaderCircle
+                            className="size-4 animate-spin"
+                            aria-hidden
+                          />
+                        ) : (
+                          <SendHorizontal className="size-4" aria-hidden />
+                        )}
+                        <span className="sr-only">გაგზავნა</span>
+                      </Button>
+                    </div>
+                    <p className="mt-2 hidden text-center text-[10px] text-muted-foreground/75 sm:block">
+                      Enter — გაგზავნა · Shift+Enter — ახალი ხაზი
+                    </p>
+                  </form>
                 </footer>
               )}
             </>
@@ -873,10 +931,12 @@ export function MessagesPanel({
   if (isDrawer) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border/70 bg-surface-low px-4 py-3.5">
           <div>
-            <p className="text-sm font-semibold tracking-tight">შეტყობინებები</p>
-            <p className="text-[11px] text-white/40">
+            <p className="text-base font-semibold tracking-tight text-foreground">
+              შეტყობინებები
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {isInstructor
                 ? "ჩატი სტუდენტებთან"
                 : "ინსტრუქტორი და თანაკლასელები"}

@@ -26,9 +26,10 @@ export type InstructorDirectoryItem = {
 export type InstructorMessage = {
   id: string;
   message: string;
-  status: "UNREAD" | "READ";
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
   createdAt: string;
   readAt: string | null;
+  respondedAt: string | null;
   sender: {
     id: string;
     fullName: string;
@@ -51,6 +52,19 @@ export function getInstructor(id: string) {
   });
 }
 
+export type InstructorConversationStatus =
+  | "NONE"
+  | "PENDING"
+  | "ACCEPTED"
+  | "REJECTED";
+
+export function getInstructorConversationStatus(instructorId: string) {
+  return apiRequest<{ status: InstructorConversationStatus }>(
+    `/instructors/${instructorId}/conversation-status`,
+    { method: "GET" },
+  );
+}
+
 export function sendInstructorMessage(id: string, message: string) {
   return apiRequest<InstructorMessage>(`/instructors/${id}/messages`, {
     method: "POST",
@@ -64,8 +78,14 @@ export function getInstructorMessages() {
   });
 }
 
-export function markInstructorMessageRead(id: string) {
-  return apiRequest<InstructorMessage>(`/instructors/messages/${id}/read`, {
+export function acceptInstructorMessage(id: string) {
+  return apiRequest<InstructorMessage>(`/instructors/messages/${id}/accept`, {
+    method: "PATCH",
+  });
+}
+
+export function rejectInstructorMessage(id: string) {
+  return apiRequest<InstructorMessage>(`/instructors/messages/${id}/reject`, {
     method: "PATCH",
   });
 }

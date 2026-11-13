@@ -79,6 +79,16 @@ export function useNotificationSocket() {
           void queryClient.invalidateQueries({
             queryKey: ["notifications", "infinite"],
           });
+
+          if (
+            payload.item.type === "CHAT_REQUEST_ACCEPTED" ||
+            payload.item.type === "INSTRUCTOR_MESSAGE"
+          ) {
+            void queryClient.invalidateQueries({ queryKey: ["instructors"] });
+            void queryClient.invalidateQueries({
+              queryKey: ["chat", "conversations"],
+            });
+          }
         });
 
         socket.on("notification:unread", (payload: NotificationUnreadEvent) => {

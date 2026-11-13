@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { toastApiError } from "@/lib/toast-api";
 
 import { defaultPathForUser } from "@/lib/post-auth-path";
+import { isEmailVerificationPending } from "@/features/auth/types/registration";
 import {
   changePassword,
   getUser,
@@ -27,6 +28,14 @@ export function useUserRegistration() {
       turnstileToken?: string;
     }) => registerUser(data, turnstileToken),
     onSuccess: (data, variables) => {
+      if (isEmailVerificationPending(data)) {
+        toast.success("გამოგიგზავნეთ დადასტურების ელფოსტა.");
+        router.push(
+          `/register/check-email?email=${encodeURIComponent(data.email)}`,
+        );
+        return;
+      }
+
       if (data.createdByAdmin) {
         toast.success(`${data.user.fullName} დარეგისტრირდა — შეტყობინება admin ზარში`);
         void queryClient.invalidateQueries({ queryKey: ["notifications"] });

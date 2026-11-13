@@ -37,6 +37,12 @@ const EXACT_API_MESSAGES: Record<string, string> = {
     "გთხოვთ, დაადასტუროთ, რომ რობოტი არ ხართ.",
   "captcha verification failed":
     "დაცვის შემოწმება ვერ მოხერხდა. სცადე ხელახლა.",
+  "email verification pending":
+    "ელფოსტა ჯერ არ არის დადასტურებული. გახსენი ბმული შენს ელფოსტაში.",
+  "invalid or expired verification link":
+    "დადასტურების ბმული ვადაგასულია ან არასწორია.",
+  "no pending registration for this email":
+    "ამ ელფოსტაზე მოლოდინში რეგისტრაცია ვერ მოიძებნა. დაიწყე ხელახლა.",
   "you already own this route": "ეს მარშრუტი უკვე გაქვს შენახული.",
   "session is already finished": "სესია უკვე დასრულებულია.",
   "route not found": "მარშრუტი ვერ მოიძებნა.",
@@ -51,6 +57,24 @@ const EXACT_API_MESSAGES: Record<string, string> = {
   "you cannot modify this route": "ამ მარშრუტის რედაქტირება არ გაქვს უფლება.",
   "only published system routes can be saved":
     "შენახვა შეიძლება მხოლოდ გამოქვეყნებული სისტემური მარშრუტის.",
+  "not a student of this instructor":
+    "შენ ჯერ არ ხარ ამ ინსტრუქტორის მოსწავლე.",
+  "you can only review instructors you learn with":
+    "შენ ჯერ არ ხარ ამ ინსტრუქტორის მოსწავლე.",
+  "only students can submit reviews":
+    "შეფასების დატოვება მხოლოდ სტუდენტის ანგარიშით შეიძლება.",
+  "you already reviewed this instructor. update your existing review instead.":
+    "ამ ინსტრუქტორზე უკვე დატოვებული გაქვს შეფასება — განაახლე არსებული.",
+  "you can only edit your own review":
+    "სხვისი შეფასების რედაქტირება შეუძლებელია.",
+  "already linked to this instructor — use chat":
+    "უკვე ხარ ამ ინსტრუქტორთან დაკავშირებული — გამოიყენე ჩატი.",
+  "conversation already approved — use chat":
+    "მოთხოვნა უკვე დამტკიცებულია — გახსენი ჩატი.",
+  "a request is already pending":
+    "მოთხოვნა უკვე გაგზავნილია — დაელოდე ინსტრუქტორს.",
+  "pending request not found":
+    "მოთხოვნა ვერ მოიძებნა — შესაძლოა უკვე გადაწყვეტილია.",
 };
 
 /** Substring match → Georgian */
@@ -60,7 +84,8 @@ const PARTIAL_API_MESSAGES: Array<{ pattern: RegExp; text: string }> = [
     text: "ანგარიში ჯერ არ არის დამტკიცებული.",
   },
   {
-    pattern: /forbidden|you cannot|only (admins|instructors|students)/i,
+    pattern:
+      /forbidden|you cannot|\bonly (admins|instructors|students) can\b/i,
     text: "ამ მოქმედებისთვის გთხოვთ, შეხვიდე სათანადო ანგარიშით.",
   },
   {

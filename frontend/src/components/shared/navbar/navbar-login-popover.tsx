@@ -87,17 +87,17 @@ export function NavbarLoginPopover() {
       <PopoverContent
         align="end"
         sideOffset={12}
-        className="w-88 gap-0 overflow-hidden rounded-2xl border border-white/10 bg-surface-low/95 p-0 shadow-2xl shadow-black/40 ring-1 ring-primary/10 backdrop-blur-xl"
+        className="w-[min(100vw-1.5rem,22rem)] gap-0 overflow-hidden rounded-2xl border border-white/10 bg-surface-low/95 p-0 shadow-2xl shadow-black/40 ring-1 ring-primary/10 backdrop-blur-xl"
       >
-        <div className="relative space-y-5 p-5">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_70%)]" />
+        <div className="relative flex flex-col items-center space-y-5 p-5">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--primary)_22%,transparent),transparent_72%)]" />
 
-          <div className="relative flex items-start gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary-container text-primary-foreground shadow-lg shadow-primary/25">
-              <LogIn className="size-4" />
+          <div className="relative flex w-full flex-col items-center gap-3 text-center">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+              <LogIn className="size-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold tracking-tight">
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
                 კეთილი იყოს დაბრუნება
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -116,7 +116,7 @@ export function NavbarLoginPopover() {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
-              className="relative space-y-4"
+              className="relative w-full space-y-4"
               noValidate
             >
               <Field data-invalid={!!form.formState.errors.email}>
@@ -163,11 +163,16 @@ export function NavbarLoginPopover() {
                 </FieldContent>
               </Field>
 
-              <TurnstileField {...turnstileProps} size="compact" />
+              <TurnstileField
+                {...turnstileProps}
+                size="compact"
+                theme="light"
+                className="p-3"
+              />
 
               <Button
                 type="submit"
-                className="h-11 w-full rounded-xl font-semibold shadow-lg shadow-primary/25"
+                className="h-11 w-full rounded-xl bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-colors hover:bg-primary/90 hover:text-primary-foreground"
                 disabled={isPending || submitBlocked}
               >
                 გაგრძელება

@@ -1,6 +1,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import {
   AccessPendingDto,
+  ChatRequestAcceptedDto,
   InstructorMessageCreatedDto,
   InstructorRegistrationDto,
   InstructorReviewCreatedDto,
@@ -53,6 +54,11 @@ export class InternalEventsController {
   @Post('student-linked')
   studentLinked(@Body() dto: StudentLinkedDto) {
     return this.notifications.createFromStudentLinked(dto);
+  }
+
+  @Post('chat-request-accepted')
+  chatRequestAccepted(@Body() dto: ChatRequestAcceptedDto) {
+    return this.notifications.createFromChatRequestAccepted(dto);
   }
 
   @Post('student-registration')

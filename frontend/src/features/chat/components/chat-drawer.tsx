@@ -39,7 +39,7 @@ export function ChatDrawer() {
             ? { width: "50vw", maxWidth: "50vw", minWidth: "50vw" }
             : { width: "100vw", maxWidth: "100vw", minWidth: "100vw" }
         }
-        className="h-dvh gap-0 border-white/10 p-0 data-[side=right]:w-full data-[side=right]:sm:!max-w-none"
+        className="h-dvh gap-0 border-border/70 bg-surface p-0 text-foreground data-[side=right]:w-full data-[side=right]:sm:!max-w-none"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>შეტყობინებები</SheetTitle>

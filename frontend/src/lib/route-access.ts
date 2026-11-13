@@ -7,7 +7,8 @@ const APP_USER_PUBLIC_PATHS = [
   /^\/instructors(\/.*)?$/,
   /^\/messages(\/.*)?$/,
   /^\/login$/,
-  /^\/register$/,
+  /^\/register(\/.*)?$/,
+  /^\/verify-email$/,
   /^\/forbidden$/,
 ] as const;
 

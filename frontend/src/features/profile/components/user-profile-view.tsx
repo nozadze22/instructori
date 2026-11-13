@@ -153,7 +153,7 @@ export function UserProfileView({
     <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-surface">
       {/* Hero */}
       <section className="border-b border-white/8 bg-surface-low px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto flex max-w-container flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto flex max-w-container flex-col gap-6">
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
             <div className="relative shrink-0">
               <div className="relative size-36 overflow-hidden rounded-2xl border border-white/12 bg-surface-container sm:size-44">
@@ -231,17 +231,6 @@ export function UserProfileView({
                 </div>
               ) : null}
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl border-white/10 bg-surface-container-high/80 transition-colors hover:border-primary/40 hover:bg-surface-container-high"
-              render={<Link href="/profile/change-password" />}
-            >
-              პაროლის შეცვლა
-            </Button>
           </div>
         </div>
       </section>

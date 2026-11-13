@@ -27,6 +27,12 @@ import type {
   Role,
 } from './dto/auth-types';
 import { ACCESS_TOKEN_COOKIE } from './auth_guard/auth-cookie';
+import type { EmailVerificationPendingResponse } from './dto/registration-result';
+import {
+  PendingRegistrationService,
+  type InstructorPendingPayload,
+  type StudentPendingPayload,
+} from './pending-registration.service';
 import { refreshTokens } from './refresh-tokens';
 
 type AccessJwtPayload = {
@@ -72,39 +78,133 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly notificationClient: NotificationClientService,
     private readonly emailClient: EmailClientService,
+    private readonly pendingRegistration: PendingRegistrationService,
   ) {}
 
-  async register(dto: RegisterDto) {
-    const city = dto.city.trim();
-    const activeCity = await this.prisma.examRegion.findFirst({
-      where: {
-        name: city,
-      },
-      select: { id: true },
-    });
-    if (!activeCity) {
-      throw new BadRequestException(
-        'არჩეული ქალაქი აქტიური არ არის',
-      );
+  async register(
+    dto: RegisterDto,
+  ): Promise<EmailVerificationPendingResponse> {
+    return this.pendingRegistration.beginInstructorRegistration(dto);
+  }
+
+  async registerStudent(
+    dto: RegisterStudentDto,
+    createdByAdmin = false,
+  ): Promise<AuthSession | EmailVerificationPendingResponse> {
+    if (createdByAdmin) {
+      return this.registerStudentImmediate(dto);
+    }
+    return this.pendingRegistration.beginStudentRegistration(dto);
+  }
+
+  async verifyEmail(token: string): Promise<AuthSession> {
+    const pending = await this.pendingRegistration.findValidByToken(token);
+    if (!pending) {
+      throw new BadRequestException('Invalid or expired verification link');
     }
 
-    const exists = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    const emailTaken = await this.prisma.user.findUnique({
+      where: { email: pending.email },
+      select: { id: true },
     });
+    if (emailTaken) {
+      await this.pendingRegistration.deleteById(pending.id);
+      throw new ConflictException('Email already registered');
+    }
+
+    let user: DbAuthUser;
+
+    if (pending.kind === 'INSTRUCTOR') {
+      const payload =
+        this.pendingRegistration.parseInstructorPayload(pending);
+      user = await this.createInstructorUser({
+        email: pending.email,
+        fullName: pending.fullName,
+        passwordHash: pending.passwordHash,
+        payload,
+      });
+    } else {
+      const payload = this.pendingRegistration.parseStudentPayload(pending);
+      user = await this.createStudentUser({
+        email: pending.email,
+        fullName: pending.fullName,
+        passwordHash: pending.passwordHash,
+        payload,
+      });
+    }
+
+    await this.pendingRegistration.deleteById(pending.id);
+
+    return this.issueSession(this.toAuthTokenUser(user), {
+      replaceAllSessions: true,
+    });
+  }
+
+  async resendEmailVerification(email: string): Promise<{ ok: true }> {
+    await this.pendingRegistration.resendVerification(email);
+    return { ok: true };
+  }
+
+  private async registerStudentImmediate(
+    dto: RegisterStudentDto,
+  ): Promise<AuthSession> {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const email = dto.email.trim().toLowerCase();
+    const instructorCode = dto.instructorCode?.trim().toUpperCase();
+
+    const exists = await this.prisma.user.findUnique({ where: { email } });
     if (exists) throw new ConflictException('Email already registered');
+
+    let linkedInstructorId: string | undefined;
+    if (instructorCode) {
+      const instructor = await findInstructorByCodeForStudentLink(
+        this.prisma,
+        instructorCode,
+      );
+      linkedInstructorId = instructor.id;
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
+    const user = await this.createStudentUser({
+      email,
+      fullName: dto.fullName.trim(),
+      passwordHash,
+      payload: {
+        phone: dto.phone.trim(),
+        ...(linkedInstructorId ? { linkedInstructorId } : {}),
+      },
+    });
+
+    return this.issueSession(this.toAuthTokenUser(user), {
+      replaceAllSessions: true,
+    });
+  }
+
+  private async createInstructorUser(input: {
+    email: string;
+    fullName: string;
+    passwordHash: string;
+    payload: InstructorPendingPayload;
+  }): Promise<DbAuthUser> {
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email.trim().toLowerCase(),
-        fullName: dto.fullName.trim(),
-        passwordHash,
+        email: input.email,
+        fullName: input.fullName,
+        passwordHash: input.passwordHash,
         role: 'INSTRUCTOR',
         accessStatus: 'PENDING',
         instructorCode: await this.generateUniqueInstructorCode(),
-        instructorCategories: dto.instructorCategories,
-        profile: { create: { city, phone: dto.phone.trim() } },
+        instructorCategories: input.payload.instructorCategories,
+        profile: {
+          create: {
+            city: input.payload.city,
+            phone: input.payload.phone,
+          },
+        },
       },
       select: {
         id: true,
@@ -120,7 +220,7 @@ export class AuthService {
       userId: user.id,
       fullName: user.fullName,
       email: user.email,
-      city,
+      city: input.payload.city,
     });
 
     void this.emailClient.sendAccessPending({
@@ -128,42 +228,26 @@ export class AuthService {
       fullName: user.fullName,
     });
 
-    return this.issueSession(this.toAuthTokenUser(user), {
-      replaceAllSessions: true,
-    });
+    return user;
   }
 
-  async registerStudent(dto: RegisterStudentDto) {
-    if (dto.password !== dto.confirmPassword) {
-      throw new BadRequestException('Passwords do not match');
-    }
-
-    const email = dto.email.trim().toLowerCase();
-    const instructorCode = dto.instructorCode?.trim().toUpperCase();
-
-    const exists = await this.prisma.user.findUnique({ where: { email } });
-    if (exists) throw new ConflictException('Email already registered');
-
-    let instructorId: string | undefined;
-    if (instructorCode) {
-      const instructor = await findInstructorByCodeForStudentLink(
-        this.prisma,
-        instructorCode,
-      );
-      instructorId = instructor.id;
-    }
-
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-
+  private async createStudentUser(input: {
+    email: string;
+    fullName: string;
+    passwordHash: string;
+    payload: StudentPendingPayload;
+  }): Promise<DbAuthUser> {
     const user = await this.prisma.user.create({
       data: {
-        email,
-        fullName: dto.fullName.trim(),
-        passwordHash,
+        email: input.email,
+        fullName: input.fullName,
+        passwordHash: input.passwordHash,
         role: 'USER',
         accessStatus: 'ACTIVE',
-        ...(instructorId ? { linkedInstructorId: instructorId } : {}),
-        profile: { create: { phone: dto.phone.trim() } },
+        ...(input.payload.linkedInstructorId
+          ? { linkedInstructorId: input.payload.linkedInstructorId }
+          : {}),
+        profile: { create: { phone: input.payload.phone } },
       },
       select: {
         id: true,
@@ -178,17 +262,16 @@ export class AuthService {
     this.notificationClient.publishStudentRegistration({
       studentId: user.id,
       studentFullName: user.fullName,
-      instructorId: instructorId ?? null,
+      instructorId: input.payload.linkedInstructorId ?? null,
     });
 
-    return this.issueSession(this.toAuthTokenUser(user), {
-      replaceAllSessions: true,
-    });
+    return user;
   }
 
   async login(dto: LoginDto) {
+    const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.trim().toLowerCase() },
+      where: { email },
       select: {
         id: true,
         email: true,
@@ -199,7 +282,12 @@ export class AuthService {
         passwordHash: true,
       },
     });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) {
+      if (await this.pendingRegistration.hasActivePending(email)) {
+        throw new UnauthorizedException('Email verification pending');
+      }
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');

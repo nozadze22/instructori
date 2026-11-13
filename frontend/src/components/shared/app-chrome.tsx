@@ -33,6 +33,8 @@ function isAlwaysFullBleedPath(pathname: string) {
     pathname === "/about" ||
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname.startsWith("/register/") ||
+    pathname === "/verify-email" ||
     pathname === "/forbidden" ||
     pathname === "/profile" ||
     pathname.startsWith("/profile/") ||

@@ -102,7 +102,7 @@ async function proxy(
       error instanceof Error ? error.message : "chat proxy failed";
     const message =
       process.env.NODE_ENV === "development"
-        ? "chat სერვისი მიუწვდომელია (localhost:4003)."
+        ? "chat სერვისი მიუწვდომელია (127.0.0.1:4003)."
         : "ჩატის სერვისი დროებით მიუწვდომელია.";
 
     return Response.json({ message, detail }, { status: 502 });

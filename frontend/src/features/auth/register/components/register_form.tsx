@@ -108,12 +108,12 @@ export function RegisterForm() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-x-hidden py-8 md:py-12">
+    <div className="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-x-hidden px-4 py-8 md:py-12">
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0 bg-linear-to-br from-background via-transparent to-background" />
       </div>
 
-      <div className="relative z-10 grid w-full max-w-container grid-cols-1 gap-6 overflow-hidden lg:grid-cols-12">
+      <div className="relative z-10 grid w-full max-w-container grid-cols-1 items-center gap-6 overflow-hidden lg:grid-cols-12">
         <section className="hidden flex-col justify-between p-8 lg:col-span-5 lg:flex lg:p-12">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -134,8 +134,8 @@ export function RegisterForm() {
 
         </section>
 
-        <section className="flex items-center justify-center lg:col-span-7">
-          <div className="glass w-full max-w-xl rounded-xl p-4 shadow-2xl md:p-12">
+        <section className="flex w-full items-center justify-center lg:col-span-7">
+          <div className="glass mx-auto w-full max-w-xl rounded-2xl p-5 shadow-2xl sm:p-8 md:p-12">
             <div className="mb-8 lg:hidden">
               <div className="mb-6 flex items-center gap-2">
                 <HardHat className="size-8 fill-primary text-primary" />
@@ -169,14 +169,15 @@ export function RegisterForm() {
                         რეგისტრაციის ტიპი
                       </FieldLabel>
                       <FieldContent>
-                        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-surface-lowest p-1 dark:bg-surface-lowest">
+                        <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/10 bg-surface-lowest/80 p-1 shadow-inner">
                           <button
                             type="button"
-                            className={`h-11 rounded-lg px-3 text-sm font-semibold transition-colors ${
+                            className={cn(
+                              "h-11 cursor-pointer rounded-lg px-3 text-sm font-semibold transition-all duration-200",
                               field.value === "instructor"
-                                ? "bg-primary text-on-primary-container shadow-sm"
-                                : "text-muted-foreground hover:bg-white/5"
-                            }`}
+                                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                : "text-muted-foreground hover:bg-white/8 hover:text-foreground",
+                            )}
                             onClick={() => {
                               field.onChange("instructor");
                               form.setValue("hasInstructorCode", false);
@@ -188,11 +189,12 @@ export function RegisterForm() {
                           </button>
                           <button
                             type="button"
-                            className={`h-11 rounded-lg px-3 text-sm font-semibold transition-colors ${
+                            className={cn(
+                              "h-11 cursor-pointer rounded-lg px-3 text-sm font-semibold transition-all duration-200",
                               field.value === "student"
-                                ? "bg-primary text-on-primary-container shadow-sm"
-                                : "text-muted-foreground hover:bg-white/5"
-                            }`}
+                                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                : "text-muted-foreground hover:bg-white/8 hover:text-foreground",
+                            )}
                             onClick={() => field.onChange("student")}
                           >
                             მომხმარებელი
@@ -621,7 +623,7 @@ export function RegisterForm() {
 
                 <Button
                   type="submit"
-                  className="h-14 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:bg-primary-container hover:text-on-primary-container hover:scale-[1.01] active:scale-[0.98]"
+                  className="h-14 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:text-primary-foreground active:scale-[0.98]"
                   disabled={isPending || submitBlocked}
                 >
                   {isPending ? "იქმნება..." : "ანგარიშის შექმნა"}

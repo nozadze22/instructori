@@ -155,7 +155,7 @@ export function LoginForm() {
 
               <Button
                 type="submit"
-                className="h-12 w-full rounded-lg bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary-container hover:text-on-primary-container active:scale-[0.98]"
+                className="h-12 w-full rounded-lg bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 hover:text-primary-foreground active:scale-[0.98]"
                 disabled={isPending || submitBlocked}
               >
                 შესვლა
@@ -163,7 +163,7 @@ export function LoginForm() {
             </form>
           </Form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 space-y-2 text-center">
             <p className="text-base text-muted-foreground">
               ახალი მომხმარებელი?{" "}
               <Link
@@ -171,6 +171,15 @@ export function LoginForm() {
                 className="font-semibold text-primary underline-offset-4 transition-all hover:underline"
               >
                 რეგისტრაცია
+              </Link>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              ელფოსტა ვერ დაადასტურე?{" "}
+              <Link
+                href="/register/check-email"
+                className="font-semibold text-primary hover:underline"
+              >
+                დახმარება
               </Link>
             </p>
           </div>

@@ -205,6 +205,58 @@ export class ChatService {
     };
   }
 
+  async seedDirectMessage(
+    senderId: string,
+    recipientId: string,
+    body: string,
+  ) {
+    const trimmed = body.trim();
+    if (!trimmed) {
+      throw new BadRequestException('Message cannot be empty');
+    }
+    if (senderId === recipientId) {
+      throw new BadRequestException('Cannot chat with yourself');
+    }
+
+    const pair = orderedPair(senderId, recipientId);
+    const existing = await this.prisma.chatMessage.findFirst({
+      where: {
+        userLowId: pair.userLowId,
+        userHighId: pair.userHighId,
+        senderId,
+        body: trimmed,
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return { id: existing.id, created: false };
+    }
+
+    const created = await this.prisma.chatMessage.create({
+      data: {
+        userLowId: pair.userLowId,
+        userHighId: pair.userHighId,
+        senderId,
+        body: trimmed,
+      },
+      select: {
+        id: true,
+        body: true,
+        senderId: true,
+        readAt: true,
+        createdAt: true,
+      },
+    });
+
+    const message = this.mapMessage(created);
+    this.realtime.emitNewMessage({
+      userLowId: pair.userLowId,
+      userHighId: pair.userHighId,
+      message,
+    });
+    return { id: message.id, created: true };
+  }
+
   async sendMessage(actor: ChatActor, peerId: string, body: string) {
     if (isSystemChatPeerId(peerId)) {
       throw new BadRequestException('Cannot reply to system messages');

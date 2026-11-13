@@ -1,11 +1,16 @@
 import { apiRequest } from "@/lib/api";
 import type { AuthUser } from "@/features/auth/login/api/login";
+import type { EmailVerificationPendingResponse } from "@/features/auth/types/registration";
 import type { UserRegistrationSchema } from "../schema/user-schema";
 
-export type UserRegisterResponse = {
+export type UserRegisterSuccessResponse = {
   user: AuthUser;
   createdByAdmin?: true;
 };
+
+export type UserRegisterResponse =
+  | UserRegisterSuccessResponse
+  | EmailVerificationPendingResponse;
 
 export async function registerUser(
   data: UserRegistrationSchema,

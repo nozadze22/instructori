@@ -31,6 +31,19 @@ export class ChatMessagesQueryDto {
   beforeId?: string;
 }
 
+export class SeedDirectMessageDto {
+  @IsUUID()
+  senderId!: string;
+
+  @IsUUID()
+  recipientId!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(4000)
+  body!: string;
+}
+
 export class SystemBroadcastDto {
   @IsString()
   @MinLength(1)

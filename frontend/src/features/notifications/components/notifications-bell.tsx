@@ -19,6 +19,7 @@ import {
   useNotificationsList,
   useNotificationUnreadCount,
 } from "@/features/notifications/hooks/notifications";
+import { InstructorMessageRequestActions } from "@/features/instructors/components/instructor-message-request-actions";
 import { NotificationListItem } from "@/features/notifications/components/notification-list-item";
 import { notificationHref } from "@/features/notifications/lib/notification-links";
 import { notificationLoadErrorCopy } from "@/features/notifications/lib/notification-load-error";
@@ -129,18 +130,45 @@ export function NotificationsBell({
           {listQuery.data!.items.map((item) => {
             const href = notificationHref(item);
             const unreadItem = !item.readAt;
+            const requestMessageId =
+              item.type === "INSTRUCTOR_MESSAGE" &&
+              typeof item.data?.messageId === "string"
+                ? item.data.messageId
+                : null;
+            const showRequestActions =
+              Boolean(requestMessageId) &&
+              me?.role === "INSTRUCTOR" &&
+              unreadItem;
 
             return (
               <li key={item.id}>
-                <NotificationListItem
-                  item={item}
-                  className="hover:[&>div]:bg-white/5"
-                  onClick={() => {
-                    if (unreadItem) markRead.mutate(item.id);
-                    setOpen(false);
-                    if (href) router.push(href);
-                  }}
-                />
+                {showRequestActions ? (
+                  <div className="px-2 py-1">
+                    <NotificationListItem
+                      item={item}
+                      bodyClamp={2}
+                      className="pointer-events-none"
+                    />
+                    <InstructorMessageRequestActions
+                      messageId={requestMessageId!}
+                      compact
+                      className="px-2 pb-2"
+                      onResolved={() => {
+                        if (unreadItem) markRead.mutate(item.id);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <NotificationListItem
+                    item={item}
+                    className="hover:[&>div]:bg-white/5"
+                    onClick={() => {
+                      if (unreadItem) markRead.mutate(item.id);
+                      setOpen(false);
+                      if (href) router.push(href);
+                    }}
+                  />
+                )}
               </li>
             );
           })}
