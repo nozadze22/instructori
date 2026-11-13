@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { toastApiError } from "@/lib/toast-api";
 
 import { defaultPathForUser } from "@/lib/post-auth-path";
+import { isEmailVerificationPending } from "@/features/auth/types/registration";
 import {
   changePassword,
   getUser,
@@ -19,15 +20,29 @@ export function useUserRegistration() {
 
   return useMutation({
     mutationKey: ["user", "register"],
-    mutationFn: (data: UserRegistrationSchema) => registerUser(data),
+    mutationFn: ({
+      data,
+      turnstileToken,
+    }: {
+      data: UserRegistrationSchema;
+      turnstileToken?: string;
+    }) => registerUser(data, turnstileToken),
     onSuccess: (data, variables) => {
+      if (isEmailVerificationPending(data)) {
+        toast.success("გამოგიგზავნეთ დადასტურების ელფოსტა.");
+        router.push(
+          `/register/check-email?email=${encodeURIComponent(data.email)}`,
+        );
+        return;
+      }
+
       if (data.createdByAdmin) {
         toast.success(`${data.user.fullName} დარეგისტრირდა — შეტყობინება admin ზარში`);
         void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         return;
       }
 
-      const isStudent = variables.registrationRole === "student";
+      const isStudent = variables.data.registrationRole === "student";
       toast.success(
         isStudent
           ? "მომხმარებლად წარმატებით დარეგისტრირდი"

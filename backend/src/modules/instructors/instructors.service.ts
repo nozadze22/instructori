@@ -1,11 +1,13 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../auth/dto/auth-types';
+import { ChatClientService } from '../chat-client/chat-client.service';
 import { NotificationClientService } from '../notification-client/notification-client.service';
 import { CreateInstructorMessageDto } from './dto/instructor.dto';
 
@@ -76,6 +78,7 @@ export class InstructorsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationClient: NotificationClientService,
+    private readonly chatClient: ChatClientService,
   ) {}
 
   async listActive() {
@@ -125,11 +128,41 @@ export class InstructorsService {
       throw new BadRequestException('Message is too short');
     }
 
+    const student = await this.prisma.user.findUnique({
+      where: { id: sender.userId },
+      select: { linkedInstructorId: true },
+    });
+    if (
+      student?.linkedInstructorId &&
+      student.linkedInstructorId !== instructor.id
+    ) {
+      throw new ConflictException('You are already linked to an instructor');
+    }
+
+    const existing = await this.prisma.instructorMessage.findFirst({
+      where: {
+        senderId: sender.userId,
+        instructorId: instructor.id,
+        status: { in: ['PENDING', 'ACCEPTED'] },
+      },
+      select: { id: true, status: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existing?.status === 'ACCEPTED') {
+      throw new ConflictException(
+        'Conversation already approved — use chat',
+      );
+    }
+    if (existing?.status === 'PENDING') {
+      throw new ConflictException('A request is already pending');
+    }
+
     const created = await this.prisma.instructorMessage.create({
       data: {
         senderId: sender.userId,
         instructorId: instructor.id,
         message,
+        status: 'PENDING',
       },
       select: this.messageSelect,
     });
@@ -145,6 +178,27 @@ export class InstructorsService {
     return this.toMessage(created);
   }
 
+  async getConversationStatus(sender: AuthUser, instructorId: string) {
+    if (sender.role !== 'USER') {
+      throw new ForbiddenException('Only students can check conversation status');
+    }
+
+    await this.getActive(instructorId);
+
+    const row = await this.prisma.instructorMessage.findFirst({
+      where: {
+        senderId: sender.userId,
+        instructorId,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true },
+    });
+
+    return {
+      status: row?.status ?? ('NONE' as const),
+    };
+  }
+
   async listMessages(instructor: AuthUser) {
     this.assertInstructor(instructor);
 
@@ -157,30 +211,90 @@ export class InstructorsService {
     return messages.map((message) => this.toMessage(message));
   }
 
-  async markRead(instructor: AuthUser, messageId: string) {
+  async acceptMessage(instructor: AuthUser, messageId: string) {
     this.assertInstructor(instructor);
+    const row = await this.findPendingMessage(instructor.userId, messageId);
 
-    const existing = await this.prisma.instructorMessage.findFirst({
-      where: {
-        id: messageId,
-        instructorId: instructor.userId,
-      },
-      select: { id: true },
+    const student = await this.prisma.user.findUnique({
+      where: { id: row.senderId },
+      select: { id: true, fullName: true, role: true, linkedInstructorId: true },
     });
-    if (!existing) {
-      throw new NotFoundException('Message not found');
+    if (!student || student.role !== 'USER') {
+      throw new BadRequestException('Invalid student');
+    }
+    if (
+      student.linkedInstructorId &&
+      student.linkedInstructorId !== instructor.userId
+    ) {
+      throw new ConflictException('Student is already linked elsewhere');
     }
 
+    const now = new Date();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const message = await tx.instructorMessage.update({
+        where: { id: row.id },
+        data: {
+          status: 'ACCEPTED',
+          readAt: now,
+          respondedAt: now,
+        },
+        select: this.messageSelect,
+      });
+
+      return message;
+    });
+
+    const instructorProfile = await this.prisma.user.findUnique({
+      where: { id: instructor.userId },
+      select: { fullName: true },
+    });
+
+    this.notificationClient.publishChatRequestAccepted({
+      studentId: student.id,
+      instructorId: instructor.userId,
+      instructorFullName: instructorProfile?.fullName ?? 'ინსტრუქტორი',
+    });
+
+    this.chatClient.seedDirectMessage({
+      senderId: student.id,
+      recipientId: instructor.userId,
+      body: row.message,
+    });
+
+    return this.toMessage(updated);
+  }
+
+  async rejectMessage(instructor: AuthUser, messageId: string) {
+    this.assertInstructor(instructor);
+    const row = await this.findPendingMessage(instructor.userId, messageId);
+    const now = new Date();
+
     const updated = await this.prisma.instructorMessage.update({
-      where: { id: messageId },
+      where: { id: row.id },
       data: {
-        status: 'READ',
-        readAt: new Date(),
+        status: 'REJECTED',
+        readAt: now,
+        respondedAt: now,
       },
       select: this.messageSelect,
     });
 
     return this.toMessage(updated);
+  }
+
+  private async findPendingMessage(instructorId: string, messageId: string) {
+    const row = await this.prisma.instructorMessage.findFirst({
+      where: {
+        id: messageId,
+        instructorId,
+        status: 'PENDING',
+      },
+      select: { id: true, senderId: true, message: true },
+    });
+    if (!row) {
+      throw new NotFoundException('Pending request not found');
+    }
+    return row;
   }
 
   private assertInstructor(user: AuthUser) {
@@ -195,6 +309,7 @@ export class InstructorsService {
     status: true,
     createdAt: true,
     readAt: true,
+    respondedAt: true,
     sender: {
       select: {
         id: true,
@@ -286,9 +401,10 @@ export class InstructorsService {
   private toMessage(message: {
     id: string;
     message: string;
-    status: 'UNREAD' | 'READ';
+    status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
     createdAt: Date;
     readAt: Date | null;
+    respondedAt: Date | null;
     sender: {
       id: string;
       fullName: string;
@@ -306,6 +422,7 @@ export class InstructorsService {
       status: message.status,
       createdAt: message.createdAt,
       readAt: message.readAt,
+      respondedAt: message.respondedAt,
       sender: {
         id: message.sender.id,
         fullName: message.sender.fullName,

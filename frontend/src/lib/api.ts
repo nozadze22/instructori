@@ -23,6 +23,8 @@ const AUTH_SKIP_REFRESH = new Set([
   "/auth/login",
   "/auth/register",
   "/auth/register/student",
+  "/auth/verify-email",
+  "/auth/resend-verification",
   "/auth/refresh",
   "/auth/logout",
   "/admin/login",

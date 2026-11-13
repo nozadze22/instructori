@@ -175,19 +175,40 @@ export function InstructorProfileReviewsSection({
                   : "შეფასების შემდეგ გამოჩნდება სტატისტიკა"}
               </span>
             </div>
-            <div className="flex flex-col gap-2 md:col-span-8">
-              {(summary ? breakdownRows(summary) : []).map((row) => (
-                <div key={row.stars} className="flex items-center gap-3">
-                  <span className="w-12 text-xs text-on-surface-variant">
-                    {row.stars} ვარსკ.
-                  </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-highest">
+            <div className="flex min-w-0 flex-col gap-2.5 md:col-span-8">
+              {(
+                summary
+                  ? breakdownRows(summary)
+                  : ([5, 4, 3, 2, 1] as const).map((stars) => ({
+                      stars,
+                      percent: 0,
+                      count: 0,
+                    }))
+              ).map((row) => (
+                <div key={row.stars} className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <div
+                    className="flex w-[5.25rem] shrink-0 items-center gap-0.5 sm:w-24"
+                    aria-label={`${row.stars} ვარსკვლავი`}
+                  >
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        className={cn(
+                          "size-3.5 shrink-0 sm:size-4",
+                          index < row.stars
+                            ? "fill-amber-400 text-amber-400"
+                            : "fill-none text-amber-400/25",
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full border border-border/50 bg-on-surface/8">
                     <div
-                      className="h-full rounded-full bg-primary"
+                      className="h-full rounded-full bg-amber-400 transition-[width] duration-300"
                       style={{ width: `${row.percent}%` }}
                     />
                   </div>
-                  <span className="w-10 text-right text-xs font-semibold text-on-surface">
+                  <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums text-on-surface sm:w-10">
                     {row.percent}%
                   </span>
                 </div>

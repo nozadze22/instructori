@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AmqpConsumer, CHAT_QUEUE, chatRoutingKey } from '../lib/messaging/index.js';
+import { ChatService } from '../chat.service';
 import { SystemInboxService } from '../system-inbox.service';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class ChatAmqpConsumer implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly systemInbox: SystemInboxService,
+    private readonly chat: ChatService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -56,15 +58,24 @@ export class ChatAmqpConsumer implements OnModuleInit, OnModuleDestroy {
     routingKey: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    if (routingKey !== chatRoutingKey('system-broadcast')) {
-      this.logger.warn(`Unknown routing key: ${routingKey}`);
+    if (routingKey === chatRoutingKey('system-broadcast')) {
+      await this.systemInbox.fanOutFromBroadcast(
+        String(payload.title),
+        String(payload.body),
+        (payload.recipientUserIds as string[]) ?? [],
+      );
       return;
     }
 
-    await this.systemInbox.fanOutFromBroadcast(
-      String(payload.title),
-      String(payload.body),
-      (payload.recipientUserIds as string[]) ?? [],
-    );
+    if (routingKey === chatRoutingKey('seed-direct-message')) {
+      await this.chat.seedDirectMessage(
+        String(payload.senderId),
+        String(payload.recipientId),
+        String(payload.body),
+      );
+      return;
+    }
+
+    this.logger.warn(`Unknown routing key: ${routingKey}`);
   }
 }

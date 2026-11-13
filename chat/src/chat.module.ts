@@ -15,6 +15,6 @@ import { SystemInboxService } from './system-inbox.service';
     ChatGateway,
     SystemInboxService,
   ],
-  exports: [SystemInboxService],
+  exports: [SystemInboxService, ChatService],
 })
 export class ChatModule {}

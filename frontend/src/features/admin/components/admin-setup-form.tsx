@@ -19,6 +19,7 @@ import {
   useAdminSetup,
   useAdminSetupStatus,
 } from "@/features/admin/hooks/setup";
+import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
 import {
   adminSetupSchema,
   defaultAdminSetupValues,
@@ -29,6 +30,14 @@ export function AdminSetupForm() {
   const { data: setupStatus, isLoading } = useAdminSetupStatus();
   const needsSetup = setupStatus?.needsSetup ?? true;
   const { mutate: setup, isPending } = useAdminSetup();
+  const {
+    TurnstileField,
+    turnstileProps,
+    turnstileToken,
+    submitBlocked,
+    ensureTurnstileToken,
+    resetTurnstile,
+  } = useTurnstileSubmit();
   const form = useForm<AdminSetupSchema>({
     resolver: zodResolver(adminSetupSchema),
     defaultValues: defaultAdminSetupValues,
@@ -77,7 +86,16 @@ export function AdminSetupForm() {
           ) : (
             <Form {...form}>
               <form
-                onSubmit={form.handleSubmit((values) => setup(values))}
+                onSubmit={form.handleSubmit((values) => {
+                  if (!ensureTurnstileToken()) return;
+                  setup(
+                    {
+                      data: values,
+                      turnstileToken: turnstileToken ?? undefined,
+                    },
+                    { onError: resetTurnstile },
+                  );
+                })}
                 className="space-y-6"
                 noValidate
               >
@@ -149,10 +167,12 @@ export function AdminSetupForm() {
                   </Field>
                 </FieldGroup>
 
+                <TurnstileField {...turnstileProps} />
+
                 <Button
                   type="submit"
                   className="h-12 w-full rounded-lg bg-primary font-medium text-primary-foreground shadow-lg shadow-primary/20"
-                  disabled={isPending}
+                  disabled={isPending || submitBlocked}
                 >
                   ადმინის შექმნა
                 </Button>

@@ -1,12 +1,16 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createContact, CreateContact, getAllContacts } from "../api/contact";
+import {
+  createContact,
+  type CreateContactRequest,
+  getAllContacts,
+} from "../api/contact";
 import { toast } from "sonner";
 import { toastApiError } from "@/lib/toast-api";
 
 export function useCreateContact() {
   return useMutation({
     mutationKey: ["contact"],
-    mutationFn: async (data: CreateContact) => {
+    mutationFn: async (data: CreateContactRequest) => {
       const response = await createContact(data);
       return response;
     },

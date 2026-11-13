@@ -21,6 +21,10 @@ export class AdminLoginDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }
 
 export class AdminCreateDto {
@@ -36,6 +40,10 @@ export class AdminCreateDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }
 
 export class UpdateUserAccessDto {

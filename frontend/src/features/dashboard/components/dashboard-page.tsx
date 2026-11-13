@@ -28,8 +28,8 @@ import { useGetMe } from "@/features/auth/login/hooks/login";
 import { useDashboard } from "@/features/dashboard/hooks/dashboard";
 import {
   useInstructorMessages,
-  useMarkInstructorMessageRead,
 } from "@/features/instructors/hooks/instructors";
+import { InstructorMessageRequestActions } from "@/features/instructors/components/instructor-message-request-actions";
 import {
   PageEyebrow,
   PageFrame,
@@ -48,8 +48,6 @@ export function DashboardPage() {
     isError: messagesError,
     error: messagesErrorValue,
   } = useInstructorMessages();
-  const { mutate: markRead, isPending: isMarkingRead } =
-    useMarkInstructorMessageRead();
 
   useEffect(() => {
     if (!meLoading && me?.role === "ADMIN") {
@@ -107,13 +105,14 @@ export function DashboardPage() {
       <section className="rounded-3xl border border-white/8 bg-surface-low p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">მიღებული შეტყობინებები</h2>
+            <h2 className="text-xl font-semibold">მოთხოვნები საუბარზე</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              მომხმარებლების მოთხოვნები ინსტრუქტორის კატალოგიდან.
+              სტუდენტის პირველი შეტყობინება — დაამტკიცე, რომ დაუკავშირდე და გაიხსნას ჩატი.
             </p>
           </div>
           <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            {messages.filter((message) => message.status === "UNREAD").length} ახალი
+            {messages.filter((message) => message.status === "PENDING").length}{" "}
+            მოლოდინში
           </span>
         </div>
 
@@ -147,19 +146,16 @@ export function DashboardPage() {
                 </time>
               </div>
               <p className="mt-3 text-sm leading-6 text-foreground">{message.message}</p>
-              <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="mt-4 flex flex-col gap-3">
                 <span className="text-xs font-semibold text-primary">
-                  {message.status === "UNREAD" ? "წაუკითხავი" : "წაკითხული"}
+                  {message.status === "PENDING"
+                    ? "მოლოდინშია"
+                    : message.status === "ACCEPTED"
+                      ? "დამტკიცებულია"
+                      : "უარყოფილია"}
                 </span>
-                {message.status === "UNREAD" ? (
-                  <button
-                    type="button"
-                    disabled={isMarkingRead}
-                    onClick={() => markRead(message.id)}
-                    className="cursor-pointer text-xs font-semibold text-primary hover:underline"
-                  >
-                    წაკითხულად მონიშვნა
-                  </button>
+                {message.status === "PENDING" ? (
+                  <InstructorMessageRequestActions messageId={message.id} />
                 ) : null}
               </div>
             </article>

@@ -11,10 +11,8 @@ import { InstructorEditableContactRow } from "@/features/instructors/components/
 import { InstructorProfileMessageForm } from "@/features/instructors/components/instructor-profile-message-form";
 import { PhoneEditDialog } from "@/features/profile/components/phone-edit-dialog";
 import { WorkingHoursEditDialog } from "@/features/profile/components/working-hours-edit-dialog";
-import {
-  useGetInstructorGroup,
-  useGetProfile,
-} from "@/features/profile/hooks/profile";
+import { useInstructorConversationStatus } from "@/features/instructors/hooks/instructors";
+import { useGetProfile } from "@/features/profile/hooks/profile";
 import { displayWorkingHours } from "@/features/profile/lib/working-hours";
 
 type InstructorProfileContactCenterProps = {
@@ -31,13 +29,16 @@ export function InstructorProfileContactCenter({
   const { data: me } = useGetMe();
   const { data: profile } = useGetProfile({ enabled: isOwner });
   const isStudentViewer = !isOwner && me?.role === "USER";
-  const { data: group } = useGetInstructorGroup({
-    enabled: isStudentViewer,
-  });
+  const { data: conversationStatus } = useInstructorConversationStatus(
+    instructor.id,
+    { enabled: isStudentViewer },
+  );
   const [workingHoursOpen, setWorkingHoursOpen] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
-  const isLinkedStudent =
-    isStudentViewer && group?.instructor?.id === instructor.id;
+  const chatApproved =
+    isStudentViewer && conversationStatus?.status === "ACCEPTED";
+  const requestPending =
+    isStudentViewer && conversationStatus?.status === "PENDING";
 
   const workingHours =
     (isOwner ? profile?.workingHours : null) ??
@@ -58,34 +59,44 @@ export function InstructorProfileContactCenter({
       : "საკონტაქტო ცენტრი";
   const sectionSubtitle =
     isInline && isStudentViewer
-      ? "მოგვწერე შეტყობინება ან გამოიყენე საკონტაქტო მონაცემები."
+      ? "გაგზავნე მოთხოვნა საუბარზე — ინსტრუქტორი დათანხმების შემდეგ გაიხსნება ჩატი."
       : null;
 
-  const messageBlock =
-    isOwner ? null : isLinkedStudent ? (
-      <div className="space-y-3">
-        <Button
-          render={
-            <Link
-              href={`/messages?with=${encodeURIComponent(instructor.id)}`}
-            />
-          }
-          nativeButton={false}
-          className="h-10 w-full rounded-xl"
-        >
-          <MessageSquare className="size-4" />
-          ჩატის გახსნა
-        </Button>
-        <p className="text-xs text-on-surface-variant">
-          დაკავშირებული ხარ ამ ინსტრუქტორთან — შეგიძლია პირდაპირ ჩატში მიწერო.
-        </p>
-      </div>
-    ) : (
+  const messageBlock = isOwner ? null : chatApproved ? (
+    <div className="space-y-3">
+      <Button
+        render={
+          <Link href={`/messages?with=${encodeURIComponent(instructor.id)}`} />
+        }
+        nativeButton={false}
+        className="h-10 w-full rounded-xl"
+      >
+        <MessageSquare className="size-4" />
+        ჩატის გახსნა
+      </Button>
+      <p className="text-xs text-on-surface-variant">
+        მოთხოვნა დამტკიცებულია — შეგიძლია პირდაპირ ჩატში მიწერო.
+      </p>
+    </div>
+  ) : requestPending ? (
+    <div className="rounded-xl border border-border/80 bg-background p-4 text-sm text-on-surface-variant">
+      მოთხოვნა უკვე გაგზავნილია — დაელოდე ინსტრუქტორის პასუხს (დათანხმება ან უარყოფა).
+    </div>
+  ) : (
+    <div className="rounded-xl border border-border/80 bg-background p-4 shadow-sm ring-1 ring-primary/10">
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-on-surface">
+        <MessageSquare className="size-4 shrink-0 text-primary" />
+        მოთხოვნა საუბარზე
+      </p>
+      <p className="mb-4 text-xs text-on-surface-variant">
+        დაწერე პირველ შეტყობინებას — ინსტრუქტორი დაამტკიცებს ან უარყოფს, შემდეგ გაიხსნება ჩატი. ინსტრუქტორის კოდი აღარ არის საჭირო.
+      </p>
       <InstructorProfileMessageForm
         instructorId={instructor.id}
         compact={isInline}
       />
-    );
+    </div>
+  );
 
   return (
     <>

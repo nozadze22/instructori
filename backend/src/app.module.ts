@@ -21,6 +21,7 @@ import { RoutesModule } from './modules/routes/routes.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { StorageModule } from './storage/storage.module';
+import { TurnstileModule } from './lib/turnstile/turnstile.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StorageModule } from './storage/storage.module';
       isGlobal: true,
       envFilePath: ['.env'],
     }),
+    TurnstileModule,
     MessagingModule,
     EmailClientModule,
     NotificationClientModule,

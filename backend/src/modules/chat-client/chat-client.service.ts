@@ -19,12 +19,23 @@ export class ChatClientService {
     return this.post('system-broadcast', payload);
   }
 
+  seedDirectMessage(payload: {
+    senderId: string;
+    recipientId: string;
+    body: string;
+  }): void {
+    void this.post('seed-direct-message', payload);
+  }
+
   private async post(
     path: string,
     body: unknown,
   ): Promise<{ recipientCount: number } | void> {
-    if (path === 'system-broadcast') {
-      await this.eventPublisher.publishChat('system-broadcast', body);
+    if (path === 'system-broadcast' || path === 'seed-direct-message') {
+      await this.eventPublisher.publishChat(
+        path,
+        body,
+      );
     }
 
     if (!this.eventPublisher.shouldPublishHttp()) {

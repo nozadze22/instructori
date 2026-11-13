@@ -4,8 +4,7 @@ import { toast } from "sonner";
 
 import { defaultPathForUser, safeNextPath } from "@/lib/post-auth-path";
 import { toastApiError } from "@/lib/toast-api";
-import { getMe, login, logout } from "../api/login";
-import type { LoginSchema } from "../schema/login.schema";
+import { getMe, login, logout, type LoginRequest } from "../api/login";
 
 export function useLogin() {
   const queryClient = useQueryClient();
@@ -13,7 +12,7 @@ export function useLogin() {
 
   return useMutation({
     mutationKey: ["login"],
-    mutationFn: async (data: LoginSchema) => {
+    mutationFn: async (data: LoginRequest) => {
       await login(data);
       const user = await getMe();
       return { user };

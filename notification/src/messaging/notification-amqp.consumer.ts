@@ -20,6 +20,7 @@ const PATHS: NotificationEventPath[] = [
   'instructor-registration',
   'access-pending',
   'student-linked',
+  'chat-request-accepted',
   'student-registration',
   'system-route',
   'system-message',
@@ -121,6 +122,13 @@ export class NotificationAmqpConsumer
           instructorId: String(payload.instructorId),
           studentId: String(payload.studentId),
           studentFullName: String(payload.studentFullName),
+        });
+        return;
+      case 'chat-request-accepted':
+        await this.notifications.createFromChatRequestAccepted({
+          studentId: String(payload.studentId),
+          instructorId: String(payload.instructorId),
+          instructorFullName: String(payload.instructorFullName),
         });
         return;
       case 'student-registration':

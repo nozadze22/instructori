@@ -42,8 +42,29 @@ enum RouteAction {
 }
 
 enum InstructorMessageStatus {
-  UNREAD
-  READ
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PendingRegistrationKind {
+  INSTRUCTOR
+  STUDENT
+}
+
+/// Registration data held until the user confirms their email (no User row yet).
+model PendingRegistration {
+  id           String                  @id @default(uuid())
+  email        String                  @unique
+  fullName     String
+  passwordHash String
+  kind         PendingRegistrationKind
+  payload      Json
+  tokenHash    String                  @unique
+  expiresAt    DateTime
+  createdAt    DateTime                @default(now())
+
+  @@index([expiresAt])
 }
 
 model User {
@@ -203,9 +224,10 @@ model InstructorMessage {
   instructorId  String
   instructor    User                     @relation("InstructorMessagesReceived", fields: [instructorId], references: [id], onDelete: Cascade)
   message       String
-  status        InstructorMessageStatus  @default(UNREAD)
+  status        InstructorMessageStatus  @default(PENDING)
   createdAt     DateTime                 @default(now())
   readAt        DateTime?
+  respondedAt   DateTime?
 
   @@index([instructorId, status, createdAt])
   @@index([senderId, createdAt])

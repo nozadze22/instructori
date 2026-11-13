@@ -17,8 +17,9 @@ export const PRODUCTION_CHAT_URL = "https://simdrive-pro-chat.fly.dev";
 
 export const LOCAL_APP_URL = "http://localhost:3001";
 export const LOCAL_BACKEND_URL = "http://localhost:4001";
-export const LOCAL_NOTIFICATION_URL = "http://localhost:4002";
-export const LOCAL_CHAT_URL = "http://localhost:4003";
+/** Use 127.0.0.1 in dev — Node fetch on Windows often hits ::1 while Nest binds IPv4 only. */
+export const LOCAL_NOTIFICATION_URL = "http://127.0.0.1:4002";
+export const LOCAL_CHAT_URL = "http://127.0.0.1:4003";
 
 /** Comma-separated value for Fly `CORS_ORIGIN` on API + notification apps. */
 export const PRODUCTION_CORS_ORIGIN = PRODUCTION_APP_ORIGINS.join(",");

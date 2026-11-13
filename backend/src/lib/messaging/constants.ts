@@ -16,11 +16,12 @@ export type NotificationEventPath =
   | 'instructor-registration'
   | 'access-pending'
   | 'student-linked'
+  | 'chat-request-accepted'
   | 'student-registration'
   | 'system-route'
   | 'system-message';
 
-export type ChatEventPath = 'system-broadcast';
+export type ChatEventPath = 'system-broadcast' | 'seed-direct-message';
 
 export type EmailEventPath =
   | 'send'

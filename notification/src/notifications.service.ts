@@ -73,7 +73,7 @@ export class NotificationsService {
       data: {
         userId: event.instructorId,
         type: 'INSTRUCTOR_MESSAGE',
-        title: 'ახალი შეტყობინება',
+        title: 'მოთხოვნა საუბარზე',
         body: `${event.studentFullName}: ${event.messagePreview}`,
         data: {
           messageId: event.messageId,
@@ -120,6 +120,28 @@ export class NotificationsService {
     });
     const dto = this.toDto(row);
     await this.publishNew(event.userId, dto);
+    return dto;
+  }
+
+  async createFromChatRequestAccepted(event: {
+    studentId: string;
+    instructorId: string;
+    instructorFullName: string;
+  }) {
+    const row = await this.prisma.notification.create({
+      data: {
+        userId: event.studentId,
+        type: 'CHAT_REQUEST_ACCEPTED',
+        title: 'მოთხოვნა დამტკიცდა',
+        body: `${event.instructorFullName} დათანხმდა საუბარზე — შეგიძლია ჩატის გახსნა.`,
+        data: {
+          instructorId: event.instructorId,
+        },
+      },
+      select: notificationSelect,
+    });
+    const dto = this.toDto(row);
+    await this.publishNew(event.studentId, dto);
     return dto;
   }
 

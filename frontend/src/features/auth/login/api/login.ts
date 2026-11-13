@@ -23,7 +23,11 @@ export type LoginResponse = {
 
 export type MeResponse = AuthUser;
 
-export async function login(data: LoginSchema): Promise<LoginResponse> {
+export type LoginRequest = LoginSchema & {
+  turnstileToken?: string;
+};
+
+export async function login(data: LoginRequest): Promise<LoginResponse> {
   return apiRequest<LoginResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(data),

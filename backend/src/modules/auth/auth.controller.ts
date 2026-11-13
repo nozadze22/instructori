@@ -26,20 +26,26 @@ import {
   RegisterStudentDto,
   UpdateNameDto,
 } from './dto/auth.dto';
+import {
+  ResendVerificationDto,
+  VerifyEmailDto,
+} from './dto/email-verification.dto';
+import type { EmailVerificationPendingResponse } from './dto/registration-result';
+import type { AuthSession } from './auth.service';
+import { TurnstileService } from '../../lib/turnstile/turnstile.service';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly turnstile: TurnstileService,
+  ) {}
 
   @Post('register')
-  async register(
-    @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.auth.register(dto);
-    setAuthCookies(res, result);
-    return { user: result.user };
+  async register(@Body() dto: RegisterDto, @Req() req: Request) {
+    await this.turnstile.verify(dto.turnstileToken, req.ip);
+    return this.auth.register(dto);
   }
 
   @Post('register/student')
@@ -49,9 +55,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const actor = await this.auth.tryResolveUserFromRequest(req);
-    const result = await this.auth.registerStudent(dto);
+    if (actor?.role !== 'ADMIN') {
+      await this.turnstile.verify(dto.turnstileToken, req.ip);
+    }
+    const createdByAdmin = actor?.role === 'ADMIN';
+    const result = await this.auth.registerStudent(dto, createdByAdmin);
 
-    if (actor?.role === 'ADMIN') {
+    if (this.isEmailVerificationPending(result)) {
+      return result;
+    }
+
+    if (createdByAdmin) {
       return { user: result.user, createdByAdmin: true as const };
     }
 
@@ -59,11 +73,32 @@ export class AuthController {
     return { user: result.user };
   }
 
+  @Post('verify-email')
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.verifyEmail(dto.token);
+    setAuthCookies(res, result);
+    return { user: result.user };
+  }
+
+  @Post('resend-verification')
+  async resendVerification(
+    @Body() dto: ResendVerificationDto,
+    @Req() req: Request,
+  ) {
+    await this.turnstile.verify(dto.turnstileToken, req.ip);
+    return this.auth.resendEmailVerification(dto.email);
+  }
+
   @Post('login')
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    await this.turnstile.verify(dto.turnstileToken, req.ip);
     const result = await this.auth.login(dto);
     setAuthCookies(res, result);
     return { user: result.user };
@@ -115,5 +150,11 @@ export class AuthController {
   @Roles('ADMIN')
   adminOnly(@CurrentUser() user: AuthUser) {
     return { ok: true, user };
+  }
+
+  private isEmailVerificationPending(
+    result: AuthSession | EmailVerificationPendingResponse,
+  ): result is EmailVerificationPendingResponse {
+    return 'needsEmailVerification' in result && result.needsEmailVerification;
   }
 }

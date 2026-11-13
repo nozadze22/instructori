@@ -317,9 +317,7 @@ export class InstructorReviewsService {
       select: { id: true },
     });
     if (!session) {
-      throw new ForbiddenException(
-        'You can only review instructors you learn with',
-      );
+      throw new ForbiddenException('Not a student of this instructor');
     }
   }
 

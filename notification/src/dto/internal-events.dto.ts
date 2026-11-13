@@ -77,6 +77,17 @@ export class AccessPendingDto {
   fullName!: string;
 }
 
+export class ChatRequestAcceptedDto {
+  @IsUUID()
+  studentId!: string;
+
+  @IsUUID()
+  instructorId!: string;
+
+  @IsString()
+  instructorFullName!: string;
+}
+
 export class StudentLinkedDto {
   @IsUUID()
   instructorId!: string;

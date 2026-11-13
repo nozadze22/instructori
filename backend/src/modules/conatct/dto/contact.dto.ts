@@ -1,5 +1,4 @@
- 
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateContactDto {
   @IsString()
@@ -17,4 +16,8 @@ export class CreateContactDto {
   @IsString()
   @IsNotEmpty()
   message!: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }

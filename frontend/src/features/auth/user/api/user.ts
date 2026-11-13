@@ -1,15 +1,24 @@
 import { apiRequest } from "@/lib/api";
 import type { AuthUser } from "@/features/auth/login/api/login";
+import type { EmailVerificationPendingResponse } from "@/features/auth/types/registration";
 import type { UserRegistrationSchema } from "../schema/user-schema";
 
-export type UserRegisterResponse = {
+export type UserRegisterSuccessResponse = {
   user: AuthUser;
   createdByAdmin?: true;
 };
 
+export type UserRegisterResponse =
+  | UserRegisterSuccessResponse
+  | EmailVerificationPendingResponse;
+
 export async function registerUser(
   data: UserRegistrationSchema,
+  turnstileToken?: string,
 ): Promise<UserRegisterResponse> {
+  const captcha =
+    turnstileToken !== undefined ? { turnstileToken } : {};
+
   if (data.registrationRole === "student") {
     return apiRequest<UserRegisterResponse>("/auth/register/student", {
       method: "POST",
@@ -22,6 +31,7 @@ export async function registerUser(
         ...(data.hasInstructorCode
           ? { instructorCode: data.instructorCode.trim() }
           : {}),
+        ...captcha,
       }),
     });
   }
@@ -33,8 +43,9 @@ export async function registerUser(
       email: data.email,
       phone: data.phone,
       password: data.password,
-        city: data.city,
-        instructorCategories: data.instructorCategories,
+      city: data.city,
+      instructorCategories: data.instructorCategories,
+      ...captcha,
     }),
   });
 }
