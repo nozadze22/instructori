@@ -23,6 +23,13 @@ export const navbarLinks: NavbarLink[] = [
   { label: "კონტაქტი", href: "/contact", icon: Contact, visibility: "always" },
 ];
 
+/** მიმდინარე გვერდი თუ ემთხვევა nav ბმულს (მთავარი = მხოლოდ `/`). */
+export function isNavbarLinkActive(pathname: string, href: string): boolean {
+  const path = pathname.split("?")[0]?.split("#")[0] ?? pathname;
+  if (href === "/") return path === "/";
+  return path === href || path.startsWith(`${href}/`);
+}
+
 export function visibleNavbarLinks(
   isLoggedIn: boolean,
   role?: Role | null,

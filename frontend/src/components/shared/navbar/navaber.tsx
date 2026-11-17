@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import {
@@ -16,13 +17,14 @@ import { NotificationsBell } from "@/features/notifications/components/notificat
 import { BurgerMenu } from "./burger_menu";
 import { NavbarLoginPopover } from "./navbar-login-popover";
 import { NavbarUserMenu } from "./navbar-user-menu";
-import { visibleNavbarLinks } from "./navbar_links";
+import { isNavbarLinkActive, visibleNavbarLinks } from "./navbar_links";
 
 type NavbarProps = {
   className?: string;
 };
 
 export function Navbar({ className }: NavbarProps) {
+  const pathname = usePathname();
   const { data: me, isLoading } = useGetMe();
 
   const appHref = me && isAdminUser(me) ? "/admin" : null;
@@ -57,15 +59,24 @@ export function Navbar({ className }: NavbarProps) {
 
         <div className="hidden items-center gap-6 md:flex">
           {visibleNavbarLinks(Boolean(me), me?.role, me?.accessStatus).map(
-            (link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              {link.label}
-            </Link>
-          ),
+            (link) => {
+              const active = isNavbarLinkActive(pathname, link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "text-sm font-medium transition-colors",
+                    active
+                      ? "font-semibold text-primary underline decoration-primary/40 decoration-2 underline-offset-4"
+                      : "text-muted-foreground hover:text-primary",
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            },
           )}
         </div>
 
