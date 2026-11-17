@@ -8,5 +8,8 @@ export default defineConfig({
   },
   datasource: {
     url: process.env.DATABASE_URL ?? "",
+    ...(process.env.DIRECT_DATABASE_URL?.trim()
+      ? { directUrl: process.env.DIRECT_DATABASE_URL.trim() }
+      : {}),
   },
 });

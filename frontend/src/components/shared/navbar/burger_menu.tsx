@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import type { AccessStatus } from "@/features/auth/login/api/login";
-import { cn } from "@/lib/utils";
 import {
   isNavbarLinkActive,
+  mobileNavLinkClass,
   visibleNavbarLinks,
 } from "./navbar_links";
 
@@ -38,15 +38,6 @@ type BurgerMenuProps = {
   accessStatus?: AccessStatus;
   isLoggedIn?: boolean;
 };
-
-function mobileNavLinkClass(active: boolean) {
-  return cn(
-    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-    active
-      ? "bg-primary/15 font-semibold text-primary ring-1 ring-primary/25"
-      : "text-foreground hover:bg-accent hover:text-primary",
-  );
-}
 
 type MobileNavLinkProps = {
   href: string;

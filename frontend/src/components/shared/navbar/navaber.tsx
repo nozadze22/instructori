@@ -17,7 +17,11 @@ import { NotificationsBell } from "@/features/notifications/components/notificat
 import { BurgerMenu } from "./burger_menu";
 import { NavbarLoginPopover } from "./navbar-login-popover";
 import { NavbarUserMenu } from "./navbar-user-menu";
-import { isNavbarLinkActive, visibleNavbarLinks } from "./navbar_links";
+import {
+  desktopNavLinkClass,
+  isNavbarLinkActive,
+  visibleNavbarLinks,
+} from "./navbar_links";
 
 type NavbarProps = {
   className?: string;
@@ -57,7 +61,7 @@ export function Navbar({ className }: NavbarProps) {
           </Link>
         </div>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden h-full items-stretch gap-6 md:flex">
           {visibleNavbarLinks(Boolean(me), me?.role, me?.accessStatus).map(
             (link) => {
               const active = isNavbarLinkActive(pathname, link.href);
@@ -67,10 +71,8 @@ export function Navbar({ className }: NavbarProps) {
                   href={link.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "text-sm font-medium transition-colors",
-                    active
-                      ? "font-semibold text-primary underline decoration-primary/40 decoration-2 underline-offset-4"
-                      : "text-muted-foreground hover:text-primary",
+                    desktopNavLinkClass(active),
+                    "h-full items-center",
                   )}
                 >
                   {link.label}
