@@ -20,6 +20,8 @@ ENV PORT=8080
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
+COPY scripts/fly-release-migrate.sh ./scripts/fly-release-migrate.sh
+RUN chmod +x ./scripts/fly-release-migrate.sh
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 EXPOSE 8080
