@@ -4,6 +4,8 @@ export const PRODUCTION_APP_URL = "https://www.instructorebi.com";
 /** Browser tab, PWA, and metadata brand (not legacy SimDrive). */
 export const APP_BRAND_NAME = "ინსტრუქტორები";
 export const APP_BRAND_NAME_LATIN = "Instructorebi";
+/** Public support inbox (UI + contact page). */
+export const APP_SUPPORT_EMAIL = "support@instructorebi.com";
 export const APP_DEFAULT_TITLE = `${APP_BRAND_NAME} | მართვის გამოცდის მომზადება`;
 export const APP_TITLE_TEMPLATE = `%s | ${APP_BRAND_NAME}`;
 

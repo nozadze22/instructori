@@ -71,7 +71,7 @@ export const MOCK_INSTRUCTOR_PROFILE = {
     stages: [
       {
         step: "ეტაპი 1",
-        title: "SimDrive VR სიმულატორი",
+        title: "Instructorebi ონლაინ პრაქტიკა",
         description:
           "პედლების მგრძნობელობის, მექანიკის გადაცემათა კოლოფის და საგზაო ნიშნების ავტომატიზმამდე მიყვანა სტრესის გარეშე.",
       },
@@ -119,8 +119,8 @@ export const MOCK_INSTRUCTOR_PROFILE = {
     {
       image:
         "https://lh3.googleusercontent.com/aida-public/AB6AXuD7vU6_1O_9hr5Qe--Vnz-Ubu5eSpJjFtlUjqubt5Bt9pKehMNSjUcC49AyAi-MXvj2V_R3HJUc8yO6yGQjwhbUjukn4RgTNHNYfxy188OB3GEb0ZIe_dAwK9CeJruFQet6DRG0cQQMpzEuV7vNBMXksfgqNQKi7u1KobhrctHjzho4rxN_OAnadjPHWXpUrVXb-h-Fl3Y4V_tt91cc3y6vfxh57kNesVmVWxVSM16RwYImRWHOotjR_A",
-      tag: "SimDrive RIG",
-      title: "SimDrive Pro Digital Twin",
+      tag: "Instructorebi",
+      title: "Instructorebi მარშრუტის სიმულაცია",
       description:
         "3-ეკრანიანი 180° სისტემა, ჰიდრავლიკური გადაბმულობა და რუსთავის მოედნის მილიმეტრული ციფრული ასლი.",
       meta: "Direct Drive 25Nm",
@@ -190,7 +190,7 @@ export const MOCK_INSTRUCTOR_PROFILE = {
       meta: "B კატეგორია (მექანიკა) • 1 კვირის წინ",
       avatar:
         "https://lh3.googleusercontent.com/aida-public/AB6AXuBdg5L2FOSRWs6J0gpbxx0ohFlLcv-cl3-Y5Xo7a4uoGJft8OWngmnwKuyehO6O37QTqzreE5FTOd6QhnLnVQn12Zcruto_Ut11esPjs4kmwOZm1g1kgRfb11QbY2Ymy_NnrtJwtOCDn0zJWcTQ-oqtS4FT1y8UzR1Gbq07Ckj3vqx_pY6p_SlkfP41Ge2zZNqcP_K4GrI7Mj0m51m-QZ5Hr23jxDgT9-Vj5g-zDo9d02kZ2DqWUFv3mw",
-      text: "მანქანა იდეალურ მდგომარეობაშია. SimDrive Pro-ს სიმულატორმა ქალაქის მარშრუტების ყველა ხაფანგი წინასწარ დამამახსოვრებინა. პირველივე ცდაზე ავიღე მართვის მოწმობა!",
+      text: "მანქანა იდეალურ მდგომარეობაშია. Instructorebi-ზე მარშრუტების გამეორებამ ქალაქის ყველა ხაფანგი წინასწარ დამამახსოვრებინა. პირველივე ცდაზე ავიღე მართვის მოწმობა!",
       verified: "დამოწმებული სტუდენტი • გარანტირებული ჩაბარების პაკეტი",
     },
   ],
@@ -209,7 +209,7 @@ export const MOCK_INSTRUCTOR_PROFILE = {
     },
     {
       id: "rig",
-      title: "SimDrive RIG + თეორია (1 სთ)",
+      title: "Instructorebi პრაქტიკა + თეორია (1 სთ)",
       subtitle: "VR სიმულატორი და შეცდომები",
       price: 45,
     },

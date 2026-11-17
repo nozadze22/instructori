@@ -56,7 +56,7 @@ export function buildVerificationEmailContent(
             <td style="background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);padding:28px 32px;">
               <p style="margin:0;font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.85);">Instructorebi</p>
               <h1 style="margin:8px 0 0;font-size:22px;font-weight:700;line-height:1.3;color:#ffffff;">დაადასტურე ელფოსტა</h1>
-              <p style="margin:10px 0 0;font-size:14px;line-height:1.45;color:rgba(255,255,255,0.88);">რეგისტრაციის ბოლო ნაბიჯი — SimDrive Pro</p>
+              <p style="margin:10px 0 0;font-size:14px;line-height:1.45;color:rgba(255,255,255,0.88);">რეგისტრაციის ბოლო ნაბიჯი — Instructorebi (ინსტრუქტორები)</p>
             </td>
           </tr>
           <tr>

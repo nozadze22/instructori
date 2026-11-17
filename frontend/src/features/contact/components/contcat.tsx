@@ -12,6 +12,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { ContactForm } from "@/features/contact/components/contact-form";
+import {
+  APP_BRAND_NAME,
+  APP_BRAND_NAME_LATIN,
+  APP_SUPPORT_EMAIL,
+} from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 const HERO_IMAGE =
@@ -21,8 +26,8 @@ const contactChannels = [
   {
     icon: Mail,
     label: "ელ-ფოსტა",
-    value: "support@simdrive.pro",
-    href: "mailto:support@simdrive.pro",
+    value: APP_SUPPORT_EMAIL,
+    href: `mailto:${APP_SUPPORT_EMAIL}`,
   },
   {
     icon: Phone,
@@ -77,30 +82,29 @@ const faqs = [
 
 export function Contact() {
   return (
-    <div className="overflow-x-hidden bg-surface-lowest text-foreground">
+    <div className="public-marketing overflow-x-hidden bg-slate-50 dark:bg-slate-950">
       <section className="relative flex min-h-[70vh] items-end overflow-hidden px-6 pb-16 pt-28 md:min-h-[75vh] md:pb-20">
         <Image
           src={HERO_IMAGE}
-          alt="SimDrive Pro სიმულატორის გარემო"
+          alt={`${APP_BRAND_NAME_LATIN} — მართვის მომზადების პლატფორმა`}
           fill
           priority
           className="object-cover object-center"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-linear-to-b from-surface-lowest/40 via-surface-lowest/70 to-surface-lowest" />
-        <div className="absolute inset-0 bg-linear-to-r from-surface-lowest/80 via-surface-lowest/40 to-transparent" />
-        <div className="hero-gradient absolute inset-0 opacity-80" />
+        <div className="absolute inset-0 bg-linear-to-b from-slate-900/70 via-slate-900/50 to-slate-900/85" />
+        <div className="hero-gradient absolute inset-0 opacity-40" />
 
         <div className="relative z-10 mx-auto w-full max-w-container">
           <p className="mb-4 text-xs font-bold tracking-[0.25em] text-primary uppercase animate-in fade-in slide-in-from-bottom-2 duration-700">
-            SimDrive Pro
+            {APP_BRAND_NAME_LATIN}
           </p>
-          <h1 className="text-glow max-w-3xl text-4xl leading-tight font-extrabold tracking-tighter text-white md:text-5xl lg:text-6xl animate-in fade-in slide-in-from-bottom-3 duration-700">
+          <h1 className="text-glow max-w-3xl text-4xl leading-tight font-extrabold tracking-tighter text-white drop-shadow-md md:text-5xl lg:text-6xl animate-in fade-in slide-in-from-bottom-3 duration-700">
             დაგვიკავშირდით
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            მზად ვართ გიპასუხოთ ნებისმიერ კითხვაზე SimDrive Pro-ს პლატფორმისა და
-            სერვისების შესახებ.
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-200 md:text-lg animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            მზად ვართ გიპასუხოთ ნებისმიერ კითხვაზე {APP_BRAND_NAME} (
+            {APP_BRAND_NAME_LATIN}) პლატფორმისა და სერვისების შესახებ.
           </p>
         </div>
       </section>

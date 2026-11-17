@@ -242,7 +242,7 @@ function PlatformPicker({
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-lg">
           <Smartphone className="size-5 text-primary" />
-          SimDrive Pro ტელეფონზე
+          Instructorebi ტელეფონზე
         </DialogTitle>
         <DialogDescription className="text-sm">
           აირჩიე შენი ტელეფონის ტიპი, რომ დაინსტალირების ინსტრუქცია

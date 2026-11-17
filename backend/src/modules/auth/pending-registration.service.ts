@@ -238,7 +238,7 @@ export class PendingRegistrationService {
     try {
       await this.emailClient.sendRaw({
         to: input.email,
-        subject: 'დაადასტურე ელფოსტა — SimDrive Pro',
+        subject: 'დაადასტურე ელფოსტა — Instructorebi',
         text,
         html,
       });

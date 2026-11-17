@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/input-group";
 import { useExamCities } from "@/features/routes/hooks/routes";
 import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
+import { APP_BRAND_NAME_LATIN } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 // const SOCIAL_PROOF_IMAGES = [
@@ -119,7 +120,7 @@ export function RegisterForm() {
             <div className="flex items-center gap-2">
               <HardHat className="size-10 fill-primary text-primary" />
               <h1 className="text-3xl font-bold tracking-tight text-primary">
-                SimDrive Pro
+                Instructorebi
               </h1>
             </div>
             <h2 className="mt-8 text-5xl leading-none font-extrabold tracking-tight text-foreground">
@@ -139,7 +140,7 @@ export function RegisterForm() {
             <div className="mb-8 lg:hidden">
               <div className="mb-6 flex items-center gap-2">
                 <HardHat className="size-8 fill-primary text-primary" />
-                <span className="text-xl font-bold text-primary">SimDrive Pro</span>
+                <span className="text-xl font-bold text-primary">Instructorebi</span>
               </div>
             </div>
 
@@ -652,7 +653,7 @@ export function RegisterForm() {
               <Avatar key={src} className="size-8">
                 <AvatarImage
                   src={src}
-                  alt={`SimDrive Pro student ${index + 1}`}
+                  alt={`${APP_BRAND_NAME_LATIN} სტუდენტი ${index + 1}`}
                 />
                 <AvatarFallback>S{index + 1}</AvatarFallback>
               </Avatar>

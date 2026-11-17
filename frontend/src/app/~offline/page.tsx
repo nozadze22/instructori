@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { APP_BRAND_NAME_LATIN } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   title: "ინტერნეტი არ არის",
@@ -14,7 +15,7 @@ export default function OfflinePage() {
         ინტერნეტი არ არის ხელმისაწვდომი
       </h1>
       <p className="max-w-md text-sm text-muted-foreground">
-        SimDrive Pro-ს სრული ფუნქციებისთვის საჭიროა ინტერნეტ-კავშირი. გთხოვთ,
+        {APP_BRAND_NAME_LATIN}-ს სრული ფუნქციებისთვის საჭიროა ინტერნეტ-კავშირი. გთხოვთ,
         შეამოწმოთ ქსელი და სცადოთ ხელახლა.
       </p>
       <Button render={<Link href="/" />}>მთავარ გვერდზე დაბრუნება</Button>

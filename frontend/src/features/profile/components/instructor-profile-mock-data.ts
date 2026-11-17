@@ -34,8 +34,8 @@ export const MOCK_FLEET = [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAm_x367SGREzXIPHlPD4qHzT5vi1Yf4uJdxFEGgIYi0AonSl291BEU1DhWHTjRclvXNdJdB8O9tjNACo5rn-2L89mWnu049YFHhsBmLb7HHz3O83mCnE3uYto7Eqcs4Ofe2h0V8vWsEZtAxy6Ui1wlNhCwq0bu90nzbhpa-A_IEIK5zilv1Hj5ttEYzwcNsl_y4PhVjNJV5Mp1CVaIvlDboSj6cxg6Oh3yOaQPqbMUmVE5bmmWluEtHQ",
   },
   {
-    title: "SimDrive Pro Digital Twin",
-    tag: "SimDrive RIG",
+    title: "Instructorebi მარშრუტის სიმულაცია",
+    tag: "Instructorebi",
     sub: "1:1 Digital Twin",
     subPrimary: true,
     desc: "3-ეკრანიანი 180° სისტემა, ჰიდრავლიკური გადაბმულობა და მოედნის ციფრული ასლი.",
