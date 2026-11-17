@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, HardHat, Home } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { APP_BRAND_NAME_LATIN } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 export default function NotFound() {
@@ -17,7 +18,7 @@ export default function NotFound() {
         <div className="mb-8 flex items-center gap-2">
           <HardHat className="size-8 fill-primary text-primary" />
           <span className="text-xl font-bold tracking-tight text-primary">
-            SimDrive Pro
+            {APP_BRAND_NAME_LATIN}
           </span>
         </div>
 
@@ -30,7 +31,7 @@ export default function NotFound() {
         </h1>
         <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground md:text-base">
           ეს მარშრუტი არ არსებობს ან გადატანილია. დაბრუნდი მთავარ გვერდზე და
-          განაგრძე სწავლა SimDrive Pro-ზე.
+          განაგრძე სწავლა {APP_BRAND_NAME_LATIN}-ზე.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

@@ -60,7 +60,7 @@ export function AdminDashboardOverview() {
             ადმინისტრაციული პანელი
           </h1>
           <p className="mt-1 text-muted-foreground">
-            კეთილი იყოს თქვენი მობრძანება SimDrive Pro-ს ცენტრალურ მართვის
+            კეთილი იყოს თქვენი მობრძანება Instructorebi-ს ცენტრალურ მართვის
             სისტემაში.
           </p>
         </div>

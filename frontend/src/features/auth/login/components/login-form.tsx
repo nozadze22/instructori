@@ -22,6 +22,7 @@ import {
   type LoginSchema,
 } from "@/features/auth/login/schema/login.schema";
 import { defaultPathForUser, safeNextPath } from "@/lib/post-auth-path";
+import { APP_BRAND_NAME, APP_BRAND_NAME_LATIN } from "@/lib/site-config";
 import { useTurnstileSubmit } from "@/hooks/use-turnstile-submit";
 import { useGetMe, useLogin } from "../hooks/login";
 
@@ -84,10 +85,10 @@ export function LoginForm() {
               <Gauge className="size-6 text-on-primary-container" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              SimDrive Pro
+              {APP_BRAND_NAME_LATIN}
             </h1>
             <p className="mt-1 text-sm font-medium text-muted-foreground">
-              Precision Driving Simulation
+              {APP_BRAND_NAME} · მართვის გამოცდის მომზადება
             </p>
           </div>
 

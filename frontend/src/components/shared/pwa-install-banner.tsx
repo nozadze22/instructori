@@ -76,7 +76,7 @@ export function PwaInstallBanner({ className }: PwaInstallBannerProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">
-            SimDrive Pro ტელეფონზე
+            Instructorebi ტელეფონზე
           </p>
           <p className="truncate text-xs text-muted-foreground">
             დააინსტალირე App Store-ის გარეშე

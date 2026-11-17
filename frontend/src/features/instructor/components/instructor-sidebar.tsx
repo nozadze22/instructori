@@ -54,7 +54,7 @@ export function InstructorSidebar() {
           ინსტრუქტორი
         </Link>
         <p className="mt-1 text-[11px] font-semibold tracking-[0.2em] text-muted-foreground uppercase opacity-70">
-          SimDrive Pro
+          Instructorebi
         </p>
       </div>
 

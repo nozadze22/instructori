@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { APP_BRAND_NAME, APP_BRAND_NAME_LATIN } from "@/lib/site-config";
 
 const platformLinks = [
-  { label: "სიმულატორები", href: "#" },
-  { label: "კურსები", href: "#" },
-  { label: "ანალიტიკა", href: "#" },
-  { label: "ლიდერბორდი", href: "#" },
+  { label: "მარშრუტები", href: "/marshrutebi" },
+  { label: "ინსტრუქტორები", href: "/instructors" },
+  { label: "რეგისტრაცია", href: "/register" },
+  { label: "კონტაქტი", href: "/contact" },
 ];
 
 const companyLinks = [
@@ -19,9 +20,8 @@ const companyLinks = [
 
 
 const legalLinks = [
-  { label: "კონფიდენციალურობა", href: "#" },
-  { label: "მომსახურების პირობები", href: "#" },
-  { label: "ქუქი-ფაილები", href: "#" },
+  { label: "კონფიდენციალურობა", href: "/privacy" },
+  { label: "მომსახურების პირობები", href: "/terms" },
 ];
 
 export function SiteFooter() {
@@ -31,11 +31,11 @@ export function SiteFooter() {
         <div className="mb-12 grid grid-cols-1 gap-12 md:grid-cols-4">
           <div className="space-y-4">
             <span className="text-xl font-semibold tracking-tight text-primary">
-              SimDrive Pro
+              {APP_BRAND_NAME_LATIN}
             </span>
             <p className="text-base text-muted-foreground">
-              ინდუსტრიის სტანდარტი მაღალი წარმადობის მართვის სიმულაციასა და
-              პროფესიულ განათლებაში.
+              {APP_BRAND_NAME} — მართვის გამოცდის მომზადება, საგამოცდო მარშრუტები
+              და ავტო ინსტრუქტორების პლატფორმა.
             </p>
           </div>
 
@@ -97,7 +97,8 @@ export function SiteFooter() {
 
         <div className="flex flex-col items-center justify-between gap-4 pt-8 md:flex-row">
           <p className="text-xs font-semibold text-muted-foreground">
-            © 2024 SimDrive Pro. ყველა უფლება დაცულია.
+            © {new Date().getFullYear()} {APP_BRAND_NAME_LATIN}. ყველა უფლება
+            დაცულია.
           </p>
           <div className="flex flex-wrap justify-center gap-6 text-xs font-semibold text-muted-foreground md:gap-8">
             {legalLinks.map((link) => (
