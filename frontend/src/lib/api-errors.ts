@@ -48,6 +48,8 @@ const EXACT_API_MESSAGES: Record<string, string> = {
   "route not found": "მარშრუტი ვერ მოიძებნა.",
   "profile not found": "პროფილი ვერ მოიძებნა.",
   "forbidden": "ამ მოქმედების განხორციელება არ გინდათ.",
+  "access pending approval":
+    "ანგარიში ჯერ არ არის დამტკიცებული — მარშრუტებს მიიღებ აქტივაციის შემდეგ.",
   "not found": "მოთხოვნილი მონაცემი ვერ მოიძებნა.",
   "could not generate instructor code":
     "ინსტრუქტორის კოდის შექმნა ვერ მოხერხდა. სცადე ხელახლა.",

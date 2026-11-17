@@ -30,10 +30,12 @@ function explainMapsError(error: unknown): MapsErrorInfo {
     typeof window !== "undefined" ? window.location.origin : resolvePublicSiteUrl();
 
   const referrerHints = [
-    `${origin}/*`,
-    "http://localhost:3001/*",
-    "http://127.0.0.1:3001/*",
-    ...PRODUCTION_APP_ORIGINS.map((base) => `${base}/*`),
+    ...new Set([
+      `${origin}/*`,
+      "http://localhost:3001/*",
+      "http://127.0.0.1:3001/*",
+      ...PRODUCTION_APP_ORIGINS.map((base) => `${base}/*`),
+    ]),
   ];
 
   if (/RefererNotAllowed/i.test(message)) {
@@ -227,8 +229,8 @@ function MapsSetupPanel({
         </div>
         <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
         <ol className="mt-4 list-decimal space-y-1.5 pl-4 text-sm text-foreground/90">
-          {steps.map((step) => (
-            <li key={step}>{step}</li>
+          {steps.map((step, index) => (
+            <li key={`${index}-${step}`}>{step}</li>
           ))}
         </ol>
         {docsUrl ? (

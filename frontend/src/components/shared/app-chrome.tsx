@@ -8,11 +8,12 @@ import Wrapper from "@/components/shared/wrapper/wrapper";
 import { useGetMe } from "@/features/auth/login/hooks/login";
 import { ChatFloatingButton } from "@/features/chat/components/chat-entry-button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { isAppUser } from "@/lib/auth-paths";
+import { isAppUser, isPendingInstructor } from "@/lib/auth-paths";
 import {
   forbiddenPath,
   isAppUserPublicPath,
   isInstructorOnlyPath,
+  isPendingInstructorAllowedPath,
 } from "@/lib/route-access";
 
 function isAdminPanelPath(pathname: string) {
@@ -64,12 +65,19 @@ export function AppChrome({ children }: { children: ReactNode }) {
   const { data: me, isLoading: isMeLoading } = useGetMe();
 
   useEffect(() => {
-    if (isMeLoading || !me || !isAppUser(me)) return;
+    if (isMeLoading || !me) return;
+    if (isPendingInstructor(me) && !isPendingInstructorAllowedPath(pathname)) {
+      router.replace("/pending");
+      return;
+    }
+    if (!isAppUser(me)) return;
     if (isAppUserPublicPath(pathname)) return;
     if (isInstructorOnlyPath(pathname)) {
       router.replace(forbiddenPath(pathname));
     }
   }, [isMeLoading, me, pathname, router]);
+
+  const pendingInstructor = Boolean(me && isPendingInstructor(me));
 
   const skipWrapper =
     isAlwaysFullBleedPath(pathname) ||
@@ -84,7 +92,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <>
         <Navbar />
         <main className="mt-16 flex min-h-0 flex-1 flex-col">{children}</main>
-        <ChatFloatingButton />
+        {pendingInstructor ? null : <ChatFloatingButton />}
       </>
     );
   }
@@ -95,7 +103,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <main className="mt-16 flex min-h-0 flex-1 flex-col">
         <Wrapper className="flex flex-1 flex-col">{children}</Wrapper>
       </main>
-      <ChatFloatingButton />
+      {pendingInstructor ? null : <ChatFloatingButton />}
     </>
   );
 }

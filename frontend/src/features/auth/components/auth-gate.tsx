@@ -15,6 +15,8 @@ type AuthGateProps = {
   children: ReactNode;
   roles?: Role[];
   accessStatuses?: AccessStatus[];
+  /** When roles match but access is PENDING, send here instead of `redirectTo`. */
+  pendingRedirect?: string;
   redirectTo: string;
   loginRedirect?: string;
 };
@@ -23,6 +25,7 @@ export function AuthGate({
   children,
   roles,
   accessStatuses,
+  pendingRedirect,
   redirectTo,
   loginRedirect = "/login",
 }: AuthGateProps) {
@@ -30,10 +33,13 @@ export function AuthGate({
   const pathname = usePathname();
   const { data: me, isLoading, isError, error } = useGetMe();
 
-  const allowed =
-    !!me &&
-    (!roles || roles.includes(me.role)) &&
-    (!accessStatuses || accessStatuses.includes(me.accessStatus));
+  const roleAllowed = !!me && (!roles || roles.includes(me.role));
+  const accessAllowed =
+    !me ||
+    !accessStatuses ||
+    me.role === "ADMIN" ||
+    accessStatuses.includes(me.accessStatus);
+  const allowed = roleAllowed && accessAllowed;
 
   useEffect(() => {
     if (isLoading) return;
@@ -45,6 +51,14 @@ export function AuthGate({
           : loginRedirect,
       );
     } else if (!allowed) {
+      if (
+        pendingRedirect &&
+        roleAllowed &&
+        me.accessStatus === "PENDING"
+      ) {
+        router.replace(pendingRedirect);
+        return;
+      }
       router.replace(
         redirectTo === FORBIDDEN_PATH ? forbiddenPath(pathname) : redirectTo,
       );
@@ -57,7 +71,9 @@ export function AuthGate({
     loginRedirect,
     me,
     pathname,
+    pendingRedirect,
     redirectTo,
+    roleAllowed,
     router,
   ]);
 

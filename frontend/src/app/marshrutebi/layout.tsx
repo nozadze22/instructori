@@ -13,6 +13,8 @@ export default function MarshrutebiLayout({ children }: { children: ReactNode })
   return (
     <AuthGate
       roles={["INSTRUCTOR", "ADMIN"]}
+      accessStatuses={["ACTIVE"]}
+      pendingRedirect="/pending"
       redirectTo={FORBIDDEN_PATH}
       loginRedirect={loginRedirect}
     >

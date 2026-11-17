@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Contact, Home, Info, Map, Users } from "lucide-react";
 
-import type { Role } from "@/features/auth/login/api/login";
+import type { AccessStatus, Role } from "@/features/auth/login/api/login";
 
 export type NavbarLink = {
   label: string;
@@ -26,7 +26,16 @@ export const navbarLinks: NavbarLink[] = [
 export function visibleNavbarLinks(
   isLoggedIn: boolean,
   role?: Role | null,
+  accessStatus?: AccessStatus | null,
 ) {
+  if (
+    isLoggedIn &&
+    role === "INSTRUCTOR" &&
+    accessStatus === "PENDING"
+  ) {
+    return navbarLinks.filter((link) => link.href === "/contact");
+  }
+
   if (isLoggedIn && role === "USER") {
     return navbarLinks.filter(
       (link) =>
