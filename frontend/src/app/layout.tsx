@@ -3,7 +3,18 @@ import { Geist_Mono, Inter, Noto_Sans_Georgian } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppSerwistProvider } from "@/components/providers/serwist-provider";
 import { AppChrome } from "@/components/shared/app-chrome";
-import { PRODUCTION_APP_URL } from "@/lib/site-config";
+import { SiteJsonLd } from "@/components/seo/site-json-ld";
+import {
+  APP_BRAND_NAME,
+  APP_BRAND_NAME_LATIN,
+  APP_DEFAULT_TITLE,
+  APP_TITLE_TEMPLATE,
+  PRODUCTION_APP_URL,
+} from "@/lib/site-config";
+import {
+  DEFAULT_SITE_DESCRIPTION_TEXT,
+  ROOT_METADATA_KEYWORDS,
+} from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,13 +36,51 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(PRODUCTION_APP_URL),
-  title: "SimDrive Pro | პროფესიული სიმულაციური ტრენინგი",
-  description:
-    "ყველაზე მოწინავე მართვის სიმულაციის პლატფორმა მაღალი სტანდარტის გამოცდებისთვის.",
-  applicationName: "SimDrive Pro",
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: DEFAULT_SITE_DESCRIPTION_TEXT,
+  keywords: ROOT_METADATA_KEYWORDS,
+  authors: [{ name: APP_BRAND_NAME_LATIN, url: PRODUCTION_APP_URL }],
+  creator: APP_BRAND_NAME_LATIN,
+  publisher: APP_BRAND_NAME,
+  category: "education",
+  openGraph: {
+    type: "website",
+    locale: "ka_GE",
+    url: PRODUCTION_APP_URL,
+    siteName: APP_BRAND_NAME,
+    title: APP_DEFAULT_TITLE,
+    description: DEFAULT_SITE_DESCRIPTION_TEXT,
+    images: [
+      {
+        url: "/web-app-manifest-512x512.png",
+        width: 512,
+        height: 512,
+        alt: APP_BRAND_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_DEFAULT_TITLE,
+    description: DEFAULT_SITE_DESCRIPTION_TEXT,
+    images: ["/web-app-manifest-512x512.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  alternates: {
+    canonical: PRODUCTION_APP_URL,
+    languages: { "ka-GE": PRODUCTION_APP_URL },
+  },
+  applicationName: APP_BRAND_NAME_LATIN,
   appleWebApp: {
     capable: true,
-    title: "SimDrive Pro",
+    title: APP_BRAND_NAME,
     statusBarStyle: "black-translucent",
   },
   formatDetection: {
@@ -68,6 +117,7 @@ export default function RootLayout({
         className="flex min-h-full flex-col font-sans"
         suppressHydrationWarning
       >
+        <SiteJsonLd />
         <AppSerwistProvider>
           <Providers>
             <AppChrome>{children}</AppChrome>

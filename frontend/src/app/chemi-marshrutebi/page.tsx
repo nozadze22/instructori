@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { MyRoutesPage } from "@/features/routes/components/my-routes-page";
+import { privatePageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "ჩემი მარშრუტები | SimDrive Pro",
-  description: "შენახული მარშრუტები SimDrive Pro-ზე.",
-};
+export const metadata: Metadata = privatePageMetadata("ჩემი მარშრუტები");
 
 export default function MyRoutesRoutePage() {
   return <MyRoutesPage />;

@@ -1,26 +1,44 @@
 import type { MetadataRoute } from "next";
 import { resolvePublicSiteUrl } from "@/lib/site-config";
+import { fetchPublicRouteIdsForSitemap } from "@/lib/seo";
 
 /** Public pages suitable for Google indexing. */
-const PUBLIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
+const STATIC_PUBLIC: {
+  path: string;
+  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+  priority: number;
+}[] = [
   { path: "", changeFrequency: "weekly", priority: 1 },
+  { path: "/marshrutebi", changeFrequency: "daily", priority: 0.95 },
   { path: "/instructors", changeFrequency: "daily", priority: 0.9 },
+  { path: "/register", changeFrequency: "monthly", priority: 0.85 },
   { path: "/about", changeFrequency: "monthly", priority: 0.7 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.7 },
-  { path: "/terms", changeFrequency: "yearly", priority: 0.4 },
-  { path: "/privacy", changeFrequency: "yearly", priority: 0.4 },
-  { path: "/login", changeFrequency: "monthly", priority: 0.3 },
-  { path: "/register", changeFrequency: "monthly", priority: 0.3 },
+  { path: "/login", changeFrequency: "monthly", priority: 0.35 },
+  { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const base = resolvePublicSiteUrl();
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = resolvePublicSiteUrl().replace(/\/$/, "");
   const lastModified = new Date();
 
-  return PUBLIC_PATHS.map(({ path, changeFrequency, priority }) => ({
-    url: `${base}${path}`,
+  const staticEntries: MetadataRoute.Sitemap = STATIC_PUBLIC.map(
+    ({ path, changeFrequency, priority }) => ({
+      url: path ? `${base}${path}` : `${base}/`,
+      lastModified,
+      changeFrequency,
+      priority,
+    }),
+  );
+
+  const routeIds = await fetchPublicRouteIdsForSitemap();
+  const routeEntries: MetadataRoute.Sitemap = routeIds.map((id) => ({
+    url: `${base}/marshrutebi/${id}`,
     lastModified,
-    changeFrequency,
-    priority,
+    changeFrequency: "weekly",
+    priority: 0.8,
   }));
+
+  return [...staticEntries, ...routeEntries];
 }

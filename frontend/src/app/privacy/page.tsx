@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, HardHat } from "lucide-react";
+import { buildPageMetadata } from "@/lib/seo";
+import { APP_BRAND_NAME } from "@/lib/site-config";
 
-export const metadata: Metadata = {
-  title: "კონფიდენციალურობის პოლიტიკა | SimDrive Pro",
-  description: "SimDrive Pro-ის კონფიდენციალურობის პოლიტიკა.",
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: "კონფიდენციალურობის პოლიტიკა",
+  path: "/privacy",
+  description: `${APP_BRAND_NAME} (Instructorebi) — კონფიდენციალურობის პოლიტიკა.`,
+});
 
 export default function PrivacyPage() {
   return (
@@ -21,7 +24,7 @@ export default function PrivacyPage() {
 
         <div className="mb-8 flex items-center gap-2">
           <HardHat className="size-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold text-primary">SimDrive Pro</span>
+          <span className="text-2xl font-bold text-primary">{APP_BRAND_NAME}</span>
         </div>
 
         <h1 className="text-3xl font-bold md:text-4xl">კონფიდენციალურობის პოლიტიკა</h1>

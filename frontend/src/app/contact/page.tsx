@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { Contact } from "@/features/contact/components/contcat";
 
-export const metadata: Metadata = {
-  title: "კონტაქტი | SimDrive Pro",
+import { Contact } from "@/features/contact/components/contcat";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "კონტაქტი",
+  path: "/contact",
   description:
-    "დაგვიკავშირდით SimDrive Pro-ს გუნდს — კითხვები, მხარდაჭერა და პარტნიორობა.",
-};
+    "დაუკავშირდი Instructorebi-ს გუნდს — კითხვები მართვის მოწმობაზე, ინსტრუქტორის რეგისტრაციაზე, პრაქტიკის გაკვეთილებსა და ტექნიკურ მხარდაჭერაზე.",
+  keywords: ["instructorebi კონტაქტი", "ავტოსკოლა კონტაქტი"],
+});
 
 export default function ContactPage() {
   return <Contact />;
