@@ -134,19 +134,30 @@ export function AdminDashboardOverview() {
               <p className="text-xs text-muted-foreground">ბოლო 7 დღე</p>
             </div>
           </div>
-          <div className="flex h-64 items-end gap-2 px-2">
+          <div className="flex h-64 items-stretch gap-2 px-2">
             {stats.registrationsByDay.map((item) => {
               const height = Math.round((item.count / chartMax) * 100);
               return (
                 <div
                   key={item.date}
-                  className={cn(
-                    "flex-1 rounded-t-sm bg-primary/20 transition-colors hover:bg-primary",
-                    item.count > 0 && "bg-primary/40",
-                  )}
-                  style={{ height: `${Math.max(height, item.count > 0 ? 8 : 4)}%` }}
-                  title={`${item.date}: ${item.count}`}
-                />
+                  className="group/bar relative flex min-h-0 flex-1 flex-col justify-end"
+                >
+                  <div
+                    className={cn(
+                      "rounded-t-sm bg-primary/20 transition-colors group-hover/bar:bg-primary",
+                      item.count > 0 && "bg-primary/40",
+                    )}
+                    style={{
+                      height: `${Math.max(height, item.count > 0 ? 8 : 4)}%`,
+                    }}
+                  />
+                  <div
+                    role="tooltip"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-white/10 bg-popover px-3 py-1.5 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover/bar:opacity-100"
+                  >
+                    {formatRegistrationsByDayTooltip(item.date, item.count)}
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -435,4 +446,19 @@ function formatRelative(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatRegistrationsByDayTooltip(date: string, count: number) {
+  const dayLabel = new Intl.DateTimeFormat("ka-GE", {
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${date}T12:00:00`));
+
+  if (count === 0) {
+    return `${dayLabel} — რეგისტრაცია არ იყო`;
+  }
+
+  const people =
+    count === 1 ? "1 ადამიანი" : `${count} ადამიანი`;
+  return `${dayLabel} — ${people} დარეგისტირდა`;
 }

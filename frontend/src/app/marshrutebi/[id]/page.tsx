@@ -1,16 +1,40 @@
 import type { Metadata } from "next";
 import { RouteDetailPage } from "@/features/routes/components/route-detail-page";
+import { buildPageMetadata, fetchPublicRouteForSeo } from "@/lib/seo";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { id } = await params;
-  return {
-    title: `მარშრუტი | SimDrive Pro`,
-    description: `სისტემური მარშრუტი ${id}`,
-  };
+  const route = await fetchPublicRouteForSeo(id);
+
+  const city = route?.city?.trim();
+  const title = route?.title?.trim()
+    ? route.title
+    : city
+      ? `საგამოცდო მარშრუტი — ${city}`
+      : "საგამოცდო მარშრუტი";
+
+  const description =
+    route?.description?.trim() ||
+    (city
+      ? `${title} — საგამოცდო მარშრუტი ქალაქ ${city}-ში. მართვის გამოცდის მომზადება, ხმოვანი ბრძანებები და ნავიგაცია Instructorebi-ზე.`
+      : `საგამოცდო მარშრუტი Instructorebi-ზე — მართვის მოწმობის სწავლა და გამოცდის მომზადება.`);
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/marshrutebi/${id}`,
+    keywords: [
+      city ? `${city} საგამოცდო მარშრუტი` : "საგამოცდო მარშრუტი",
+      "მართვის გამოცდა",
+      "instructorebi მარშრუტი",
+    ],
+  });
 }
 
 export default async function PublicRouteDetailPage({ params }: PageProps) {

@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 
 import { StudentDetailPage } from "@/features/profile/components/student-detail-page";
 
-export const metadata: Metadata = {
-  title: "სტუდენტის პროგრესი | SimDrive Pro",
-  description: "სტუდენტის პრაქტიკები და შეცდომების ანალიტიკა.",
-};
+import { privatePageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = privatePageMetadata("სტუდენტის პროგრესი");
 
 type StudentDetailRouteProps = {
   params: Promise<{ studentId: string }>;

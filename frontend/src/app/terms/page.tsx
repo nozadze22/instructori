@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, HardHat } from "lucide-react";
+import { buildPageMetadata } from "@/lib/seo";
+import { APP_BRAND_NAME } from "@/lib/site-config";
 
-export const metadata: Metadata = {
-  title: "წესები და პირობები | SimDrive Pro",
-  description: "SimDrive Pro-ის გამოყენების წესები და პირობები.",
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: "წესები და პირობები",
+  path: "/terms",
+  description: `${APP_BRAND_NAME} (Instructorebi) — გამოყენების წესები და პირობები.`,
+});
 
 export default function TermsPage() {
   return (
@@ -21,7 +24,7 @@ export default function TermsPage() {
 
         <div className="mb-8 flex items-center gap-2">
           <HardHat className="size-8 fill-primary text-primary" />
-          <span className="text-2xl font-bold text-primary">SimDrive Pro</span>
+          <span className="text-2xl font-bold text-primary">{APP_BRAND_NAME}</span>
         </div>
 
         <h1 className="text-3xl font-bold md:text-4xl">წესები და პირობები</h1>
@@ -33,9 +36,9 @@ export default function TermsPage() {
           <section>
             <h2 className="mb-2 text-xl font-semibold text-foreground">1. სერვისის შესახებ</h2>
             <p>
-              SimDrive Pro არის მართვის სწავლებისა და პრაქტიკის დამხმარე პლატფორმა.
+              {APP_BRAND_NAME} არის მართვის სწავლებისა და პრაქტიკის დამხმარე პლატფორმა.
               პლატფორმაზე განთავსებული მასალა და პრაქტიკის ჩანაწერები ემსახურება
-              სწავლის პროცესის გაუმჯობესებას და არ ცვლის რეალურ ინსტრუქტაჟს ან
+              სწავლის პროცესის გაუმჯობესებას და არ ცვლის რეალურ ინსტრუქტორს ან
               საგზაო მოძრაობის წესებს.
             </p>
           </section>
@@ -60,7 +63,7 @@ export default function TermsPage() {
             <h2 className="mb-2 text-xl font-semibold text-foreground">4. უსაფრთხოება და პასუხისმგებლობა</h2>
             <p>
               რეალურ გზაზე გადაადგილებისას ყოველთვის დაიცავით მოქმედი კანონები,
-              საგზაო ნიშნები და ინსტრუქტორის მითითებები. SimDrive Pro არ არის
+              საგზაო ნიშნები და ინსტრუქტორის მითითებები. {APP_BRAND_NAME} არ არის
               პასუხისმგებელი პლატფორმის მიღმა მიღებულ გადაწყვეტილებებზე.
             </p>
           </section>

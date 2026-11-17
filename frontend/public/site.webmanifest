@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "SimDrive Pro",
-  "short_name": "SimDrive",
-  "description": "პროფესიული სიმულაციური ტრენინგი მართვის გამოცდებისთვის",
+  "name": "ინსტრუქტორები",
+  "short_name": "Instructorebi",
+  "description": "მართვის გამოცდის მომზადება — მარშრუტები და ინსტრუქტორები",
   "lang": "ka",
   "dir": "ltr",
   "start_url": "/",

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { About } from "@/features/about/components/about";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "ჩვენს შესახებ | SimDrive Pro",
+export const metadata: Metadata = buildPageMetadata({
+  title: "ჩვენს შესახებ",
+  path: "/about",
   description:
-    "გაიცანით SimDrive Pro — მართვის სიმულაციის მოწინავე პლატფორმა სიზუსტითა და უსაფრთხოებით.",
-};
+    "გაიცანით Instructorebi (ინსტრუქტორები) — პლატფორმა მართვის გამოცდის მომზადებისთვის, რუკებით, ხმოვანი ნავიგაციით და ინსტრუქტორებთან ურთიერთობით.",
+  keywords: ["ჩვენს შესახებ instructorebi", "მართვის სიმულაცია"],
+});
 
 export default function AboutPage() {
   return <About />;
