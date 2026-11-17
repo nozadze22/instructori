@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { OptionalJwtAuthGuard } from '../auth/auth_guard/optional-jwt-auth.guard';
+import { PublicRoutesAccessGuard } from '../auth/auth_guard/public-routes-access.guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
 import { RoutesService } from './routes.service';
@@ -14,7 +15,7 @@ export class PublicRoutesController {
   ) {}
 
   @Get()
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard, PublicRoutesAccessGuard)
   catalog(
     @Query() query: PublicRoutesQueryDto,
     @CurrentUser() user?: AuthUser,
@@ -23,12 +24,13 @@ export class PublicRoutesController {
   }
 
   @Get('cities')
+  @UseGuards(OptionalJwtAuthGuard, PublicRoutesAccessGuard)
   cities() {
     return this.examRegionsService.getAllExamCities();
   }
 
   @Get(':id')
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard, PublicRoutesAccessGuard)
   findOne(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
     return this.routesService.findPublicRoute(id, user?.userId);
   }

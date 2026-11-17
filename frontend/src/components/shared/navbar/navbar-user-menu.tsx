@@ -38,7 +38,13 @@ type NavbarUserMenuProps = {
 export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
   const router = useRouter();
   const { mutate: logout, isPending } = useLogout();
-  const { data: profile } = useGetProfile({ enabled: true });
+  const isAdmin = isAdminUser(user);
+  const appUser = isAppUser(user);
+  const isPendingAccess =
+    user.role === "INSTRUCTOR" && user.accessStatus === "PENDING";
+  const { data: profile } = useGetProfile({
+    enabled: !isPendingAccess,
+  });
   const { openChat } = useChatDrawer();
 
   function goToMessages() {
@@ -47,11 +53,6 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
 
   const displayName = userDisplayName(user);
   const initials = userInitials(user);
-
-  const isAdmin = isAdminUser(user);
-  const appUser = isAppUser(user);
-  const isPendingAccess =
-    user.role === "INSTRUCTOR" && user.accessStatus === "PENDING";
 
   const primaryHref = isAdmin ? "/admin" : appHomeForUser(user);
   const primaryLabel = isAdmin
@@ -215,7 +216,7 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                 </DropdownMenuItem>
               ) : null}
 
-              {!appUser ? (
+              {!appUser && !isPendingAccess ? (
                 <DropdownMenuItem
                   className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
                   onClick={() => router.push("/profile")}
@@ -224,6 +225,19 @@ export function NavbarUserMenu({ user }: NavbarUserMenuProps) {
                     <UserRound className="size-4" />
                   </span>
                   <span className="flex-1 text-sm font-medium">პროფილი</span>
+                  <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
+                </DropdownMenuItem>
+              ) : null}
+
+              {isPendingAccess ? (
+                <DropdownMenuItem
+                  className="group/item cursor-pointer gap-3 rounded-xl px-2.5 py-2.5 focus:bg-primary/10"
+                  onClick={() => router.push("/contact")}
+                >
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/5 text-muted-foreground transition-colors group-focus/item:bg-primary/15 group-focus/item:text-primary">
+                    <MessageSquare className="size-4" />
+                  </span>
+                  <span className="flex-1 text-sm font-medium">კონტაქტი</span>
                   <ChevronRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/item:opacity-100 group-focus/item:opacity-100" />
                 </DropdownMenuItem>
               ) : null}

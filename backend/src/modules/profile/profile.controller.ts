@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { AccessGuard } from '../auth/auth_guard/access.guard';
 import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
@@ -39,7 +40,7 @@ import type { UploadedImageFile } from '../../storage/uploaded-image.type';
 import { ProfileService } from './profile.service';
 
 @Controller('profile')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AccessGuard)
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 

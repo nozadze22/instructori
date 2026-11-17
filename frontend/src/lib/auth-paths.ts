@@ -22,6 +22,10 @@ export function canAccessInstructorDashboard(user: AuthUser): boolean {
   return isAdminUser(user);
 }
 
+export function isPendingInstructor(user: AuthUser): boolean {
+  return user.role === "INSTRUCTOR" && user.accessStatus === "PENDING";
+}
+
 export function appHomeForUser(user: {
   role: string;
   accessStatus: string;

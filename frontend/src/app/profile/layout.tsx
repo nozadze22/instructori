@@ -10,7 +10,12 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
   const loginRedirect = `/login?next=${encodeURIComponent(pathname)}`;
 
   return (
-    <AuthGate redirectTo="/login" loginRedirect={loginRedirect}>
+    <AuthGate
+      accessStatuses={["ACTIVE"]}
+      pendingRedirect="/pending"
+      redirectTo="/login"
+      loginRedirect={loginRedirect}
+    >
       {children}
     </AuthGate>
   );

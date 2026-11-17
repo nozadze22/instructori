@@ -6,6 +6,7 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import { AccessGuard } from '../auth/auth_guard/access.guard';
 import { JwtAuthGuard } from '../auth/auth_guard/auth_guard';
 import { CurrentUser } from '../auth/auth_guard/current_user_decorator';
 import type { AuthUser } from '../auth/dto/auth-types';
@@ -13,7 +14,7 @@ import { RouteTtsDto } from './dto/route.dto';
 import { TtsService } from './tts.service';
 
 @Controller('routes')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AccessGuard)
 export class RoutesTtsController {
   constructor(private readonly ttsService: TtsService) {}
 

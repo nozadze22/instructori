@@ -21,6 +21,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import type { AccessStatus } from "@/features/auth/login/api/login";
 import { visibleNavbarLinks } from "./navbar_links";
 
 type BurgerMenuProps = {
@@ -28,6 +29,7 @@ type BurgerMenuProps = {
   isAdmin?: boolean;
   isAppUser?: boolean;
   isInstructor?: boolean;
+  accessStatus?: AccessStatus;
   isLoggedIn?: boolean;
 };
 
@@ -36,8 +38,12 @@ export function BurgerMenu({
   isAdmin,
   isAppUser,
   isInstructor,
+  accessStatus,
   isLoggedIn,
 }: BurgerMenuProps) {
+  const navRole = isAppUser ? "USER" : isInstructor ? "INSTRUCTOR" : undefined;
+  const pendingInstructor =
+    isInstructor && accessStatus === "PENDING";
   return (
     <Sheet>
       <SheetTrigger
@@ -61,10 +67,8 @@ export function BurgerMenu({
           <div className="px-3 pb-1">
             <PwaInstallButton className="w-full" variant="secondary" />
           </div>
-          {visibleNavbarLinks(
-            Boolean(isLoggedIn),
-            isAppUser ? "USER" : undefined,
-          ).map((link) => {
+          {visibleNavbarLinks(Boolean(isLoggedIn), navRole, accessStatus).map(
+            (link) => {
             const Icon = link.icon;
             return (
               <Link
@@ -97,7 +101,7 @@ export function BurgerMenu({
                 <LayoutDashboard className="size-4" />
                 <span>{isAdmin ? "ადმინ პანელი" : "დაშბორდი"}</span>
               </Link>
-              {isInstructor ? (
+              {isInstructor && !pendingInstructor ? (
                 <>
                   <Link
                     href="/routes"

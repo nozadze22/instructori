@@ -3,7 +3,12 @@
 import Link from "next/link";
 
 import { useGetMe } from "@/features/auth/login/hooks/login";
-import { appHomeForUser, isAdminUser, isAppUser } from "@/lib/auth-paths";
+import {
+  appHomeForUser,
+  isAdminUser,
+  isAppUser,
+  isPendingInstructor,
+} from "@/lib/auth-paths";
 import { cn } from "@/lib/utils";
 import { PwaInstallButton } from "@/components/shared/pwa-install-button";
 import { ChatNavButton } from "@/features/chat/components/chat-entry-button";
@@ -21,6 +26,7 @@ export function Navbar({ className }: NavbarProps) {
   const { data: me, isLoading } = useGetMe();
 
   const appHref = me && isAdminUser(me) ? "/admin" : null;
+  const pendingInstructor = Boolean(me && isPendingInstructor(me));
 
   return (
     <header
@@ -35,7 +41,8 @@ export function Navbar({ className }: NavbarProps) {
             appHref={appHref}
             isAdmin={me?.role === "ADMIN"}
             isAppUser={me?.role === "USER"}
-            isInstructor={false}
+            isInstructor={me?.role === "INSTRUCTOR"}
+            accessStatus={me?.accessStatus}
             isLoggedIn={Boolean(me)}
           />
           <Link
@@ -49,7 +56,8 @@ export function Navbar({ className }: NavbarProps) {
         </div>
 
         <div className="hidden items-center gap-6 md:flex">
-          {visibleNavbarLinks(Boolean(me), me?.role).map((link) => (
+          {visibleNavbarLinks(Boolean(me), me?.role, me?.accessStatus).map(
+            (link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -57,12 +65,13 @@ export function Navbar({ className }: NavbarProps) {
             >
               {link.label}
             </Link>
-          ))}
+          ),
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <NotificationsBell />
-          <ChatNavButton />
+          {pendingInstructor ? null : <NotificationsBell />}
+          {pendingInstructor ? null : <ChatNavButton />}
           <PwaInstallButton
             className="sm:hidden"
             showLabel={false}

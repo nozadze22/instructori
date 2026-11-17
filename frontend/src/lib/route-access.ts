@@ -29,6 +29,19 @@ const INSTRUCTOR_ONLY_PATHS = [
 
 export const FORBIDDEN_PATH = "/forbidden";
 
+/** Logged-in instructor waiting for admin approval — may only open these routes. */
+const PENDING_INSTRUCTOR_ALLOWED_PATHS = [
+  /^\/pending\/?$/,
+  /^\/contact\/?$/,
+  /^\/forbidden\/?$/,
+] as const;
+
+export function isPendingInstructorAllowedPath(pathname: string): boolean {
+  return PENDING_INSTRUCTOR_ALLOWED_PATHS.some((pattern) =>
+    pattern.test(pathname),
+  );
+}
+
 export function isAppUserPublicPath(pathname: string): boolean {
   return APP_USER_PUBLIC_PATHS.some((pattern) => pattern.test(pathname));
 }

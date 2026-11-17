@@ -11,6 +11,7 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailClientService } from '../email-client/email-client.service';
 import { NotificationClientService } from '../notification-client/notification-client.service';
+import { SmsClientService } from '../sms-client/sms-client.service';
 import { findInstructorByCodeForStudentLink } from '../profile/instructor-code.util';
 import {
   ChangePasswordDto,
@@ -79,6 +80,7 @@ export class AuthService {
     private readonly notificationClient: NotificationClientService,
     private readonly emailClient: EmailClientService,
     private readonly pendingRegistration: PendingRegistrationService,
+    private readonly smsClient: SmsClientService,
   ) {}
 
   async register(
@@ -218,6 +220,12 @@ export class AuthService {
 
     this.notificationClient.publishInstructorRegistration({
       userId: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      city: input.payload.city,
+    });
+
+    this.smsClient.notifyAdminInstructorRegistered({
       fullName: user.fullName,
       email: user.email,
       city: input.payload.city,
